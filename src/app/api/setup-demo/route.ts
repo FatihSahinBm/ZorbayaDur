@@ -52,7 +52,7 @@ const DEMO_LOGS = [
   }
 ];
 
-export async function POST() {
+export async function GET() {
   if (!supabase) {
     return NextResponse.json({ error: "Supabase bağlantısı kurulamadı. Lütfen ortam değişkenlerini ayarlayın." }, { status: 500 });
   }
