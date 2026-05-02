@@ -44,7 +44,7 @@ create policy "Allow authenticated users to update reports" on public.reports
     using (true);
 
 -- Allow authenticated MEB users to read logs
-create policy "Allow authenticated users to read logs" on public.logs
+create policy "Allow authenticated users to read logs" on public.audit_logs
     for select to authenticated
     using (true);
 
