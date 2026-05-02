@@ -1,0 +1,142 @@
+"use client";
+
+import { useState } from "react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Shield, ArrowRight, Loader2 } from "lucide-react";
+import { useRouter } from "next/navigation";
+import Link from "next/link";
+
+export default function LoginPage() {
+  const [isLoading, setIsLoading] = useState(false);
+  const router = useRouter();
+
+  const handleLogin = (e: React.FormEvent, role: string) => {
+    e.preventDefault();
+    setIsLoading(true);
+    setTimeout(() => {
+      setIsLoading(false);
+      if (role === "student") {
+        router.push("/report");
+      } else if (role === "pdr") {
+        router.push("/dashboard/pdr");
+      } else {
+        router.push("/dashboard/meb");
+      }
+    }, 1500);
+  };
+
+  return (
+    <div className="flex flex-col min-h-[100dvh] bg-slate-950 text-slate-50 items-center justify-center p-4 relative overflow-hidden">
+      <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-rose-900/20 via-slate-950 to-slate-950 -z-10" />
+      
+      <Link href="/" className="absolute top-8 left-8 flex items-center gap-2 group">
+        <Shield className="h-6 w-6 text-rose-500 group-hover:scale-110 transition-transform" />
+        <span className="font-bold tracking-tight text-slate-300 group-hover:text-white transition-colors">Zorbaya Dur</span>
+      </Link>
+
+      <div className="w-full max-w-md animate-fade-in-up">
+        <Card className="bg-slate-900/80 border-slate-800 backdrop-blur-xl shadow-2xl shadow-rose-900/10">
+          <CardHeader className="space-y-2 text-center pb-8">
+            <div className="mx-auto bg-rose-500/10 p-3 rounded-full w-16 h-16 flex items-center justify-center mb-4 ring-1 ring-rose-500/20">
+              <Shield className="h-8 w-8 text-rose-500" />
+            </div>
+            <CardTitle className="text-3xl font-bold tracking-tight text-white">Sisteme Giriş</CardTitle>
+            <CardDescription className="text-slate-400">
+              Lütfen giriş yapmak istediğiniz rolü seçin.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <Tabs defaultValue="student" className="w-full">
+              <TabsList className="grid w-full grid-cols-3 mb-8 bg-slate-950/50 p-1 border border-slate-800 rounded-xl">
+                <TabsTrigger value="student" className="rounded-lg data-[state=active]:bg-rose-600 data-[state=active]:text-white transition-all">Öğrenci</TabsTrigger>
+                <TabsTrigger value="pdr" className="rounded-lg data-[state=active]:bg-blue-600 data-[state=active]:text-white transition-all">PDR</TabsTrigger>
+                <TabsTrigger value="meb" className="rounded-lg data-[state=active]:bg-amber-600 data-[state=active]:text-white transition-all">MEB</TabsTrigger>
+              </TabsList>
+              
+              <TabsContent value="student" className="animate-fade-in">
+                <form onSubmit={(e) => handleLogin(e, "student")} className="space-y-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="student-id" className="text-slate-300">Okul Numarası</Label>
+                    <Input id="student-id" placeholder="Örn: 1234" required className="bg-slate-950 border-slate-800 focus-visible:ring-rose-500 text-white placeholder:text-slate-600 h-12" defaultValue="1234" />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="student-pass" className="text-slate-300">Şifre</Label>
+                    <Input id="student-pass" type="password" required className="bg-slate-950 border-slate-800 focus-visible:ring-rose-500 text-white placeholder:text-slate-600 h-12" defaultValue="password" />
+                  </div>
+                  <div className="pt-4">
+                    <Button disabled={isLoading} className="w-full h-12 bg-rose-600 hover:bg-rose-700 text-white text-base rounded-xl transition-all shadow-lg shadow-rose-900/20">
+                      {isLoading ? <Loader2 className="mr-2 h-5 w-5 animate-spin" /> : <><LockIcon className="mr-2 h-4 w-4" /> Güvenli Giriş Yap</>}
+                    </Button>
+                    <p className="text-center text-xs text-slate-500 mt-4 flex items-center justify-center gap-1">
+                      <Shield className="h-3 w-3" /> %100 Anonim ve Güvenli
+                    </p>
+                  </div>
+                </form>
+              </TabsContent>
+
+              <TabsContent value="pdr" className="animate-fade-in">
+                <form onSubmit={(e) => handleLogin(e, "pdr")} className="space-y-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="pdr-email" className="text-slate-300">Kurumsal E-posta</Label>
+                    <Input id="pdr-email" type="email" placeholder="pdr@okul.k12.tr" required className="bg-slate-950 border-slate-800 focus-visible:ring-blue-500 text-white placeholder:text-slate-600 h-12" defaultValue="pdr@okul.k12.tr" />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="pdr-pass" className="text-slate-300">Şifre</Label>
+                    <Input id="pdr-pass" type="password" required className="bg-slate-950 border-slate-800 focus-visible:ring-blue-500 text-white placeholder:text-slate-600 h-12" defaultValue="password" />
+                  </div>
+                  <div className="pt-4">
+                    <Button disabled={isLoading} className="w-full h-12 bg-blue-600 hover:bg-blue-700 text-white text-base rounded-xl transition-all shadow-lg shadow-blue-900/20">
+                      {isLoading ? <Loader2 className="mr-2 h-5 w-5 animate-spin" /> : "PDR Paneline Gir"}
+                    </Button>
+                  </div>
+                </form>
+              </TabsContent>
+
+              <TabsContent value="meb" className="animate-fade-in">
+                <form onSubmit={(e) => handleLogin(e, "meb")} className="space-y-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="meb-email" className="text-slate-300">MEB Sicil No / E-posta</Label>
+                    <Input id="meb-email" placeholder="admin@meb.gov.tr" required className="bg-slate-950 border-slate-800 focus-visible:ring-amber-500 text-white placeholder:text-slate-600 h-12" defaultValue="admin@meb.gov.tr" />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="meb-pass" className="text-slate-300">Şifre</Label>
+                    <Input id="meb-pass" type="password" required className="bg-slate-950 border-slate-800 focus-visible:ring-amber-500 text-white placeholder:text-slate-600 h-12" defaultValue="password" />
+                  </div>
+                  <div className="pt-4">
+                    <Button disabled={isLoading} className="w-full h-12 bg-amber-600 hover:bg-amber-700 text-white text-base rounded-xl transition-all shadow-lg shadow-amber-900/20">
+                      {isLoading ? <Loader2 className="mr-2 h-5 w-5 animate-spin" /> : "Yönetim Paneline Gir"}
+                    </Button>
+                  </div>
+                </form>
+              </TabsContent>
+            </Tabs>
+          </CardContent>
+        </Card>
+      </div>
+    </div>
+  );
+}
+
+function LockIcon(props: any) {
+  return (
+    <svg
+      {...props}
+      xmlns="http://www.w3.org/2000/svg"
+      width="24"
+      height="24"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <rect width="18" height="11" x="3" y="11" rx="2" ry="2" />
+      <path d="M7 11V7a5 5 0 0 1 10 0v4" />
+    </svg>
+  );
+}
