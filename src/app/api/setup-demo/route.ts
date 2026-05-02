@@ -52,25 +52,48 @@ const DEMO_LOGS = [
   }
 ];
 
-export async function GET() {
-  if (!supabase) {
-    return NextResponse.json({ error: "Supabase bağlantısı kurulamadı. Lütfen ortam değişkenlerini ayarlayın." }, { status: 500 });
+export const dynamic = 'force-dynamic';
+
+export async function GET(request: Request) {
+  const { searchParams } = new URL(request.url);
+  const urlParam = searchParams.get('url');
+  const keyParam = searchParams.get('key');
+
+  let activeSupabase = supabase;
+
+  if (!activeSupabase && urlParam && keyParam) {
+    try {
+      const { createClient } = require('@supabase/supabase-js');
+      activeSupabase = createClient(urlParam, keyParam);
+    } catch (e) {
+      // ignore
+    }
+  }
+
+  if (!activeSupabase) {
+    return NextResponse.json({ 
+      error: "Supabase bağlantısı kurulamadı. Lütfen Vercel ayarlarından değişkenleri ekleyip Redeploy yapın VEYA linkin sonuna ?url=SUPABASE_URL&key=SUPABASE_KEY ekleyerek deneyin." 
+    }, { status: 500 });
   }
 
   try {
     // Insert Demo Reports
-    const { error: reportsError } = await supabase
+    const { error: reportsError } = await activeSupabase
       .from('reports')
       .insert(DEMO_REPORTS);
 
-    if (reportsError) throw reportsError;
+    if (reportsError && !reportsError.message.includes('duplicate')) {
+        throw reportsError;
+    }
 
     // Insert Demo Logs
-    const { error: logsError } = await supabase
+    const { error: logsError } = await activeSupabase
       .from('audit_logs')
       .insert(DEMO_LOGS);
 
-    if (logsError) throw logsError;
+    if (logsError && !logsError.message.includes('duplicate')) {
+        throw logsError;
+    }
 
     return NextResponse.json({ success: true, message: "Demo veriler başarıyla veritabanına basıldı!" });
   } catch (error: any) {
