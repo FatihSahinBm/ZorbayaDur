@@ -29,24 +29,14 @@ create table public.audit_logs (
 alter table public.reports enable row level security;
 alter table public.audit_logs enable row level security;
 
--- Allow anonymous inserts to reports (Students reporting)
-create policy "Allow anonymous inserts to reports" on public.reports
-    for insert to anon
-    with check (true);
+-- Allow public access for demo purposes (Since we simulate auth)
+create policy "Allow public inserts to reports" on public.reports for insert to public with check (true);
+create policy "Allow public read reports" on public.reports for select to public using (true);
+create policy "Allow public update reports" on public.reports for update to public using (true);
+create policy "Allow public delete reports" on public.reports for delete to public using (true);
 
--- Allow authenticated PDR/MEB users to read/update reports
-create policy "Allow authenticated users to read reports" on public.reports
-    for select to authenticated
-    using (true);
-
-create policy "Allow authenticated users to update reports" on public.reports
-    for update to authenticated
-    using (true);
-
--- Allow authenticated MEB users to read logs
-create policy "Allow authenticated users to read logs" on public.audit_logs
-    for select to authenticated
-    using (true);
+create policy "Allow public inserts to logs" on public.audit_logs for insert to public with check (true);
+create policy "Allow public read logs" on public.audit_logs for select to public using (true);
 
 -- Create a function to automatically log report status changes
 create or replace function public.log_report_change()
