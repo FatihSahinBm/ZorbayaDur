@@ -141,7 +141,7 @@ export default function PDRDashboard() {
                       <TableCell>{getRiskBadge(report.risk_level)}</TableCell>
                       <TableCell className="text-slate-300">{report.category}</TableCell>
                       <TableCell>
-                        <Select defaultValue={report.status} onValueChange={(val) => handleStatusChange(report.id, val)}>
+                        <Select defaultValue={report.status} onValueChange={(val) => handleStatusChange(report.id, val as string)}>
                           <SelectTrigger className="w-[130px] h-8 bg-slate-950 border-slate-800 text-xs">
                             <SelectValue />
                           </SelectTrigger>
@@ -159,11 +159,11 @@ export default function PDRDashboard() {
                       </TableCell>
                       <TableCell className="text-right">
                         <Dialog>
-                          <DialogTrigger asChild>
+                          <DialogTrigger render={
                             <Button variant="outline" size="sm" className="border-slate-700 bg-slate-950 text-white hover:bg-slate-800">
                               Detay
                             </Button>
-                          </DialogTrigger>
+                          } />
                           <DialogContent className="bg-slate-900 border-slate-800 text-white sm:max-w-md">
                             <DialogHeader>
                               <DialogTitle className="flex items-center gap-2">

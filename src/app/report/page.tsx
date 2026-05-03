@@ -145,7 +145,7 @@ export default function StudentReportPage() {
             <form onSubmit={handleSubmit} className="space-y-6">
               <div className="space-y-3">
                 <Label htmlFor="category" className="text-slate-300 text-base">Zorbalık Türü (İsteğe bağlı)</Label>
-                <Select onValueChange={setCategory}>
+                <Select onValueChange={(val) => setCategory(val as string)}>
                   <SelectTrigger className="bg-slate-950 border-slate-800 text-slate-300 h-12 focus:ring-rose-500">
                     <SelectValue placeholder="Bir kategori seçin..." />
                   </SelectTrigger>
