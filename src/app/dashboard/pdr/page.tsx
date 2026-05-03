@@ -240,11 +240,14 @@ export default function PDRDashboard() {
                                     <p className="text-sm font-medium">Kimlik: *** Anonim ***</p>
                                   </div>
                                 </div>
-                                {report.risk_level === 'Kırmızı' && (
-                                  <Button size="sm" variant="destructive" className="bg-rose-600 hover:bg-rose-700 h-8 text-xs">
+                                {report.risk_level === 'Kırmızı' && report.status !== 'Kimlik Onayında' && (
+                                  <Button size="sm" variant="destructive" className="bg-rose-600 hover:bg-rose-700 h-8 text-xs" onClick={() => handleStatusChange(report.id, 'Kimlik Onayında')}>
                                     <LockKeyholeOpen className="w-3 h-3 mr-2" />
                                     Kimlik Onayı İste
                                   </Button>
+                                )}
+                                {report.status === 'Kimlik Onayında' && (
+                                  <Badge className="bg-amber-500 hover:bg-amber-600 text-white animate-pulse">Onay Bekleniyor</Badge>
                                 )}
                               </div>
                             </div>
@@ -272,6 +275,11 @@ export default function PDRDashboard() {
                                   </div>
                                 ))
                               )}
+                              <div ref={(el) => {
+                                if (el) {
+                                  el.scrollIntoView({ behavior: 'smooth' });
+                                }
+                              }} />
                             </div>
 
                             <form onSubmit={sendMessage} className="mt-4 pt-4 border-t border-slate-800 flex gap-2 shrink-0">

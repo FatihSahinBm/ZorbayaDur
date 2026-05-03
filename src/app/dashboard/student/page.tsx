@@ -209,6 +209,11 @@ export default function StudentDashboard() {
                                   </div>
                                 ))
                               )}
+                              <div ref={(el) => {
+                                if (el) {
+                                  el.scrollIntoView({ behavior: 'smooth' });
+                                }
+                              }} />
                             </div>
 
                             <form onSubmit={sendMessage} className="mt-4 pt-4 border-t border-slate-800 flex gap-2">
