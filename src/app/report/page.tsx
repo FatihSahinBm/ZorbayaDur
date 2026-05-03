@@ -10,21 +10,79 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Shield, ShieldAlert, Send, EyeOff, Info, CheckCircle2, Loader2, ArrowLeft } from "lucide-react";
 import Link from "next/link";
 import { toast } from "sonner";
+import { supabase } from "@/lib/supabase";
 
 export default function StudentReportPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
+  const [category, setCategory] = useState("");
+  const [content, setContent] = useState("");
+  const [trackingCode, setTrackingCode] = useState("");
 
-  const handleSubmit = (e: React.FormEvent) => {
+  // Basit bir AI Simülasyonu: Belirli tehlikeli kelimeleri tarar
+  const analyzeRiskLevel = (text: string) => {
+    const lowerText = text.toLowerCase();
+    const redWords = ["intihar", "ölmek", "öldürecek", "silah", "bıçak", "kan", "tehdit", "korkuyorum", "döv"];
+    const orangeWords = ["hakaret", "küfür", "zorla", "para", "dışlıyorlar", "dalga", "vur"];
+    
+    if (redWords.some(word => lowerText.includes(word))) return "Kırmızı";
+    if (orangeWords.some(word => lowerText.includes(word))) return "Turuncu";
+    return "Sarı"; // Varsayılan risk
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!content.trim()) {
+      toast.error("Lütfen olayı anlatın.");
+      return;
+    }
+
+    if (!supabase) {
+      toast.error("Veritabanı bağlantısı yok. Lütfen Supabase ayarlarını yapın.");
+      return;
+    }
+
     setIsSubmitting(true);
-    // Simulate AI analysis and submission
-    setTimeout(() => {
-      setIsSubmitting(false);
+    
+    try {
+      // AI Risk Analizini çalıştır
+      const calculatedRisk = analyzeRiskLevel(content);
+      const newTrackingCode = `ZRB-${Math.floor(100000 + Math.random() * 900000)}`;
+
+      // Supabase'e kaydet
+      const { error } = await supabase.from('reports').insert([
+        {
+          tracking_code: newTrackingCode,
+          category: category || "Bilinmiyor",
+          content: content,
+          risk_level: calculatedRisk,
+          status: "Yeni"
+        }
+      ]);
+
+      if (error) throw error;
+
+      // Log kaydı oluştur (AI Sınıflandırması)
+      await supabase.from('audit_logs').insert([
+        {
+          log_id: `LOG-${Math.floor(random() * 9000 + 1000)}`, // Geçici ID
+          action: `Yeni İhbar YZ Sınıflandırması: ${calculatedRisk} Kod`,
+          actor: "AI Engine",
+          status: "Başarılı"
+        }
+      ]);
+
+      setTrackingCode(newTrackingCode);
       setIsSuccess(true);
       toast.success("İhbarınız başarıyla ve anonim olarak iletildi.");
-    }, 2000);
+    } catch (error: any) {
+      toast.error("Bir hata oluştu: " + error.message);
+    } finally {
+      setIsSubmitting(false);
+    }
   };
+
+  const random = () => Math.random();
 
   if (isSuccess) {
     return (
@@ -40,10 +98,10 @@ export default function StudentReportPage() {
           </p>
           <div className="p-4 bg-slate-900 border border-slate-800 rounded-xl text-left">
             <p className="text-sm text-slate-400 mb-2 font-mono">Takip Kodu:</p>
-            <p className="text-xl font-bold tracking-wider text-rose-400">ZRB-{Math.floor(100000 + Math.random() * 900000)}</p>
+            <p className="text-xl font-bold tracking-wider text-rose-400">{trackingCode}</p>
             <p className="text-xs text-slate-500 mt-2">Bu kod ile ilerleyen günlerde durum sorgulaması yapabilirsiniz.</p>
           </div>
-          <Button onClick={() => setIsSuccess(false)} variant="outline" className="w-full h-12 border-slate-800 hover:bg-slate-800 text-white">
+          <Button onClick={() => { setIsSuccess(false); setContent(""); }} variant="outline" className="w-full h-12 border-slate-800 hover:bg-slate-800 text-white">
             Yeni Bir İhbar Yap
           </Button>
         </div>
@@ -54,7 +112,7 @@ export default function StudentReportPage() {
   return (
     <div className="flex flex-col min-h-[100dvh] bg-slate-950 text-slate-50">
       <header className="px-6 lg:px-14 h-20 flex items-center border-b border-slate-800/50 bg-slate-950/80 backdrop-blur-md sticky top-0 z-50">
-        <Link href="/" className="flex items-center gap-2 text-slate-400 hover:text-white transition-colors mr-6">
+        <Link href="/login" className="flex items-center gap-2 text-slate-400 hover:text-white transition-colors mr-6">
           <ArrowLeft className="h-5 w-5" />
           <span className="hidden sm:inline">Çıkış Yap</span>
         </Link>
@@ -62,7 +120,7 @@ export default function StudentReportPage() {
           <Shield className="h-6 w-6 text-rose-500" />
           <span className="font-bold text-lg tracking-tight">Öğrenci Paneli</span>
         </div>
-        <div className="w-[88px] sm:w-[100px]"></div> {/* Spacer for centering */}
+        <div className="w-[88px] sm:w-[100px]"></div>
       </header>
 
       <main className="flex-1 container max-w-2xl mx-auto py-8 px-4">
@@ -87,16 +145,16 @@ export default function StudentReportPage() {
             <form onSubmit={handleSubmit} className="space-y-6">
               <div className="space-y-3">
                 <Label htmlFor="category" className="text-slate-300 text-base">Zorbalık Türü (İsteğe bağlı)</Label>
-                <Select>
+                <Select onValueChange={setCategory}>
                   <SelectTrigger className="bg-slate-950 border-slate-800 text-slate-300 h-12 focus:ring-rose-500">
                     <SelectValue placeholder="Bir kategori seçin..." />
                   </SelectTrigger>
                   <SelectContent className="bg-slate-900 border-slate-800 text-slate-300">
-                    <SelectItem value="fiziksel">Fiziksel Zorbalık</SelectItem>
-                    <SelectItem value="sozel">Sözel Zorbalık (Hakaret, Alay)</SelectItem>
-                    <SelectItem value="siber">Siber Zorbalık (İnternet/Sosyal Medya)</SelectItem>
-                    <SelectItem value="psikolojik">Psikolojik/Duygusal Dışlama</SelectItem>
-                    <SelectItem value="diger">Diğer / Emin Değilim</SelectItem>
+                    <SelectItem value="Fiziksel Zorbalık">Fiziksel Zorbalık</SelectItem>
+                    <SelectItem value="Sözel Zorbalık">Sözel Zorbalık (Hakaret, Alay)</SelectItem>
+                    <SelectItem value="Siber Zorbalık">Siber Zorbalık (İnternet/Sosyal Medya)</SelectItem>
+                    <SelectItem value="Psikolojik Zorbalık">Psikolojik/Duygusal Dışlama</SelectItem>
+                    <SelectItem value="Diğer">Diğer / Emin Değilim</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -106,7 +164,9 @@ export default function StudentReportPage() {
                 <Textarea 
                   id="description" 
                   required
-                  placeholder="Lütfen olayı detaylıca anlatın. İsim vermek zorunda değilsiniz ancak olayın nerede ve ne zaman olduğunu belirtmek yardımcı olur..." 
+                  value={content}
+                  onChange={(e) => setContent(e.target.value)}
+                  placeholder="Örnek: Beni tehdit ediyorlar veya korkuyorum gibi kelimeler yazarsanız sistem Kırmızı Kod verir..." 
                   className="min-h-[200px] bg-slate-950 border-slate-800 focus-visible:ring-rose-500 text-white placeholder:text-slate-600 resize-none text-base p-4"
                 />
                 <p className="text-xs text-slate-500 flex items-center gap-1">
@@ -116,7 +176,7 @@ export default function StudentReportPage() {
 
               <Button disabled={isSubmitting} type="submit" className="w-full h-14 bg-rose-600 hover:bg-rose-700 text-white text-lg rounded-xl transition-all shadow-lg shadow-rose-900/20 group">
                 {isSubmitting ? (
-                  <><Loader2 className="mr-2 h-6 w-6 animate-spin" /> Şifreleniyor & Gönderiliyor...</>
+                  <><Loader2 className="mr-2 h-6 w-6 animate-spin" /> Şifreleniyor & YZ Analizi Yapılıyor...</>
                 ) : (
                   <><Send className="mr-2 h-5 w-5 group-hover:translate-x-1 transition-transform" /> Güvenli Olarak İhbar Et</>
                 )}
