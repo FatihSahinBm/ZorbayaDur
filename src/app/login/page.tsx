@@ -18,7 +18,6 @@ export default function LoginPage() {
     e.preventDefault();
     setIsLoading(true);
     setTimeout(() => {
-      setIsLoading(false);
       if (role === "student") {
         router.push("/report");
       } else if (role === "pdr") {
@@ -26,7 +25,7 @@ export default function LoginPage() {
       } else {
         router.push("/dashboard/meb");
       }
-    }, 1500);
+    }, 800); // Süreyi biraz kısalttım
   };
 
   return (
