@@ -3,19 +3,26 @@
 import { useState, useEffect } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Shield, Search, AlertTriangle, CheckCircle2, Clock, EyeOff, Activity, LogOut, LockKeyholeOpen, Loader2 } from "lucide-react";
+import { Shield, Search, AlertTriangle, CheckCircle2, Clock, EyeOff, Activity, LogOut, LockKeyholeOpen, Loader2, MessageSquare } from "lucide-react";
 import Link from "next/link";
 import { Input } from "@/components/ui/input";
 import { supabase } from "@/lib/supabase";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
 
 export default function PDRDashboard() {
   const [reports, setReports] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  
+  // Messages state
+  const [selectedReportId, setSelectedReportId] = useState<string | null>(null);
+  const [messages, setMessages] = useState<any[]>([]);
+  const [newMessage, setNewMessage] = useState("");
+  const [isMessagesLoading, setIsMessagesLoading] = useState(false);
 
   const fetchReports = async () => {
     if (!supabase) return;
@@ -34,11 +41,46 @@ export default function PDRDashboard() {
 
   useEffect(() => {
     fetchReports();
-    
-    // Realtime subscription simülasyonu / polling eklenebilir
     const interval = setInterval(fetchReports, 5000);
     return () => clearInterval(interval);
   }, []);
+
+  const fetchMessages = async (reportId: string) => {
+    if (!supabase) return;
+    setIsMessagesLoading(true);
+    const { data, error } = await supabase
+      .from("messages")
+      .select("*")
+      .eq("report_id", reportId)
+      .order("created_at", { ascending: true });
+      
+    if (!error) {
+      setMessages(data || []);
+    }
+    setIsMessagesLoading(false);
+  };
+
+  const sendMessage = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newMessage.trim() || !selectedReportId || !supabase) return;
+    
+    const content = newMessage;
+    setNewMessage(""); 
+    
+    const { error } = await supabase.from('messages').insert([
+      {
+        report_id: selectedReportId,
+        sender_role: 'pdr',
+        content: content
+      }
+    ]);
+    
+    if (error) {
+      toast.error("Mesaj gönderilemedi");
+    } else {
+      fetchMessages(selectedReportId);
+    }
+  };
 
   const handleStatusChange = async (id: string, newStatus: string) => {
     if (!supabase) return;
@@ -158,43 +200,82 @@ export default function PDRDashboard() {
                         </div>
                       </TableCell>
                       <TableCell className="text-right">
-                        <Dialog>
+                        <Dialog onOpenChange={(open) => {
+                          if (open) {
+                            setSelectedReportId(report.id);
+                            fetchMessages(report.id);
+                          }
+                        }}>
                           <DialogTrigger render={
                             <Button variant="outline" size="sm" className="border-slate-700 bg-slate-950 text-white hover:bg-slate-800">
-                              Detay
+                              <MessageSquare className="w-4 h-4 mr-2" /> Detay & Mesaj
                             </Button>
                           } />
-                          <DialogContent className="bg-slate-900 border-slate-800 text-white sm:max-w-md">
+                          <DialogContent className="bg-slate-900 border-slate-800 text-white sm:max-w-xl max-h-[90vh] flex flex-col">
                             <DialogHeader>
                               <DialogTitle className="flex items-center gap-2">
                                 İhbar Detayı: <span className="font-mono text-rose-500">{report.tracking_code}</span>
                               </DialogTitle>
-                              <DialogDescription className="text-slate-400">
-                                Gönderim: {new Date(report.created_at).toLocaleString('tr-TR')}
-                              </DialogDescription>
                             </DialogHeader>
-                            <div className="space-y-4 py-4">
+                            
+                            <div className="space-y-4 py-2 shrink-0">
                               <div className="bg-slate-950 p-4 rounded-md border border-slate-800">
                                 <p className="text-sm leading-relaxed">{report.content}</p>
                               </div>
-                              <div className="flex items-center justify-between p-4 rounded-md bg-slate-950 border border-slate-800">
+                              <div className="flex items-center justify-between p-3 rounded-md bg-slate-950 border border-slate-800">
                                 <div className="flex items-center gap-3">
                                   <div className="bg-slate-800 p-2 rounded-full">
-                                    <EyeOff className="w-5 h-5 text-slate-400" />
+                                    <EyeOff className="w-4 h-4 text-slate-400" />
                                   </div>
                                   <div>
                                     <p className="text-sm font-medium">Kimlik: *** Anonim ***</p>
-                                    <p className="text-xs text-slate-500">Çift kör (Double-blind) koruması aktif.</p>
                                   </div>
                                 </div>
                                 {report.risk_level === 'Kırmızı' && (
-                                  <Button size="sm" variant="destructive" className="bg-rose-600 hover:bg-rose-700">
-                                    <LockKeyholeOpen className="w-4 h-4 mr-2" />
+                                  <Button size="sm" variant="destructive" className="bg-rose-600 hover:bg-rose-700 h-8 text-xs">
+                                    <LockKeyholeOpen className="w-3 h-3 mr-2" />
                                     Kimlik Onayı İste
                                   </Button>
                                 )}
                               </div>
                             </div>
+
+                            <div className="flex-1 overflow-y-auto pr-2 mt-2 space-y-4 min-h-[200px]">
+                              {isMessagesLoading ? (
+                                <div className="flex justify-center p-4"><Loader2 className="w-6 h-6 animate-spin text-slate-500" /></div>
+                              ) : messages.length === 0 ? (
+                                <div className="text-center text-slate-500 mt-6">
+                                  <MessageSquare className="w-8 h-8 mx-auto mb-2 opacity-20" />
+                                  <p className="text-sm">Henüz mesaj yok. Öğrenciyle anonim olarak iletişime geçebilirsiniz.</p>
+                                </div>
+                              ) : (
+                                messages.map((msg) => (
+                                  <div key={msg.id} className={`flex flex-col ${msg.sender_role === 'pdr' ? 'items-end' : 'items-start'}`}>
+                                    <span className="text-xs text-slate-500 mb-1 px-1">
+                                      {msg.sender_role === 'pdr' ? 'Siz (PDR)' : 'Öğrenci (Anonim)'}
+                                    </span>
+                                    <div className={`px-4 py-2 rounded-2xl max-w-[80%] text-sm ${msg.sender_role === 'pdr' ? 'bg-blue-600 text-white rounded-tr-sm' : 'bg-slate-800 text-slate-200 rounded-tl-sm'}`}>
+                                      {msg.content}
+                                    </div>
+                                    <span className="text-[10px] text-slate-600 mt-1">
+                                      {new Date(msg.created_at).toLocaleTimeString('tr-TR', {hour: '2-digit', minute:'2-digit'})}
+                                    </span>
+                                  </div>
+                                ))
+                              )}
+                            </div>
+
+                            <form onSubmit={sendMessage} className="mt-4 pt-4 border-t border-slate-800 flex gap-2 shrink-0">
+                              <Textarea 
+                                value={newMessage}
+                                onChange={(e) => setNewMessage(e.target.value)}
+                                placeholder="Öğrenciye mesaj gönder (Anonim kalacak)..."
+                                className="resize-none h-[60px] bg-slate-950 border-slate-800 text-white focus-visible:ring-blue-500"
+                              />
+                              <Button type="submit" className="h-[60px] px-6 bg-blue-600 hover:bg-blue-700">
+                                Gönder
+                              </Button>
+                            </form>
                           </DialogContent>
                         </Dialog>
                       </TableCell>

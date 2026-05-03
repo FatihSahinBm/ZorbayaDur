@@ -49,10 +49,14 @@ export default function StudentReportPage() {
       const calculatedRisk = analyzeRiskLevel(content);
       const newTrackingCode = `ZRB-${Math.floor(100000 + Math.random() * 900000)}`;
 
+      // Get student_id from localStorage if it exists
+      const studentId = typeof window !== 'undefined' ? localStorage.getItem('student_id') || 'anonim' : 'anonim';
+
       // Supabase'e kaydet
       const { error } = await supabase.from('reports').insert([
         {
           tracking_code: newTrackingCode,
+          student_id: studentId,
           category: category || "Bilinmiyor",
           content: content,
           risk_level: calculatedRisk,

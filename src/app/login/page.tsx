@@ -19,7 +19,10 @@ export default function LoginPage() {
     setIsLoading(true);
     setTimeout(() => {
       if (role === "student") {
-        router.push("/report");
+        // Okul numarasını al
+        const studentId = (document.getElementById('student-id') as HTMLInputElement)?.value || 'anonim';
+        localStorage.setItem('student_id', studentId);
+        router.push("/dashboard/student");
       } else if (role === "pdr") {
         router.push("/dashboard/pdr");
       } else {
