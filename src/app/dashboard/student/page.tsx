@@ -54,9 +54,9 @@ export default function StudentDashboard() {
     setIsLoading(false);
   };
 
-  const fetchMessages = async (reportId: string) => {
+  const fetchMessages = async (reportId: string, showLoading = true) => {
     if (!supabase) return;
-    setIsMessagesLoading(true);
+    if (showLoading) setIsMessagesLoading(true);
     const { data, error } = await supabase
       .from("messages")
       .select("*")
@@ -66,8 +66,17 @@ export default function StudentDashboard() {
     if (!error) {
       setMessages(data || []);
     }
-    setIsMessagesLoading(false);
+    if (showLoading) setIsMessagesLoading(false);
   };
+
+  // Mesajları canlı (polling) yenile
+  useEffect(() => {
+    if (!selectedReportId) return;
+    const interval = setInterval(() => {
+      fetchMessages(selectedReportId, false);
+    }, 3000);
+    return () => clearInterval(interval);
+  }, [selectedReportId]);
 
   const sendMessage = async (e: React.FormEvent) => {
     e.preventDefault();
