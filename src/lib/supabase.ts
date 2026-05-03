@@ -3,7 +3,14 @@ import { createClient } from '@supabase/supabase-js';
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
 const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
 
-// Sadece geçerli bir URL varsa client oluştur, aksi halde build sırasında hata vermesini engelle
-export const supabase = (supabaseUrl && supabaseUrl.startsWith('http') && supabaseKey)
-  ? createClient(supabaseUrl, supabaseKey) 
-  : null;
+let supabaseClient = null;
+
+try {
+  if (supabaseUrl && supabaseUrl.startsWith('http') && supabaseKey) {
+    supabaseClient = createClient(supabaseUrl, supabaseKey);
+  }
+} catch (error) {
+  console.error("Supabase Client oluşturulamadı (Anahtar hatalı olabilir):", error);
+}
+
+export const supabase = supabaseClient;
