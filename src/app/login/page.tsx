@@ -67,7 +67,7 @@ export default function LoginPage() {
                     <Input id="student-pass" type="password" required className="bg-slate-950 border-slate-800 focus-visible:ring-rose-500 text-white placeholder:text-slate-600 h-12" defaultValue="password" />
                   </div>
                   <div className="pt-4">
-                    <Button disabled={isLoading} className="w-full h-12 bg-rose-600 hover:bg-rose-700 text-white text-base rounded-xl transition-all shadow-lg shadow-rose-900/20">
+                    <Button type="submit" disabled={isLoading} className="w-full h-12 bg-rose-600 hover:bg-rose-700 text-white text-base rounded-xl transition-all shadow-lg shadow-rose-900/20">
                       {isLoading ? <Loader2 className="mr-2 h-5 w-5 animate-spin" /> : <><LockIcon className="mr-2 h-4 w-4" /> Güvenli Giriş Yap</>}
                     </Button>
                     <p className="text-center text-xs text-slate-500 mt-4 flex items-center justify-center gap-1">
@@ -88,7 +88,7 @@ export default function LoginPage() {
                     <Input id="pdr-pass" type="password" required className="bg-slate-950 border-slate-800 focus-visible:ring-blue-500 text-white placeholder:text-slate-600 h-12" defaultValue="password" />
                   </div>
                   <div className="pt-4">
-                    <Button disabled={isLoading} className="w-full h-12 bg-blue-600 hover:bg-blue-700 text-white text-base rounded-xl transition-all shadow-lg shadow-blue-900/20">
+                    <Button type="submit" disabled={isLoading} className="w-full h-12 bg-blue-600 hover:bg-blue-700 text-white text-base rounded-xl transition-all shadow-lg shadow-blue-900/20">
                       {isLoading ? <Loader2 className="mr-2 h-5 w-5 animate-spin" /> : "PDR Paneline Gir"}
                     </Button>
                   </div>
@@ -106,7 +106,7 @@ export default function LoginPage() {
                     <Input id="meb-pass" type="password" required className="bg-slate-950 border-slate-800 focus-visible:ring-amber-500 text-white placeholder:text-slate-600 h-12" defaultValue="password" />
                   </div>
                   <div className="pt-4">
-                    <Button disabled={isLoading} className="w-full h-12 bg-amber-600 hover:bg-amber-700 text-white text-base rounded-xl transition-all shadow-lg shadow-amber-900/20">
+                    <Button type="submit" disabled={isLoading} className="w-full h-12 bg-amber-600 hover:bg-amber-700 text-white text-base rounded-xl transition-all shadow-lg shadow-amber-900/20">
                       {isLoading ? <Loader2 className="mr-2 h-5 w-5 animate-spin" /> : "Yönetim Paneline Gir"}
                     </Button>
                   </div>
