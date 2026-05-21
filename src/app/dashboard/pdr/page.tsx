@@ -13,6 +13,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, Di
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
+import { ThemeToggle } from "@/components/theme-toggle";
 
 export default function PDRDashboard() {
   const [reports, setReports] = useState<any[]>([]);
@@ -129,18 +130,19 @@ export default function PDRDashboard() {
   };
 
   return (
-    <div className="flex flex-col min-h-[100dvh] bg-slate-950 text-slate-50">
-      <header className="px-6 h-16 flex items-center border-b border-slate-800/50 bg-slate-900/80 backdrop-blur-md sticky top-0 z-50">
+    <div className="flex flex-col min-h-[100dvh] bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-50">
+      <header className="px-6 h-16 flex items-center border-b border-slate-200 dark:border-slate-800/50 bg-white/80 dark:bg-slate-900/80 backdrop-blur-md sticky top-0 z-50">
         <div className="flex items-center gap-2">
           <Shield className="h-6 w-6 text-blue-500" />
-          <span className="font-bold text-lg tracking-tight">PDR Paneli</span>
+          <span className="font-bold text-lg tracking-tight text-slate-900 dark:text-white">PDR Paneli</span>
         </div>
         <div className="ml-auto flex items-center gap-4">
-          <div className="hidden sm:flex items-center gap-2 text-sm text-slate-400">
+          <div className="hidden sm:flex items-center gap-2 text-sm text-slate-500 dark:text-slate-400">
             <Activity className="h-4 w-4 text-green-500" /> Yapay Zeka Aktif
           </div>
+          <ThemeToggle />
           <Link href="/login">
-            <Button variant="ghost" size="sm" className="text-slate-400 hover:text-white hover:bg-slate-800">
+            <Button variant="ghost" size="sm" className="text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800">
               <LogOut className="h-4 w-4 mr-2" /> Çıkış
             </Button>
           </Link>
@@ -150,24 +152,24 @@ export default function PDRDashboard() {
       <main className="flex-1 p-6 lg:p-8 space-y-8 max-w-7xl mx-auto w-full">
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 animate-fade-in-up">
           <div>
-            <h1 className="text-3xl font-bold tracking-tight text-white mb-1">Vaka Yönetimi</h1>
-            <p className="text-slate-400">Gelen anonim ihbarları ve yapay zeka analizlerini buradan takip edin.</p>
+            <h1 className="text-3xl font-bold tracking-tight text-slate-900 dark:text-white mb-1">Vaka Yönetimi</h1>
+            <p className="text-slate-600 dark:text-slate-400">Gelen anonim ihbarları ve yapay zeka analizlerini buradan takip edin.</p>
           </div>
           <div className="flex gap-4">
-            <Card className="bg-slate-900 border-slate-800 flex items-center px-4 py-2 gap-3">
+            <Card className="bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 flex items-center px-4 py-2 gap-3 shadow-sm">
               <div className="bg-rose-500/20 p-2 rounded-full"><AlertTriangle className="h-5 w-5 text-rose-500"/></div>
               <div>
-                <p className="text-sm text-slate-400 font-medium">Kırmızı Kod</p>
-                <p className="text-2xl font-bold text-white">{reports.filter(r => r.risk_level === 'Kırmızı').length}</p>
+                <p className="text-sm text-slate-500 dark:text-slate-400 font-medium">Kırmızı Kod</p>
+                <p className="text-2xl font-bold text-slate-900 dark:text-white">{reports.filter(r => r.risk_level === 'Kırmızı').length}</p>
               </div>
             </Card>
           </div>
         </div>
 
-        <Card className="bg-slate-900 border-slate-800 animate-fade-in-up" style={{ animationDelay: '100ms' }}>
-          <CardHeader className="border-b border-slate-800 pb-4">
+        <Card className="bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 shadow-sm animate-fade-in-up" style={{ animationDelay: '100ms' }}>
+          <CardHeader className="border-b border-slate-200 dark:border-slate-800 pb-4">
             <div className="flex justify-between items-center">
-              <CardTitle>Gelen İhbarlar (Canlı)</CardTitle>
+              <CardTitle className="text-slate-900 dark:text-white">Gelen İhbarlar (Canlı)</CardTitle>
             </div>
           </CardHeader>
           <CardContent className="p-0">
@@ -175,28 +177,28 @@ export default function PDRDashboard() {
               <div className="p-12 flex justify-center"><Loader2 className="w-8 h-8 animate-spin text-slate-500" /></div>
             ) : (
               <Table>
-                <TableHeader className="bg-slate-950/50">
-                  <TableRow className="border-slate-800">
-                    <TableHead className="text-slate-400">İhbar No</TableHead>
-                    <TableHead className="text-slate-400">Risk Analizi</TableHead>
-                    <TableHead className="text-slate-400">Kategori</TableHead>
-                    <TableHead className="text-slate-400">Durum</TableHead>
-                    <TableHead className="text-slate-400">Kalan Süre (48s)</TableHead>
-                    <TableHead className="text-right text-slate-400">İşlem</TableHead>
+                <TableHeader className="bg-slate-100/50 dark:bg-slate-950/50">
+                  <TableRow className="border-slate-200 dark:border-slate-800">
+                    <TableHead className="text-slate-600 dark:text-slate-400">İhbar No</TableHead>
+                    <TableHead className="text-slate-600 dark:text-slate-400">Risk Analizi</TableHead>
+                    <TableHead className="text-slate-600 dark:text-slate-400">Kategori</TableHead>
+                    <TableHead className="text-slate-600 dark:text-slate-400">Durum</TableHead>
+                    <TableHead className="text-slate-600 dark:text-slate-400">Kalan Süre (48s)</TableHead>
+                    <TableHead className="text-right text-slate-600 dark:text-slate-400">İşlem</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {reports.map((report) => (
-                    <TableRow key={report.id} className="border-slate-800 hover:bg-slate-800/50 transition-colors">
-                      <TableCell className="font-mono font-medium text-slate-300">{report.tracking_code}</TableCell>
+                    <TableRow key={report.id} className="border-slate-200 dark:border-slate-800 hover:bg-slate-100/50 dark:hover:bg-slate-800/50 transition-colors">
+                      <TableCell className="font-mono font-medium text-slate-700 dark:text-slate-300">{report.tracking_code}</TableCell>
                       <TableCell>{getRiskBadge(report.risk_level)}</TableCell>
-                      <TableCell className="text-slate-300">{report.category}</TableCell>
+                      <TableCell className="text-slate-700 dark:text-slate-300">{report.category}</TableCell>
                       <TableCell>
                         <Select defaultValue={report.status} onValueChange={(val) => handleStatusChange(report.id, val as string)}>
-                          <SelectTrigger className="w-[130px] h-8 bg-slate-950 border-slate-800 text-xs">
+                          <SelectTrigger className="w-[130px] h-8 bg-slate-50 dark:bg-slate-950 border-slate-200 dark:border-slate-800 text-slate-900 dark:text-slate-300 text-xs">
                             <SelectValue />
                           </SelectTrigger>
-                          <SelectContent className="bg-slate-900 border-slate-800">
+                          <SelectContent className="bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 text-slate-900 dark:text-slate-300">
                             <SelectItem value="Yeni">Yeni</SelectItem>
                             <SelectItem value="İnceleniyor">İnceleniyor</SelectItem>
                             <SelectItem value="Çözüldü">Çözüldü</SelectItem>
@@ -204,7 +206,7 @@ export default function PDRDashboard() {
                         </Select>
                       </TableCell>
                       <TableCell>
-                        <div className={`flex items-center text-sm ${report.status === 'Çözüldü' ? 'text-green-500' : 'text-amber-400'}`}>
+                        <div className={`flex items-center text-sm ${report.status === 'Çözüldü' ? 'text-green-500' : 'text-amber-500'}`}>
                           {report.status === 'Çözüldü' ? "-" : <><Clock className="w-4 h-4 mr-1" /> {calculateTimeLeft(report.created_at)}</>}
                         </div>
                       </TableCell>
@@ -216,32 +218,32 @@ export default function PDRDashboard() {
                           }
                         }}>
                           <DialogTrigger render={
-                            <Button variant="outline" size="sm" className="border-slate-700 bg-slate-950 text-white hover:bg-slate-800">
+                            <Button variant="outline" size="sm" className="border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-white hover:bg-slate-100 dark:hover:bg-slate-800">
                               <MessageSquare className="w-4 h-4 mr-2" /> Detay & Mesaj
                             </Button>
                           } />
-                          <DialogContent className="bg-slate-900 border-slate-800 text-white sm:max-w-xl max-h-[90vh] flex flex-col">
+                          <DialogContent className="bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 text-slate-900 dark:text-white sm:max-w-xl max-h-[90vh] flex flex-col">
                             <DialogHeader>
-                              <DialogTitle className="flex items-center gap-2">
+                              <DialogTitle className="flex items-center gap-2 text-slate-900 dark:text-white">
                                 İhbar Detayı: <span className="font-mono text-rose-500">{report.tracking_code}</span>
                               </DialogTitle>
                             </DialogHeader>
                             
                             <div className="space-y-4 py-2 shrink-0">
-                              <div className="bg-slate-950 p-4 rounded-md border border-slate-800">
-                                <p className="text-sm leading-relaxed">{report.content}</p>
+                              <div className="bg-slate-50 dark:bg-slate-950 p-4 rounded-md border border-slate-200 dark:border-slate-800">
+                                <p className="text-sm leading-relaxed text-slate-700 dark:text-slate-300">{report.content}</p>
                               </div>
-                              <div className="flex items-center justify-between p-3 rounded-md bg-slate-950 border border-slate-800">
+                              <div className="flex items-center justify-between p-3 rounded-md bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800">
                                 <div className="flex items-center gap-3">
-                                  <div className="bg-slate-800 p-2 rounded-full">
-                                    <EyeOff className="w-4 h-4 text-slate-400" />
+                                  <div className="bg-slate-200 dark:bg-slate-800 p-2 rounded-full">
+                                    <EyeOff className="w-4 h-4 text-slate-500 dark:text-slate-400" />
                                   </div>
                                   <div>
                                     <p className="text-sm font-medium">Kimlik: *** Anonim ***</p>
                                   </div>
                                 </div>
                                 {report.risk_level === 'Kırmızı' && report.status !== 'Kimlik Onayında' && (
-                                  <Button size="sm" variant="destructive" className="bg-rose-600 hover:bg-rose-700 h-8 text-xs" onClick={() => handleStatusChange(report.id, 'Kimlik Onayında')}>
+                                  <Button size="sm" variant="destructive" className="bg-rose-600 hover:bg-rose-700 h-8 text-xs text-white" onClick={() => handleStatusChange(report.id, 'Kimlik Onayında')}>
                                     <LockKeyholeOpen className="w-3 h-3 mr-2" />
                                     Kimlik Onayı İste
                                   </Button>
@@ -266,10 +268,10 @@ export default function PDRDashboard() {
                                     <span className="text-xs text-slate-500 mb-1 px-1">
                                       {msg.sender_role === 'pdr' ? 'Siz (PDR)' : 'Öğrenci (Anonim)'}
                                     </span>
-                                    <div className={`px-4 py-2 rounded-2xl max-w-[80%] text-sm ${msg.sender_role === 'pdr' ? 'bg-blue-600 text-white rounded-tr-sm' : 'bg-slate-800 text-slate-200 rounded-tl-sm'}`}>
+                                    <div className={`px-4 py-2 rounded-2xl max-w-[80%] text-sm ${msg.sender_role === 'pdr' ? 'bg-blue-600 text-white rounded-tr-sm' : 'bg-slate-100 dark:bg-slate-800 text-slate-900 dark:text-slate-200 rounded-tl-sm'}`}>
                                       {msg.content}
                                     </div>
-                                    <span className="text-[10px] text-slate-600 mt-1">
+                                    <span className="text-[10px] text-slate-500 mt-1">
                                       {new Date(msg.created_at).toLocaleTimeString('tr-TR', {hour: '2-digit', minute:'2-digit'})}
                                     </span>
                                   </div>
@@ -282,14 +284,14 @@ export default function PDRDashboard() {
                               }} />
                             </div>
 
-                            <form onSubmit={sendMessage} className="mt-4 pt-4 border-t border-slate-800 flex gap-2 shrink-0">
+                            <form onSubmit={sendMessage} className="mt-4 pt-4 border-t border-slate-200 dark:border-slate-800 flex gap-2 shrink-0">
                               <Textarea 
                                 value={newMessage}
                                 onChange={(e) => setNewMessage(e.target.value)}
                                 placeholder="Öğrenciye mesaj gönder (Anonim kalacak)..."
-                                className="resize-none h-[60px] bg-slate-950 border-slate-800 text-white focus-visible:ring-blue-500"
+                                className="resize-none h-[60px] bg-slate-50 dark:bg-slate-950 border-slate-200 dark:border-slate-800 text-slate-900 dark:text-white focus-visible:ring-blue-500"
                               />
-                              <Button type="submit" className="h-[60px] px-6 bg-blue-600 hover:bg-blue-700">
+                              <Button type="submit" className="h-[60px] px-6 bg-blue-600 hover:bg-blue-700 text-white">
                                 Gönder
                               </Button>
                             </form>

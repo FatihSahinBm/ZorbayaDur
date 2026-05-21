@@ -11,6 +11,7 @@ import { Shield, ShieldAlert, Send, EyeOff, Info, CheckCircle2, Loader2, ArrowLe
 import Link from "next/link";
 import { toast } from "sonner";
 import { supabase } from "@/lib/supabase";
+import { ThemeToggle } from "@/components/theme-toggle";
 
 export default function StudentReportPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -90,22 +91,22 @@ export default function StudentReportPage() {
 
   if (isSuccess) {
     return (
-      <div className="flex flex-col min-h-[100dvh] bg-slate-950 text-slate-50 items-center justify-center p-4">
+      <div className="flex flex-col min-h-[100dvh] bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-50 items-center justify-center p-4">
         <div className="w-full max-w-md text-center space-y-6 animate-fade-in-up">
           <div className="mx-auto bg-green-500/10 p-4 rounded-full w-24 h-24 flex items-center justify-center ring-1 ring-green-500/20">
             <CheckCircle2 className="h-12 w-12 text-green-500" />
           </div>
-          <h2 className="text-3xl font-bold text-white">İhbarınız Alındı</h2>
-          <p className="text-slate-400">
+          <h2 className="text-3xl font-bold text-slate-900 dark:text-white">İhbarınız Alındı</h2>
+          <p className="text-slate-600 dark:text-slate-400">
             Bildiriminiz şifrelenerek PDR birimine anonim olarak iletildi. Güvendesiniz. 
             Yapay zeka sistemimiz ihbarınızı aciliyet durumuna göre sınıflandırdı.
           </p>
-          <div className="p-4 bg-slate-900 border border-slate-800 rounded-xl text-left">
-            <p className="text-sm text-slate-400 mb-2 font-mono">Takip Kodu:</p>
-            <p className="text-xl font-bold tracking-wider text-rose-400">{trackingCode}</p>
-            <p className="text-xs text-slate-500 mt-2">Bu kod ile ilerleyen günlerde durum sorgulaması yapabilirsiniz.</p>
+          <div className="p-4 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl text-left shadow-sm">
+            <p className="text-sm text-slate-500 dark:text-slate-400 mb-2 font-mono">Takip Kodu:</p>
+            <p className="text-xl font-bold tracking-wider text-rose-500 dark:text-rose-400">{trackingCode}</p>
+            <p className="text-xs text-slate-500 dark:text-slate-500 mt-2">Bu kod ile ilerleyen günlerde durum sorgulaması yapabilirsiniz.</p>
           </div>
-          <Button onClick={() => { setIsSuccess(false); setContent(""); }} variant="outline" className="w-full h-12 border-slate-800 hover:bg-slate-800 text-white">
+          <Button onClick={() => { setIsSuccess(false); setContent(""); }} variant="outline" className="w-full h-12 border-slate-200 dark:border-slate-800 hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-900 dark:text-white">
             Yeni Bir İhbar Yap
           </Button>
         </div>
@@ -114,46 +115,48 @@ export default function StudentReportPage() {
   }
 
   return (
-    <div className="flex flex-col min-h-[100dvh] bg-slate-950 text-slate-50">
-      <header className="px-6 lg:px-14 h-20 flex items-center border-b border-slate-800/50 bg-slate-950/80 backdrop-blur-md sticky top-0 z-50">
-        <Link href="/login" className="flex items-center gap-2 text-slate-400 hover:text-white transition-colors mr-6">
+    <div className="flex flex-col min-h-[100dvh] bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-50">
+      <header className="px-6 lg:px-14 h-20 flex items-center border-b border-slate-200 dark:border-slate-800/50 bg-white/80 dark:bg-slate-950/80 backdrop-blur-md sticky top-0 z-50">
+        <Link href="/login" className="flex items-center gap-2 text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition-colors mr-6">
           <ArrowLeft className="h-5 w-5" />
           <span className="hidden sm:inline">Çıkış Yap</span>
         </Link>
         <div className="flex items-center gap-2 mx-auto">
           <Shield className="h-6 w-6 text-rose-500" />
-          <span className="font-bold text-lg tracking-tight">Öğrenci Paneli</span>
+          <span className="font-bold text-lg tracking-tight text-slate-900 dark:text-white">Öğrenci Paneli</span>
         </div>
-        <div className="w-[88px] sm:w-[100px]"></div>
+        <div className="flex justify-end w-[88px] sm:w-[100px]">
+          <ThemeToggle />
+        </div>
       </header>
 
       <main className="flex-1 container max-w-2xl mx-auto py-8 px-4">
         <div className="mb-8 space-y-4 animate-fade-in-up">
-          <h1 className="text-3xl font-bold tracking-tight text-white">Zorbalığı Bildir</h1>
-          <p className="text-slate-400">
+          <h1 className="text-3xl font-bold tracking-tight text-slate-900 dark:text-white">Zorbalığı Bildir</h1>
+          <p className="text-slate-600 dark:text-slate-400">
             Yaşadığınız veya şahit olduğunuz bir zorbalık durumunu tamamen anonim olarak bildirebilirsiniz.
             Okul numaranız kimseyle paylaşılmaz.
           </p>
         </div>
 
-        <Alert className="mb-8 bg-rose-500/10 border-rose-500/20 text-rose-300 animate-fade-in-up" style={{ animationDelay: '100ms' }}>
-          <EyeOff className="h-5 w-5 !text-rose-400" />
-          <AlertTitle className="text-rose-400 font-semibold">Garantili Anonimlik</AlertTitle>
-          <AlertDescription className="text-rose-300/80 mt-1">
+        <Alert className="mb-8 bg-rose-500/10 border-rose-500/20 text-rose-700 dark:text-rose-300 animate-fade-in-up" style={{ animationDelay: '100ms' }}>
+          <EyeOff className="h-5 w-5 !text-rose-500 dark:!text-rose-400" />
+          <AlertTitle className="text-rose-600 dark:text-rose-400 font-semibold">Garantili Anonimlik</AlertTitle>
+          <AlertDescription className="text-rose-600/80 dark:text-rose-300/80 mt-1">
             Okul müdürü dahil kimse bu ihbarı sizin yaptığınızı göremez. Verileriniz uçtan uca şifrelenmiştir.
           </AlertDescription>
         </Alert>
 
-        <Card className="bg-slate-900 border-slate-800 shadow-xl animate-fade-in-up" style={{ animationDelay: '200ms' }}>
+        <Card className="bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 shadow-xl animate-fade-in-up" style={{ animationDelay: '200ms' }}>
           <CardContent className="pt-6">
             <form onSubmit={handleSubmit} className="space-y-6">
               <div className="space-y-3">
-                <Label htmlFor="category" className="text-slate-300 text-base">Zorbalık Türü (İsteğe bağlı)</Label>
+                <Label htmlFor="category" className="text-slate-700 dark:text-slate-300 text-base">Zorbalık Türü (İsteğe bağlı)</Label>
                 <Select onValueChange={(val) => setCategory(val as string)}>
-                  <SelectTrigger className="bg-slate-950 border-slate-800 text-slate-300 h-12 focus:ring-rose-500">
+                  <SelectTrigger className="bg-slate-50 dark:bg-slate-950 border-slate-200 dark:border-slate-800 text-slate-800 dark:text-slate-300 h-12 focus:ring-rose-500">
                     <SelectValue placeholder="Bir kategori seçin..." />
                   </SelectTrigger>
-                  <SelectContent className="bg-slate-900 border-slate-800 text-slate-300">
+                  <SelectContent className="bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 text-slate-800 dark:text-slate-300">
                     <SelectItem value="Fiziksel Zorbalık">Fiziksel Zorbalık</SelectItem>
                     <SelectItem value="Sözel Zorbalık">Sözel Zorbalık (Hakaret, Alay)</SelectItem>
                     <SelectItem value="Siber Zorbalık">Siber Zorbalık (İnternet/Sosyal Medya)</SelectItem>
@@ -164,14 +167,14 @@ export default function StudentReportPage() {
               </div>
 
               <div className="space-y-3">
-                <Label htmlFor="description" className="text-slate-300 text-base">Ne Oldu? <span className="text-rose-500">*</span></Label>
+                <Label htmlFor="description" className="text-slate-700 dark:text-slate-300 text-base">Ne Oldu? <span className="text-rose-500">*</span></Label>
                 <Textarea 
                   id="description" 
                   required
                   value={content}
                   onChange={(e) => setContent(e.target.value)}
                   placeholder="Örnek: Beni tehdit ediyorlar veya korkuyorum gibi kelimeler yazarsanız sistem Kırmızı Kod verir..." 
-                  className="min-h-[200px] bg-slate-950 border-slate-800 focus-visible:ring-rose-500 text-white placeholder:text-slate-600 resize-none text-base p-4"
+                  className="min-h-[200px] bg-slate-50 dark:bg-slate-950 border-slate-200 dark:border-slate-800 focus-visible:ring-rose-500 text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-600 resize-none text-base p-4"
                 />
                 <p className="text-xs text-slate-500 flex items-center gap-1">
                   <Info className="h-3 w-3" /> Yazdıklarınız yapay zeka tarafından aciliyet durumuna göre değerlendirilir.

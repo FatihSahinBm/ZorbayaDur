@@ -12,6 +12,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
+import { ThemeToggle } from "@/components/theme-toggle";
 
 export default function StudentDashboard() {
   const [reports, setReports] = useState<any[]>([]);
@@ -110,15 +111,16 @@ export default function StudentDashboard() {
   };
 
   return (
-    <div className="flex flex-col min-h-[100dvh] bg-slate-950 text-slate-50">
-      <header className="px-6 h-16 flex items-center border-b border-slate-800/50 bg-slate-900/80 backdrop-blur-md sticky top-0 z-50">
+    <div className="flex flex-col min-h-[100dvh] bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-50">
+      <header className="px-6 h-16 flex items-center border-b border-slate-200 dark:border-slate-800/50 bg-white/80 dark:bg-slate-900/80 backdrop-blur-md sticky top-0 z-50">
         <div className="flex items-center gap-2">
           <Shield className="h-6 w-6 text-rose-500" />
-          <span className="font-bold text-lg tracking-tight">Öğrenci Paneli</span>
+          <span className="font-bold text-lg tracking-tight text-slate-900 dark:text-white">Öğrenci Paneli</span>
         </div>
         <div className="ml-auto flex items-center gap-4">
+          <ThemeToggle />
           <Link href="/login" onClick={() => localStorage.removeItem('student_id')}>
-            <Button variant="ghost" size="sm" className="text-slate-400 hover:text-white hover:bg-slate-800">
+            <Button variant="ghost" size="sm" className="text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800">
               <LogOut className="h-4 w-4 mr-2" /> Çıkış
             </Button>
           </Link>
@@ -128,8 +130,8 @@ export default function StudentDashboard() {
       <main className="flex-1 p-6 lg:p-8 space-y-8 max-w-7xl mx-auto w-full">
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 animate-fade-in-up">
           <div>
-            <h1 className="text-3xl font-bold tracking-tight text-white mb-1">İhbarlarım</h1>
-            <p className="text-slate-400">Yaptığınız ihbarların durumunu ve PDR ile olan anonim mesajlarınızı buradan takip edin.</p>
+            <h1 className="text-3xl font-bold tracking-tight text-slate-900 dark:text-white mb-1">İhbarlarım</h1>
+            <p className="text-slate-600 dark:text-slate-400">Yaptığınız ihbarların durumunu ve PDR ile olan anonim mesajlarınızı buradan takip edin.</p>
           </div>
           <Link href="/report">
             <Button className="bg-rose-600 hover:bg-rose-700 text-white shadow-lg shadow-rose-900/20">
@@ -138,30 +140,30 @@ export default function StudentDashboard() {
           </Link>
         </div>
 
-        <Card className="bg-slate-900 border-slate-800 animate-fade-in-up" style={{ animationDelay: '100ms' }}>
-          <CardHeader className="border-b border-slate-800 pb-4">
-            <CardTitle>Geçmiş İhbarlarım</CardTitle>
+        <Card className="bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 shadow-sm animate-fade-in-up" style={{ animationDelay: '100ms' }}>
+          <CardHeader className="border-b border-slate-200 dark:border-slate-800 pb-4">
+            <CardTitle className="text-slate-900 dark:text-white">Geçmiş İhbarlarım</CardTitle>
           </CardHeader>
           <CardContent className="p-0">
             {isLoading ? (
               <div className="p-12 flex justify-center"><Loader2 className="w-8 h-8 animate-spin text-slate-500" /></div>
             ) : (
               <Table>
-                <TableHeader className="bg-slate-950/50">
-                  <TableRow className="border-slate-800">
-                    <TableHead className="text-slate-400">İhbar No</TableHead>
-                    <TableHead className="text-slate-400">Tarih</TableHead>
-                    <TableHead className="text-slate-400">Kategori</TableHead>
-                    <TableHead className="text-slate-400">Durum</TableHead>
-                    <TableHead className="text-right text-slate-400">İşlem / Mesajlaşma</TableHead>
+                <TableHeader className="bg-slate-100/50 dark:bg-slate-950/50">
+                  <TableRow className="border-slate-200 dark:border-slate-800">
+                    <TableHead className="text-slate-600 dark:text-slate-400">İhbar No</TableHead>
+                    <TableHead className="text-slate-600 dark:text-slate-400">Tarih</TableHead>
+                    <TableHead className="text-slate-600 dark:text-slate-400">Kategori</TableHead>
+                    <TableHead className="text-slate-600 dark:text-slate-400">Durum</TableHead>
+                    <TableHead className="text-right text-slate-600 dark:text-slate-400">İşlem / Mesajlaşma</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {reports.map((report) => (
-                    <TableRow key={report.id} className="border-slate-800 hover:bg-slate-800/50 transition-colors">
-                      <TableCell className="font-mono font-medium text-slate-300">{report.tracking_code}</TableCell>
-                      <TableCell className="text-slate-400">{new Date(report.created_at).toLocaleDateString('tr-TR')}</TableCell>
-                      <TableCell className="text-slate-300">{report.category}</TableCell>
+                    <TableRow key={report.id} className="border-slate-200 dark:border-slate-800 hover:bg-slate-100/50 dark:hover:bg-slate-800/50 transition-colors">
+                      <TableCell className="font-mono font-medium text-slate-700 dark:text-slate-300">{report.tracking_code}</TableCell>
+                      <TableCell className="text-slate-600 dark:text-slate-400">{new Date(report.created_at).toLocaleDateString('tr-TR')}</TableCell>
+                      <TableCell className="text-slate-700 dark:text-slate-300">{report.category}</TableCell>
                       <TableCell>{getStatusBadge(report.status)}</TableCell>
                       <TableCell className="text-right">
                         <Dialog onOpenChange={(open) => {
@@ -171,18 +173,18 @@ export default function StudentDashboard() {
                           }
                         }}>
                           <DialogTrigger render={
-                            <Button variant="outline" size="sm" className="border-slate-700 bg-slate-950 text-white hover:bg-slate-800">
+                            <Button variant="outline" size="sm" className="border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-white hover:bg-slate-100 dark:hover:bg-slate-800">
                               <MessageSquare className="w-4 h-4 mr-2" /> Detay & PDR ile Görüş
                             </Button>
                           } />
-                          <DialogContent className="bg-slate-900 border-slate-800 text-white sm:max-w-xl max-h-[80vh] flex flex-col">
+                          <DialogContent className="bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 text-slate-900 dark:text-white sm:max-w-xl max-h-[80vh] flex flex-col">
                             <DialogHeader>
-                              <DialogTitle className="flex items-center gap-2">
+                              <DialogTitle className="flex items-center gap-2 text-slate-900 dark:text-white">
                                 İhbar Detayı: <span className="font-mono text-rose-500">{report.tracking_code}</span>
                               </DialogTitle>
                             </DialogHeader>
                             
-                            <div className="bg-slate-950 p-4 rounded-md border border-slate-800 mt-2 text-sm text-slate-300">
+                            <div className="bg-slate-50 dark:bg-slate-950 p-4 rounded-md border border-slate-200 dark:border-slate-800 mt-2 text-sm text-slate-700 dark:text-slate-300">
                               <strong>İhbar İçeriği:</strong> {report.content}
                             </div>
 
@@ -200,10 +202,10 @@ export default function StudentDashboard() {
                                     <span className="text-xs text-slate-500 mb-1 px-1">
                                       {msg.sender_role === 'student' ? 'Siz (Anonim)' : 'PDR Uzmanı'}
                                     </span>
-                                    <div className={`px-4 py-2 rounded-2xl max-w-[80%] text-sm ${msg.sender_role === 'student' ? 'bg-rose-600 text-white rounded-tr-sm' : 'bg-slate-800 text-slate-200 rounded-tl-sm'}`}>
+                                    <div className={`px-4 py-2 rounded-2xl max-w-[80%] text-sm ${msg.sender_role === 'student' ? 'bg-rose-600 text-white rounded-tr-sm' : 'bg-slate-100 dark:bg-slate-800 text-slate-900 dark:text-slate-200 rounded-tl-sm'}`}>
                                       {msg.content}
                                     </div>
-                                    <span className="text-[10px] text-slate-600 mt-1">
+                                    <span className="text-[10px] text-slate-500 mt-1">
                                       {new Date(msg.created_at).toLocaleTimeString('tr-TR', {hour: '2-digit', minute:'2-digit'})}
                                     </span>
                                   </div>
@@ -216,14 +218,14 @@ export default function StudentDashboard() {
                               }} />
                             </div>
 
-                            <form onSubmit={sendMessage} className="mt-4 pt-4 border-t border-slate-800 flex gap-2">
+                            <form onSubmit={sendMessage} className="mt-4 pt-4 border-t border-slate-200 dark:border-slate-800 flex gap-2">
                               <Textarea 
                                 value={newMessage}
                                 onChange={(e) => setNewMessage(e.target.value)}
                                 placeholder="PDR uzmanına anonim olarak yaz..."
-                                className="resize-none h-[60px] bg-slate-950 border-slate-800 text-white focus-visible:ring-rose-500"
+                                className="resize-none h-[60px] bg-slate-50 dark:bg-slate-950 border-slate-200 dark:border-slate-800 text-slate-900 dark:text-white focus-visible:ring-rose-500"
                               />
-                              <Button type="submit" className="h-[60px] px-6 bg-rose-600 hover:bg-rose-700">
+                              <Button type="submit" className="h-[60px] px-6 bg-rose-600 hover:bg-rose-700 text-white">
                                 Gönder
                               </Button>
                             </form>
