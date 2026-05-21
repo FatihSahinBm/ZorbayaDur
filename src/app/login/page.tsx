@@ -9,6 +9,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Shield, ArrowRight, Loader2 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import { toast } from "sonner";
 
 export default function LoginPage() {
   const [isLoading, setIsLoading] = useState(false);
@@ -19,16 +20,38 @@ export default function LoginPage() {
     setIsLoading(true);
     setTimeout(() => {
       if (role === "student") {
-        // Okul numarasını al
-        const studentId = (document.getElementById('student-id') as HTMLInputElement)?.value || 'anonim';
-        localStorage.setItem('student_id', studentId);
-        router.push("/dashboard/student");
+        const studentId = (document.getElementById('student-id') as HTMLInputElement)?.value;
+        const studentPass = (document.getElementById('student-pass') as HTMLInputElement)?.value;
+        
+        if (studentId === "1234" && studentPass === "1234") {
+          localStorage.setItem('student_id', studentId);
+          router.push("/dashboard/student");
+        } else {
+          toast.error("Hatalı kullanıcı adı veya şifre!");
+          setIsLoading(false);
+        }
       } else if (role === "pdr") {
-        router.push("/dashboard/pdr");
+        const pdrEmail = (document.getElementById('pdr-email') as HTMLInputElement)?.value;
+        const pdrPass = (document.getElementById('pdr-pass') as HTMLInputElement)?.value;
+
+        if (pdrEmail === "pdr@okul.k12.tr" && pdrPass === "123") {
+          router.push("/dashboard/pdr");
+        } else {
+          toast.error("Hatalı e-posta veya şifre!");
+          setIsLoading(false);
+        }
       } else {
-        router.push("/dashboard/meb");
+        const mebEmail = (document.getElementById('meb-email') as HTMLInputElement)?.value;
+        const mebPass = (document.getElementById('meb-pass') as HTMLInputElement)?.value;
+
+        if (mebEmail === "admin@meb.gov.tr" && mebPass === "123") {
+          router.push("/dashboard/meb");
+        } else {
+          toast.error("Hatalı e-posta veya şifre!");
+          setIsLoading(false);
+        }
       }
-    }, 800); // Süreyi biraz kısalttım
+    }, 800);
   };
 
   return (
@@ -62,12 +85,12 @@ export default function LoginPage() {
               <TabsContent value="student" className="animate-fade-in">
                 <form onSubmit={(e) => handleLogin(e, "student")} className="space-y-4">
                   <div className="space-y-2">
-                    <Label htmlFor="student-id" className="text-slate-300">Okul Numarası</Label>
+                    <Label htmlFor="student-id" className="text-slate-300">Kullanıcı Adı</Label>
                     <Input id="student-id" placeholder="Örn: 1234" required className="bg-slate-950 border-slate-800 focus-visible:ring-rose-500 text-white placeholder:text-slate-600 h-12" defaultValue="1234" />
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="student-pass" className="text-slate-300">Şifre</Label>
-                    <Input id="student-pass" type="password" required className="bg-slate-950 border-slate-800 focus-visible:ring-rose-500 text-white placeholder:text-slate-600 h-12" defaultValue="password" />
+                    <Input id="student-pass" type="password" required className="bg-slate-950 border-slate-800 focus-visible:ring-rose-500 text-white placeholder:text-slate-600 h-12" defaultValue="1234" />
                   </div>
                   <div className="pt-4">
                     <Button type="submit" disabled={isLoading} className="w-full h-12 bg-rose-600 hover:bg-rose-700 text-white text-base rounded-xl transition-all shadow-lg shadow-rose-900/20">
@@ -88,7 +111,7 @@ export default function LoginPage() {
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="pdr-pass" className="text-slate-300">Şifre</Label>
-                    <Input id="pdr-pass" type="password" required className="bg-slate-950 border-slate-800 focus-visible:ring-blue-500 text-white placeholder:text-slate-600 h-12" defaultValue="password" />
+                    <Input id="pdr-pass" type="password" required className="bg-slate-950 border-slate-800 focus-visible:ring-blue-500 text-white placeholder:text-slate-600 h-12" defaultValue="123" />
                   </div>
                   <div className="pt-4">
                     <Button type="submit" disabled={isLoading} className="w-full h-12 bg-blue-600 hover:bg-blue-700 text-white text-base rounded-xl transition-all shadow-lg shadow-blue-900/20">
@@ -106,7 +129,7 @@ export default function LoginPage() {
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="meb-pass" className="text-slate-300">Şifre</Label>
-                    <Input id="meb-pass" type="password" required className="bg-slate-950 border-slate-800 focus-visible:ring-amber-500 text-white placeholder:text-slate-600 h-12" defaultValue="password" />
+                    <Input id="meb-pass" type="password" required className="bg-slate-950 border-slate-800 focus-visible:ring-amber-500 text-white placeholder:text-slate-600 h-12" defaultValue="123" />
                   </div>
                   <div className="pt-4">
                     <Button type="submit" disabled={isLoading} className="w-full h-12 bg-amber-600 hover:bg-amber-700 text-white text-base rounded-xl transition-all shadow-lg shadow-amber-900/20">
