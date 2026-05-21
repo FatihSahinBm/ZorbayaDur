@@ -1,6 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -14,7 +15,15 @@ import { supabase } from "@/lib/supabase";
 import { ThemeToggle } from "@/components/theme-toggle";
 
 export default function StudentReportPage() {
+  const router = useRouter();
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  useEffect(() => {
+    const studentId = localStorage.getItem('student_id');
+    if (!studentId) {
+      router.push('/login');
+    }
+  }, [router]);
   const [isSuccess, setIsSuccess] = useState(false);
   const [category, setCategory] = useState("");
   const [content, setContent] = useState("");

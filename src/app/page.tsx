@@ -1,9 +1,22 @@
+"use client";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
-import { Shield, AlertTriangle, Lock, ArrowRight, Activity, EyeOff } from "lucide-react";
+import { Shield, Lock, ArrowRight, Activity, EyeOff } from "lucide-react";
 import { ThemeToggle } from "@/components/theme-toggle";
 
 export default function Home() {
+  const router = useRouter();
+
+  const handleReportClick = () => {
+    const studentId = typeof window !== 'undefined' ? localStorage.getItem('student_id') : null;
+    if (studentId) {
+      router.push('/report');
+    } else {
+      router.push('/login');
+    }
+  };
+
   return (
     <div className="flex flex-col min-h-[100dvh] bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-50">
       <header className="px-6 lg:px-14 h-20 flex items-center border-b border-slate-200 dark:border-white/10 bg-white/50 dark:bg-slate-950/50 backdrop-blur-md sticky top-0 z-50">
@@ -44,11 +57,13 @@ export default function Home() {
                 </p>
               </div>
               <div className="space-x-4">
-                <Link href="/report">
-                  <Button size="lg" className="bg-rose-600 hover:bg-rose-700 text-white h-12 px-8 text-lg rounded-full shadow-[0_0_20px_rgba(225,29,72,0.4)] transition-all hover:shadow-[0_0_30px_rgba(225,29,72,0.6)] hover:-translate-y-1">
-                    Hemen İhbar Et <ArrowRight className="ml-2 h-5 w-5" />
-                  </Button>
-                </Link>
+                <Button 
+                  onClick={handleReportClick}
+                  size="lg" 
+                  className="bg-rose-600 hover:bg-rose-700 text-white h-12 px-8 text-lg rounded-full shadow-[0_0_20px_rgba(225,29,72,0.4)] transition-all hover:shadow-[0_0_30px_rgba(225,29,72,0.6)] hover:-translate-y-1"
+                >
+                  Hemen İhbar Et <ArrowRight className="ml-2 h-5 w-5" />
+                </Button>
               </div>
             </div>
           </div>
