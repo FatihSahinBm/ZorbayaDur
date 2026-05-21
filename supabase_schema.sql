@@ -40,10 +40,14 @@ alter table public.reports enable row level security;
 alter table public.audit_logs enable row level security;
 alter table public.messages enable row level security;
 
-drop policy if exists "Allow anonymous inserts to reports" on public.reports;
-drop policy if exists "Allow authenticated users to read reports" on public.reports;
-drop policy if exists "Allow authenticated users to update reports" on public.reports;
-drop policy if exists "Allow authenticated users to read logs" on public.audit_logs;
+drop policy if exists "Allow public inserts to reports" on public.reports;
+drop policy if exists "Allow public read reports" on public.reports;
+drop policy if exists "Allow public update reports" on public.reports;
+drop policy if exists "Allow public delete reports" on public.reports;
+drop policy if exists "Allow public inserts to logs" on public.audit_logs;
+drop policy if exists "Allow public read logs" on public.audit_logs;
+drop policy if exists "Allow public inserts to messages" on public.messages;
+drop policy if exists "Allow public read messages" on public.messages;
 
 create policy "Allow public inserts to reports" on public.reports for insert to public with check (true);
 create policy "Allow public read reports" on public.reports for select to public using (true);
@@ -71,6 +75,7 @@ begin
 end;
 $$ language plpgsql security definer;
 
+drop trigger if exists on_report_status_change on public.reports;
 create trigger on_report_status_change
     after update of status on public.reports
     for each row
