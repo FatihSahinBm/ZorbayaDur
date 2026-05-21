@@ -5,7 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Shield, Loader2, LogOut, MessageSquare, Plus, Clock, AlertTriangle } from "lucide-react";
+import { Shield, Loader2, LogOut, MessageSquare, Plus, Clock, AlertTriangle, Trash2 } from "lucide-react";
 import Link from "next/link";
 import { supabase } from "@/lib/supabase";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
@@ -101,6 +101,29 @@ export default function StudentDashboard() {
     }
   };
 
+  const handleDeleteReport = async (reportId: string) => {
+    if (!supabase) return;
+    
+    const confirmDelete = window.confirm("Bu ihbarı kalıcı olarak silmek istediğinize emin misiniz? Bu işlem geri alınamaz.");
+    if (!confirmDelete) return;
+
+    try {
+      const { error } = await supabase
+        .from("reports")
+        .delete()
+        .eq("id", reportId);
+
+      if (error) {
+        toast.error("İhbar silinirken bir hata oluştu: " + error.message);
+      } else {
+        toast.success("İhbar başarıyla silindi.");
+        fetchReports(studentId);
+      }
+    } catch (err: any) {
+      toast.error("Bir hata oluştu: " + err.message);
+    }
+  };
+
   const getStatusBadge = (status: string) => {
     switch(status) {
       case "Yeni": return <Badge className="bg-blue-500/10 text-blue-500 hover:bg-blue-500/20">Yeni İletildi</Badge>;
@@ -166,17 +189,18 @@ export default function StudentDashboard() {
                       <TableCell className="text-slate-700 dark:text-slate-300">{report.category}</TableCell>
                       <TableCell>{getStatusBadge(report.status)}</TableCell>
                       <TableCell className="text-right">
-                        <Dialog onOpenChange={(open) => {
-                          if (open) {
-                            setSelectedReportId(report.id);
-                            fetchMessages(report.id);
-                          }
-                        }}>
-                          <DialogTrigger render={
-                            <Button variant="outline" size="sm" className="border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-white hover:bg-slate-100 dark:hover:bg-slate-800">
-                              <MessageSquare className="w-4 h-4 mr-2" /> Detay & PDR ile Görüş
-                            </Button>
-                          } />
+                        <div className="flex items-center justify-end gap-2">
+                          <Dialog onOpenChange={(open) => {
+                            if (open) {
+                              setSelectedReportId(report.id);
+                              fetchMessages(report.id);
+                            }
+                          }}>
+                            <DialogTrigger render={
+                              <Button variant="outline" size="sm" className="border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-white hover:bg-slate-100 dark:hover:bg-slate-800">
+                                <MessageSquare className="w-4 h-4 mr-2" /> Detay & Görüş
+                              </Button>
+                            } />
                           <DialogContent className="bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 text-slate-900 dark:text-white sm:max-w-xl max-h-[80vh] flex flex-col">
                             <DialogHeader>
                               <DialogTitle className="flex items-center gap-2 text-slate-900 dark:text-white">
@@ -231,6 +255,16 @@ export default function StudentDashboard() {
                             </form>
                           </DialogContent>
                         </Dialog>
+
+                        <Button 
+                          variant="destructive" 
+                          size="sm" 
+                          onClick={() => handleDeleteReport(report.id)}
+                          className="bg-rose-600 hover:bg-rose-700 text-white h-9 px-3 rounded-lg"
+                        >
+                          <Trash2 className="w-4 h-4 mr-1" /> Sil
+                        </Button>
+                      </div>
                       </TableCell>
                     </TableRow>
                   ))}
