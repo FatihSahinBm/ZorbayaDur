@@ -8,7 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { Shield, ShieldAlert, Send, EyeOff, Info, CheckCircle2, Loader2, ArrowLeft } from "lucide-react";
+import { Shield, ShieldAlert, Send, EyeOff, Info, CheckCircle2, Loader2, ArrowLeft, Paperclip } from "lucide-react";
 import Link from "next/link";
 import { toast } from "sonner";
 import { supabase } from "@/lib/supabase";
@@ -28,6 +28,7 @@ export default function StudentReportPage() {
   const [category, setCategory] = useState("");
   const [content, setContent] = useState("");
   const [trackingCode, setTrackingCode] = useState("");
+  const [file, setFile] = useState<File | null>(null);
 
   // Basit bir AI Simülasyonu: Belirli tehlikeli kelimeleri tarar
   const analyzeRiskLevel = (text: string) => {
@@ -62,6 +63,24 @@ export default function StudentReportPage() {
       // Get student_id from localStorage if it exists
       const studentId = typeof window !== 'undefined' ? localStorage.getItem('student_id') || 'anonim' : 'anonim';
 
+      let evidenceUrl = null;
+      if (file) {
+        const fileExt = file.name.split('.').pop();
+        const fileName = `${newTrackingCode}-${Math.random()}.${fileExt}`;
+        const { data: uploadData, error: uploadError } = await supabase.storage
+          .from('evidence')
+          .upload(fileName, file);
+
+        if (uploadError) {
+          toast.error("Kanıt yüklenirken bir hata oluştu: " + uploadError.message);
+          setIsSubmitting(false);
+          return;
+        }
+        
+        const { data: publicUrlData } = supabase.storage.from('evidence').getPublicUrl(fileName);
+        evidenceUrl = publicUrlData.publicUrl;
+      }
+
       // Supabase'e kaydet
       const { error } = await supabase.from('reports').insert([
         {
@@ -70,7 +89,8 @@ export default function StudentReportPage() {
           category: category || "Bilinmiyor",
           content: content,
           risk_level: calculatedRisk,
-          status: "Yeni"
+          status: "Yeni",
+          evidence_url: evidenceUrl
         }
       ]);
 
@@ -115,7 +135,7 @@ export default function StudentReportPage() {
             <p className="text-xl font-bold tracking-wider text-rose-500 dark:text-rose-400">{trackingCode}</p>
             <p className="text-xs text-slate-500 dark:text-slate-500 mt-2">Bu kod ile ilerleyen günlerde durum sorgulaması yapabilirsiniz.</p>
           </div>
-          <Button onClick={() => { setIsSuccess(false); setContent(""); }} variant="outline" className="w-full h-12 border-slate-200 dark:border-slate-800 hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-900 dark:text-white">
+          <Button onClick={() => { setIsSuccess(false); setContent(""); setFile(null); }} variant="outline" className="w-full h-12 border-slate-200 dark:border-slate-800 hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-900 dark:text-white">
             Yeni Bir İhbar Yap
           </Button>
         </div>
@@ -183,11 +203,36 @@ export default function StudentReportPage() {
                   value={content}
                   onChange={(e) => setContent(e.target.value)}
                   placeholder="Örnek: Beni tehdit ediyorlar veya korkuyorum gibi kelimeler yazarsanız sistem Kırmızı Kod verir..." 
-                  className="min-h-[200px] bg-slate-50 dark:bg-slate-950 border-slate-200 dark:border-slate-800 focus-visible:ring-rose-500 text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-600 resize-none text-base p-4"
+                  className="min-h-[150px] bg-slate-50 dark:bg-slate-950 border-slate-200 dark:border-slate-800 focus-visible:ring-rose-500 text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-600 resize-none text-base p-4"
                 />
                 <p className="text-xs text-slate-500 flex items-center gap-1">
                   <Info className="h-3 w-3" /> Yazdıklarınız yapay zeka tarafından aciliyet durumuna göre değerlendirilir.
                 </p>
+              </div>
+
+              <div className="space-y-3">
+                <Label htmlFor="evidence" className="text-slate-700 dark:text-slate-300 text-base">Kanıt (Fotoğraf/Video/Ekran Görüntüsü) - İsteğe Bağlı</Label>
+                <div className="flex items-center gap-4">
+                  <Button 
+                    type="button" 
+                    variant="outline" 
+                    onClick={() => document.getElementById('evidence-upload')?.click()}
+                    className="bg-slate-50 dark:bg-slate-950 border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-300"
+                  >
+                    <Paperclip className="h-4 w-4 mr-2" />
+                    Dosya Seç
+                  </Button>
+                  <span className="text-sm text-slate-500 truncate max-w-[200px] sm:max-w-[300px]">
+                    {file ? file.name : "Dosya seçilmedi"}
+                  </span>
+                  <input 
+                    id="evidence-upload" 
+                    type="file" 
+                    className="hidden" 
+                    accept="image/*,video/*,audio/*,.pdf"
+                    onChange={(e) => setFile(e.target.files?.[0] || null)}
+                  />
+                </div>
               </div>
 
               <Button disabled={isSubmitting} type="submit" className="w-full h-14 bg-rose-600 hover:bg-rose-700 text-white text-lg rounded-xl transition-all shadow-lg shadow-rose-900/20 group">
