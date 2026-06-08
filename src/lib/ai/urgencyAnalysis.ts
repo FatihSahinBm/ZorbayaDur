@@ -19,6 +19,8 @@ BİLDİRİM:
 {REPORT_TEXT}
 
 ZORBALIK TİPİ: {BULLYING_TYPE}
+YAŞANDIĞI YER: {LOCATION}
+TEKRARLANMA: {FREQUENCY}
 
 Şu metrikleri değerlendir ve SADECE JSON döndür, başka hiçbir şey yazma:
 
@@ -56,11 +58,15 @@ const FALLBACK: UrgencyResult = {
 
 export async function analyzeUrgency(
   reportText: string,
-  bullyingType: string = "Bilinmiyor"
+  bullyingType: string = "Bilinmiyor",
+  location: string = "Bilinmiyor",
+  frequency: string = "Bilinmiyor"
 ): Promise<UrgencyResult> {
   const prompt = URGENCY_PROMPT
     .replace("{REPORT_TEXT}", reportText)
-    .replace("{BULLYING_TYPE}", bullyingType);
+    .replace("{BULLYING_TYPE}", bullyingType)
+    .replace("{LOCATION}", location)
+    .replace("{FREQUENCY}", frequency);
 
   const raw = await callGemini(prompt);
   return safeParseJSON<UrgencyResult>(raw, FALLBACK);

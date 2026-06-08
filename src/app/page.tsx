@@ -25,6 +25,9 @@ export default function Home() {
           <span className="font-bold text-xl tracking-tight text-slate-900 dark:text-white">Zorbaya Dur</span>
         </Link>
         <nav className="ml-auto flex gap-4 sm:gap-6 items-center">
+          <Link className="text-sm font-medium text-slate-600 dark:text-slate-400 hover:text-rose-500 dark:hover:text-rose-400 transition-colors" href="/istatistikler">
+            İstatistikler
+          </Link>
           <Link className="text-sm font-medium text-slate-600 dark:text-slate-400 hover:text-rose-500 dark:hover:text-rose-400 transition-colors" href="#features">
             Özellikler
           </Link>

@@ -8,7 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { Shield, ShieldAlert, ShieldCheck, Send, EyeOff, Info, CheckCircle2, Loader2, ArrowLeft, ArrowRight, Paperclip, User, GraduationCap, Check, X } from "lucide-react";
+import { Shield, ShieldAlert, ShieldCheck, Send, EyeOff, Info, CheckCircle2, Loader2, ArrowLeft, ArrowRight, Paperclip, User, GraduationCap, Check, X, FileText, CheckCircle, AlertTriangle } from "lucide-react";
 import Link from "next/link";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { toast } from "sonner";
@@ -28,26 +28,36 @@ export default function StudentReportPage() {
     }
   }, [router]);
   
+  // Form Steps
   const [step, setStep] = useState(1);
-  const [identityLevel, setIdentityLevel] = useState<number>(1); // 1: PDR'ye gizli, 2: açık
+  
+  // Step 1: Ne Yaşandı?
+  const [category, setCategory] = useState("");
+  const [content, setContent] = useState("");
+  const [location, setLocation] = useState("");
+  const [frequency, setFrequency] = useState("");
+  const [file, setFile] = useState<File | null>(null);
+  
+  // Step 2: Kimlik Tercihi
+  const [identityLevel, setIdentityLevel] = useState<number>(2); // Default Level 2: PDR'ye Açık
   const [studentName, setStudentName] = useState("");
   const [studentClass, setStudentClass] = useState("");
   
-  const [isSuccess, setIsSuccess] = useState(false);
-  const [category, setCategory] = useState("");
-  const [content, setContent] = useState("");
+  // Step 3: Onay
+  const [isApproved, setIsApproved] = useState(false);
+  
+  // Step 4: Sonuç / Başarı
   const [trackingCode, setTrackingCode] = useState("");
-  const [file, setFile] = useState<File | null>(null);
+  const [sessionToken, setSessionToken] = useState("");
   const [supportMessage, setSupportMessage] = useState<string | null>(null);
   const [insertedReportId, setInsertedReportId] = useState<string | null>(null);
 
+  // Dialog & Temp Risk
   const [showAssigneeDialog, setShowAssigneeDialog] = useState(false);
   const [tempRisk, setTempRisk] = useState("");
 
   const analyzeRiskLevel = (text: string) => {
     const lowerText = text.toLowerCase();
-    
-    // 'kantin' içinde 'kan', 'aparat' içinde 'para' geçmesi gibi hataları önlemek için kelimeleri daha belirgin yaptık
     const bordoWords = ["intihar", "ölmek", "öldür", "silah", "bıçak", "kanlar içinde", "kan revan"]; 
     const kirmiziWords = ["tehdit", "korkuyorum", "dövüyor", "dövdü", "dövecek", "şantaj"]; 
     const turuncuWords = ["hakaret", "küfür", "zorla", "dışlıyor", "dalga geç"]; 
@@ -55,22 +65,44 @@ export default function StudentReportPage() {
     if (bordoWords.some(word => lowerText.includes(word))) return "Bordo";
     if (kirmiziWords.some(word => lowerText.includes(word))) return "Kırmızı";
     if (turuncuWords.some(word => lowerText.includes(word))) return "Turuncu";
-    return "Sarı"; // Varsayılan risk (Düşük)
+    return "Sarı";
   };
 
-  const handleNextStep = (e: React.FormEvent) => {
+  const handleNextToStep2 = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!content.trim()) {
-      toast.error("Lütfen olayı anlatın.");
+    if (!category) {
+      toast.error("Lütfen zorbalık türünü seçin.");
+      return;
+    }
+    if (content.trim().length < 50) {
+      toast.error("Lütfen olayı en az 50 karakter ile daha detaylı anlatın.");
+      return;
+    }
+    if (!location) {
+      toast.error("Lütfen olayın nerede yaşandığını seçin.");
+      return;
+    }
+    if (!frequency) {
+      toast.error("Lütfen durumun tekrarlanma sıklığını belirtin.");
       return;
     }
     setStep(2);
   };
 
-  const handleFormSubmit = async (e: React.FormEvent) => {
+  const handleNextToStep3 = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!studentName.trim() || !studentClass.trim()) {
-      toast.error("Lütfen ad ve sınıf bilgilerinizi eksiksiz doldurun.");
+    if (identityLevel !== 3) {
+      if (!studentName.trim() || !studentClass.trim()) {
+        toast.error("Seviye 1 veya Seviye 2 gizlilik için ad ve sınıf alanları zorunludur.");
+        return;
+      }
+    }
+    setStep(3);
+  };
+
+  const handleFormSubmit = async () => {
+    if (!isApproved) {
+      toast.error("Devam etmek için bildirim gönderileceğini onaylamanız gerekmektedir.");
       return;
     }
 
@@ -86,7 +118,7 @@ export default function StudentReportPage() {
       setShowAssigneeDialog(true);
     } else if (calculatedRisk === "Kırmızı" || calculatedRisk === "Bordo") {
       proceedWithSubmit("pdr", calculatedRisk);
-    } else { // Sarı veya Bilinmiyor
+    } else {
       proceedWithSubmit("teacher", calculatedRisk);
     }
   };
@@ -95,23 +127,24 @@ export default function StudentReportPage() {
     setIsSubmitting(true);
     setShowAssigneeDialog(false);
     
-    if (!supabase) {
-      toast.error("Veritabanı bağlantısı yok.");
+    const client = supabase;
+    if (!client) {
+      toast.error("Veritabanı bağlantısı bulunamadı.");
       setIsSubmitting(false);
       return;
     }
 
     try {
       const newTrackingCode = `ZRB-${Math.floor(100000 + Math.random() * 900000)}`;
+      const generatedToken = crypto.randomUUID();
 
-      // Get student_id from localStorage if it exists
       const studentId = typeof window !== 'undefined' ? localStorage.getItem('student_id') || 'anonim' : 'anonim';
 
       let evidenceUrl = null;
       if (file) {
         const fileExt = file.name.split('.').pop();
         const fileName = `${newTrackingCode}-${Math.random()}.${fileExt}`;
-        const { data: uploadData, error: uploadError } = await supabase.storage
+        const { data: uploadData, error: uploadError } = await client.storage
           .from('evidence')
           .upload(fileName, file);
 
@@ -121,45 +154,41 @@ export default function StudentReportPage() {
           return;
         }
         
-        const { data: publicUrlData } = supabase.storage.from('evidence').getPublicUrl(fileName);
+        const { data: publicUrlData } = client.storage.from('evidence').getPublicUrl(fileName);
         evidenceUrl = publicUrlData.publicUrl;
       }
 
-      // Bekleyen (aktif) vaka sayısını al
-      const { count: pendingCount } = await supabase
+      // Bekleyen (aktif) vaka sayısı ile teslim süresi hesapla
+      const { count: pendingCount } = await client
         .from('reports')
         .select('*', { count: 'exact', head: true })
         .in('status', ['Yeni', 'İnceleniyor', 'Kimlik Onayında']);
 
       let extraDays = 0;
       if (pendingCount !== null) {
-        // Kota: Günde 4 vaka. Başlangıç 48 saat (2 gün) = 8 vaka.
         extraDays = Math.max(0, Math.floor(pendingCount / 4) - 1);
       }
       
       const deadlineDate = new Date();
-      // 48 saat (2 gün) standart süre + ekstra yoğunluk günleri
       deadlineDate.setHours(deadlineDate.getHours() + 48 + (extraDays * 24));
 
-      // Kimliği şifrele
+      // Kimliği şifrele (Level 3 ise şifreleme yapılmaz)
       let encryptedIdData = null;
-      try {
-        encryptedIdData = await encryptIdentity(studentName, studentClass);
-      } catch (err: any) {
-        toast.error("Kimlik şifrelenirken bir hata oluştu: " + err.message);
-        setIsSubmitting(false);
-        return;
+      if (identityLevel !== 3) {
+        try {
+          encryptedIdData = await encryptIdentity(studentName, studentClass);
+        } catch (err: any) {
+          toast.error("Kimlik şifrelenirken bir hata oluştu: " + err.message);
+          setIsSubmitting(false);
+          return;
+        }
       }
 
-      // Anonim session token üret (mesajlaşma için)
-      const sessionToken = crypto.randomUUID();
-
-      // Supabase'e kaydet (id döndür)
-      const { data: inserted, error } = await supabase.from('reports').insert([
+      const { data: inserted, error } = await client.from('reports').insert([
         {
           tracking_code: newTrackingCode,
           student_id: studentId,
-          category: category || "Bilinmiyor",
+          category: category,
           content: content,
           risk_level: calculatedRisk,
           status: "Yeni",
@@ -169,16 +198,19 @@ export default function StudentReportPage() {
           identity_level: identityLevel,
           encrypted_identity: encryptedIdData,
           identity_updated_at: new Date().toISOString(),
-          session_token: sessionToken,
+          session_token: generatedToken,
+          location: location,
+          frequency: frequency,
+          identity_sharing_approved: false
         }
       ]).select('id').single();
 
       if (error) throw error;
 
       // Log kaydı oluştur
-      await supabase.from('audit_logs').insert([
+      await client.from('audit_logs').insert([
         {
-          log_id: `LOG-${Math.floor(random() * 9000 + 1000)}`,
+          log_id: `LOG-${Math.floor(Math.random() * 9000 + 1000)}`,
           action: `Yeni İhbar: ${calculatedRisk} risk - YZ analizi başlatıldı`,
           actor: "Sistem",
           status: "Başarılı"
@@ -186,24 +218,24 @@ export default function StudentReportPage() {
       ]);
 
       setTrackingCode(newTrackingCode);
+      setSessionToken(generatedToken);
       setInsertedReportId(inserted?.id ?? null);
-      setIsSuccess(true);
-      toast.success("İhbarınız başarıyla iletildi.");
-
-      // Session token'i localStorage'a kaydet (mesajlaşma için)
-      if (inserted?.id) {
-        localStorage.setItem(`anonToken_${inserted.id}`, sessionToken);
+      
+      if (inserted?.id && identityLevel !== 3) {
+        localStorage.setItem(`anonToken_${inserted.id}`, generatedToken);
       }
 
-      // YZ analizini arka planda başlat (fire-and-forget)
+      // YZ analizini başlat
       if (inserted?.id) {
         fetch('/api/analyze', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             content,
-            category: category || 'Bilinmiyor',
+            category,
             reportId: inserted.id,
+            location,
+            frequency
           }),
         })
           .then(res => res.json())
@@ -212,6 +244,9 @@ export default function StudentReportPage() {
           })
           .catch(() => {/* sessizce geç */});
       }
+
+      toast.success("İhbarınız başarıyla iletildi.");
+      setStep(4); // Advance to Teşekkür step
     } catch (error: any) {
       toast.error("Bir hata oluştu: " + error.message);
     } finally {
@@ -219,56 +254,30 @@ export default function StudentReportPage() {
     }
   };
 
-  const random = () => Math.random();
-
-  if (isSuccess) {
-    return (
-      <div className="flex flex-col min-h-[100dvh] bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-50 items-center justify-center p-4">
-        <div className="w-full max-w-md text-center space-y-6 animate-fade-in-up">
-          <div className="mx-auto bg-green-500/10 p-4 rounded-full w-24 h-24 flex items-center justify-center ring-1 ring-green-500/20">
-            <CheckCircle2 className="h-12 w-12 text-green-500" />
-          </div>
-          <h2 className="text-3xl font-bold text-slate-900 dark:text-white">İhbarınız Alındı</h2>
-
-          {/* YZ Destek Mesajı */}
-          <div className="p-4 bg-gradient-to-br from-rose-50 to-pink-50 dark:from-rose-950/30 dark:to-pink-950/30 border border-rose-200 dark:border-rose-800/40 rounded-xl text-left shadow-sm">
-            {supportMessage ? (
-              <p className="text-sm text-slate-700 dark:text-slate-300 leading-relaxed italic">
-                &ldquo;{supportMessage}&rdquo;
-              </p>
-            ) : (
-              <div className="flex items-center gap-2 text-sm text-slate-500 dark:text-slate-400">
-                <Loader2 className="h-4 w-4 animate-spin" />
-                <span>YZ destek mesajı hazırlanıyor...</span>
-              </div>
-            )}
-          </div>
-
-          <div className="p-4 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl text-left shadow-sm">
-            <p className="text-sm text-slate-500 dark:text-slate-400 mb-2 font-mono">Takip Kodu:</p>
-            <p className="text-xl font-bold tracking-wider text-rose-500 dark:text-rose-400">{trackingCode}</p>
-            <p className="text-xs text-slate-500 dark:text-slate-500 mt-2">Bu kod ile ilerleyen günlerde durum sorgulaması yapabilirsiniz.</p>
-          </div>
-          <Button onClick={() => { setIsSuccess(false); setContent(""); setFile(null); setSupportMessage(null); }} variant="outline" className="w-full h-12 border-slate-200 dark:border-slate-800 hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-900 dark:text-white">
-            Yeni Bir İhbar Yap
-          </Button>
-        </div>
-      </div>
-    );
-  }
+  // Mask name helper
+  const maskText = (text: string) => {
+    if (!text) return "";
+    const parts = text.split(" ");
+    return parts.map(p => {
+      if (p.length <= 2) return p + "*";
+      return p.substring(0, 2) + "*".repeat(p.length - 2);
+    }).join(" ");
+  };
 
   return (
     <div className="flex flex-col min-h-[100dvh] bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-50">
       <header className="px-6 lg:px-14 h-20 flex items-center border-b border-slate-200 dark:border-slate-800/50 bg-white/80 dark:bg-slate-950/80 backdrop-blur-md sticky top-0 z-50">
-        <Link href={step === 2 ? "#" : "/login"} onClick={(e) => {
-          if (step === 2) {
-            e.preventDefault();
-            setStep(1);
-          }
-        }} className="flex items-center gap-2 text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition-colors mr-6">
-          <ArrowLeft className="h-5 w-5" />
-          <span className="hidden sm:inline">{step === 2 ? "Geri Dön" : "Çıkış Yap"}</span>
-        </Link>
+        {step > 1 && step < 4 ? (
+          <button onClick={() => setStep(step - 1)} className="flex items-center gap-2 text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition-colors mr-6">
+            <ArrowLeft className="h-5 w-5" />
+            <span className="hidden sm:inline">Geri Dön</span>
+          </button>
+        ) : (
+          <Link href="/login" className="flex items-center gap-2 text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition-colors mr-6">
+            <ArrowLeft className="h-5 w-5" />
+            <span className="hidden sm:inline">Çıkış Yap</span>
+          </Link>
+        )}
         <div className="flex items-center gap-2 mx-auto">
           <Shield className="h-6 w-6 text-rose-500" />
           <span className="font-bold text-lg tracking-tight text-slate-900 dark:text-white">Öğrenci Paneli</span>
@@ -279,77 +288,120 @@ export default function StudentReportPage() {
       </header>
 
       <main className="flex-1 container max-w-2xl mx-auto py-8 px-4">
-        <div className="mb-8 space-y-4 animate-fade-in-up">
-          <div className="flex items-center justify-between">
-            <h1 className="text-3xl font-bold tracking-tight text-slate-900 dark:text-white">
-              {step === 1 ? "Zorbalığı Bildir" : "Kimlik ve Gizlilik"}
-            </h1>
-            <span className="text-sm font-semibold text-slate-500 dark:text-slate-400 px-3 py-1 bg-slate-100 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-full">
-              Adım {step} / 2
+        {/* Step Progress Bar */}
+        <div className="mb-8 p-4 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-850 rounded-2xl shadow-sm animate-fade-in-up">
+          <div className="flex items-center justify-between mb-4">
+            <span className="text-xs font-semibold text-rose-600 dark:text-rose-400 uppercase tracking-wider">
+              {step === 1 && "Adım 1: Ne Yaşandı?"}
+              {step === 2 && "Adım 2: Gizlilik Tercihi"}
+              {step === 3 && "Adım 3: Onay ve KVKK"}
+              {step === 4 && "Adım 4: Teşekkür & Destek"}
             </span>
+            <span className="text-xs font-bold text-slate-500">Adım {step} / 4</span>
           </div>
-          <p className="text-slate-600 dark:text-slate-400">
-            {step === 1 
-              ? "Yaşadığınız veya şahit olduğunuz bir zorbalık durumunu güvenli şekilde bildirin."
-              : "Lütfen adınızı ve sınıfınızı girin, ardından kimlerin görebileceğini seçin."}
-          </p>
+          <div className="flex items-center justify-between gap-1">
+            {[1, 2, 3, 4].map((s) => (
+              <div key={s} className="flex items-center flex-1 last:flex-none">
+                <div className={`w-7 h-7 rounded-full flex items-center justify-center font-bold text-xs border transition-all duration-300 ${
+                  step === s
+                    ? "bg-rose-600 border-rose-600 text-white shadow-md shadow-rose-900/30 scale-105"
+                    : step > s
+                    ? "bg-green-500 border-green-500 text-white"
+                    : "bg-slate-100 dark:bg-slate-950 border-slate-200 dark:border-slate-800 text-slate-400"
+                }`}>
+                  {step > s ? "✓" : s}
+                </div>
+                {s < 4 && (
+                  <div className={`flex-1 h-1 mx-2 rounded transition-all duration-300 ${
+                    step > s ? "bg-green-500" : "bg-slate-200 dark:bg-slate-800"
+                  }`} />
+                )}
+              </div>
+            ))}
+          </div>
         </div>
 
-        {step === 1 ? (
-          <Alert className="mb-8 bg-rose-500/10 border-rose-500/20 text-rose-700 dark:text-rose-300 animate-fade-in-up" style={{ animationDelay: '100ms' }}>
-            <EyeOff className="h-5 w-5 !text-rose-500 dark:!text-rose-400" />
-            <AlertTitle className="text-rose-600 dark:text-rose-400 font-semibold">Güvenli ve Şifreli İhbar</AlertTitle>
-            <AlertDescription className="text-rose-600/80 dark:text-rose-300/80 mt-1">
-              Bildirdiğiniz olaylar şifrelenerek kaydedilir. Bir sonraki adımda kimliğiniz için gizlilik seviyesini belirleyebilirsiniz.
-            </AlertDescription>
-          </Alert>
-        ) : (
-          <Alert className="mb-8 bg-blue-500/10 border-blue-500/20 text-blue-700 dark:text-blue-300 animate-fade-in-up" style={{ animationDelay: '100ms' }}>
-            <ShieldCheck className="h-5 w-5 !text-blue-500 dark:!text-blue-400" />
-            <AlertTitle className="text-blue-600 dark:text-blue-400 font-semibold">Gizlilik Seviyesi ve Kimlik Seçimi</AlertTitle>
-            <AlertDescription className="text-blue-600/80 dark:text-blue-300/80 mt-1">
-              Girdiğiniz kimlik bilgileri AES-256 ile şifrelenir. Seçtiğiniz seviyeye göre sadece yetkili kişiler görebilir.
-            </AlertDescription>
-          </Alert>
-        )}
-
-        <Card className="bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 shadow-xl animate-fade-in-up" style={{ animationDelay: '200ms' }}>
+        <Card className="bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 shadow-xl overflow-hidden animate-fade-in-up" style={{ animationDelay: '100ms' }}>
           <CardContent className="pt-6">
-            {step === 1 ? (
-              <form onSubmit={handleNextStep} className="space-y-6">
+            
+            {/* STEP 1: Ne Yaşandı? */}
+            {step === 1 && (
+              <form onSubmit={handleNextToStep2} className="space-y-6">
+                <div className="space-y-2">
+                  <h2 className="text-xl font-bold text-slate-900 dark:text-white">Olay Detayları</h2>
+                  <p className="text-xs text-slate-500 dark:text-slate-400">Zorbalık durumunu ve detaylarını eksiksiz şekilde doldurun.</p>
+                </div>
+
                 <div className="space-y-3">
-                  <Label htmlFor="category" className="text-slate-700 dark:text-slate-300 text-base">Zorbalık Türü (İsteğe bağlı)</Label>
-                  <Select onValueChange={(val) => setCategory(val as string)} defaultValue={category}>
-                    <SelectTrigger className="bg-slate-50 dark:bg-slate-950 border-slate-200 dark:border-slate-800 text-slate-800 dark:text-slate-300 h-12 focus:ring-rose-500">
-                      <SelectValue placeholder="Bir kategori seçin..." />
+                  <Label htmlFor="category" className="text-slate-700 dark:text-slate-300 text-sm font-semibold">Zorbalık Türü <span className="text-rose-500">*</span></Label>
+                  <Select onValueChange={(val) => val && setCategory(val)} defaultValue={category}>
+                    <SelectTrigger className="bg-slate-50 dark:bg-slate-950 border-slate-200 dark:border-slate-800 text-slate-850 dark:text-slate-300 h-12">
+                      <SelectValue placeholder="Zorbalık türünü seçin..." />
                     </SelectTrigger>
                     <SelectContent className="bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 text-slate-800 dark:text-slate-300">
                       <SelectItem value="Fiziksel Zorbalık">Fiziksel Zorbalık</SelectItem>
                       <SelectItem value="Sözel Zorbalık">Sözel Zorbalık (Hakaret, Alay)</SelectItem>
-                      <SelectItem value="Siber Zorbalık">Siber Zorbalık (İnternet/Sosyal Medya)</SelectItem>
-                      <SelectItem value="Psikolojik Zorbalık">Psikolojik/Duygusal Dışlama</SelectItem>
+                      <SelectItem value="Siber Zorbalık">Siber Zorbalık (Sosyal Medya, WhatsApp)</SelectItem>
+                      <SelectItem value="Sosyal Zorbalık">Sosyal Zorbalık (Dışlama, Dedikodu)</SelectItem>
                       <SelectItem value="Diğer">Diğer / Emin Değilim</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
 
                 <div className="space-y-3">
-                  <Label htmlFor="description" className="text-slate-700 dark:text-slate-300 text-base">Ne Oldu? <span className="text-rose-500">*</span></Label>
+                  <Label htmlFor="description" className="text-slate-700 dark:text-slate-300 text-sm font-semibold">Ne Oldu? (Detaylı Açıklama) <span className="text-rose-500">*</span></Label>
                   <Textarea 
                     id="description" 
                     required
                     value={content}
                     onChange={(e) => setContent(e.target.value)}
-                    placeholder="Örnek: Beni tehdit ediyorlar veya korkuyorum gibi kelimeler yazarsanız sistem Kırmızı Kod verir..." 
-                    className="min-h-[150px] bg-slate-50 dark:bg-slate-950 border-slate-200 dark:border-slate-800 focus-visible:ring-rose-500 text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-600 resize-none text-base p-4"
+                    placeholder="Yaşadığınız veya şahit olduğunuz olayı detaylarıyla anlatın (Minimum 50 karakter)..." 
+                    className="min-h-[140px] bg-slate-50 dark:bg-slate-950 border-slate-200 dark:border-slate-800 text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-600 resize-none text-sm p-4"
                   />
-                  <p className="text-xs text-slate-500 flex items-center gap-1">
-                    <Info className="h-3 w-3" /> Yazdıklarınız yapay zeka tarafından aciliyet durumuna göre değerlendirilir.
-                  </p>
+                  <div className="flex justify-between items-center text-xs">
+                    <span className={content.trim().length >= 50 ? "text-green-500 font-medium" : "text-slate-500"}>
+                      Karakter Sayısı: {content.trim().length} / 50 (min)
+                    </span>
+                    <span className="text-slate-400 flex items-center gap-1">
+                      <Info className="h-3.5 w-3.5" /> Yapay zeka risk derecelendirmesi yapacaktır.
+                    </span>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div className="space-y-3">
+                    <Label htmlFor="location" className="text-slate-700 dark:text-slate-300 text-sm font-semibold">Nerede Yaşandı? <span className="text-rose-500">*</span></Label>
+                    <Select onValueChange={(val) => val && setLocation(val)} defaultValue={location}>
+                      <SelectTrigger className="bg-slate-50 dark:bg-slate-950 border-slate-200 dark:border-slate-800 text-slate-855 h-12">
+                        <SelectValue placeholder="Konum seçin..." />
+                      </SelectTrigger>
+                      <SelectContent className="bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800">
+                        <SelectItem value="Sınıf">Sınıf</SelectItem>
+                        <SelectItem value="Koridor">Koridor</SelectItem>
+                        <SelectItem value="Online">Online / İnternet</SelectItem>
+                        <SelectItem value="Okul Dışı">Okul Dışı / Dışarıda</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div className="space-y-3">
+                    <Label htmlFor="frequency" className="text-slate-700 dark:text-slate-300 text-sm font-semibold">Ne Sıklıkla Yaşanıyor? <span className="text-rose-500">*</span></Label>
+                    <Select onValueChange={(val) => val && setFrequency(val)} defaultValue={frequency}>
+                      <SelectTrigger className="bg-slate-50 dark:bg-slate-950 border-slate-200 dark:border-slate-800 text-slate-855 h-12">
+                        <SelectValue placeholder="Sıklık seçin..." />
+                      </SelectTrigger>
+                      <SelectContent className="bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800">
+                        <SelectItem value="İlk kez">İlk Kez</SelectItem>
+                        <SelectItem value="Ara sıra">Ara Sıra</SelectItem>
+                        <SelectItem value="Sık sık">Sık Sık</SelectItem>
+                        <SelectItem value="Her gün">Her Gün</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
                 </div>
 
                 <div className="space-y-3">
-                  <Label htmlFor="evidence" className="text-slate-700 dark:text-slate-300 text-base">Kanıt (Fotoğraf/Video/Ekran Görüntüsü) - İsteğe Bağlı</Label>
+                  <Label htmlFor="evidence" className="text-slate-700 dark:text-slate-300 text-sm font-semibold">Kanıt / Ek (Ekran görüntüsü, fotoğraf vb. - İsteğe Bağlı)</Label>
                   <div className="flex items-center gap-4">
                     <Button 
                       type="button" 
@@ -358,10 +410,10 @@ export default function StudentReportPage() {
                       className="bg-slate-50 dark:bg-slate-950 border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-300"
                     >
                       <Paperclip className="h-4 w-4 mr-2" />
-                      Dosya Seç
+                      Dosya Ekle
                     </Button>
-                    <span className="text-sm text-slate-500 truncate max-w-[200px] sm:max-w-[300px]">
-                      {file ? file.name : "Dosya seçilmedi"}
+                    <span className="text-xs text-slate-500 truncate max-w-[250px]">
+                      {file ? file.name : "Ek dosya seçilmedi"}
                     </span>
                     <input 
                       id="evidence-upload" 
@@ -373,175 +425,295 @@ export default function StudentReportPage() {
                   </div>
                 </div>
 
-                <Button type="submit" className="w-full h-14 bg-rose-600 hover:bg-rose-700 text-white text-lg rounded-xl transition-all shadow-lg shadow-rose-900/20 group">
-                  Devam Et <ArrowRight className="ml-2 h-5 w-5 group-hover:translate-x-1 transition-transform" />
+                <Button type="submit" className="w-full h-12 bg-rose-600 hover:bg-rose-700 text-white rounded-xl transition-all shadow-md group">
+                  Devam Et <ArrowRight className="ml-2 h-4 w-4 group-hover:translate-x-1 transition-transform" />
                 </Button>
               </form>
-            ) : (
-              <form onSubmit={handleFormSubmit} className="space-y-6">
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="studentName" className="text-slate-700 dark:text-slate-300 text-sm font-medium">Adınız Soyadınız <span className="text-rose-500">*</span></Label>
-                    <Input
-                      id="studentName"
-                      required
-                      value={studentName}
-                      onChange={(e) => setStudentName(e.target.value)}
-                      placeholder="Örn: Ahmet Yılmaz"
-                      className="bg-slate-50 dark:bg-slate-950 border-slate-200 dark:border-slate-800 text-slate-900 dark:text-white h-12 focus-visible:ring-rose-500"
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="studentClass" className="text-slate-700 dark:text-slate-300 text-sm font-medium">Sınıfınız <span className="text-rose-500">*</span></Label>
-                    <Input
-                      id="studentClass"
-                      required
-                      value={studentClass}
-                      onChange={(e) => setStudentClass(e.target.value)}
-                      placeholder="Örn: 10-A"
-                      className="bg-slate-50 dark:bg-slate-950 border-slate-200 dark:border-slate-800 text-slate-900 dark:text-white h-12 focus-visible:ring-rose-500"
-                    />
-                  </div>
+            )}
+
+            {/* STEP 2: Kimlik Tercihi */}
+            {step === 2 && (
+              <form onSubmit={handleNextToStep3} className="space-y-6">
+                <div className="space-y-2">
+                  <h2 className="text-xl font-bold text-slate-900 dark:text-white">Kimlik ve Gizlilik Tercihiniz</h2>
+                  <p className="text-xs text-slate-500 dark:text-slate-400">
+                    Kimlik bilgilerinizin kimler tarafından görüntülenebileceğini belirleyin.
+                  </p>
                 </div>
 
-                <div className="space-y-3">
-                  <Label className="text-slate-700 dark:text-slate-300 text-base">Gizlilik Seviyesi Seçin</Label>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    {/* CARD 1: PDR'ye Gizli (Level 1) */}
-                    <div
-                      onClick={() => setIdentityLevel(1)}
-                      className={`cursor-pointer rounded-xl border p-5 transition-all flex flex-col justify-between select-none ${
-                        identityLevel === 1
-                          ? "border-amber-500 bg-amber-500/[0.04] dark:bg-amber-500/[0.02] ring-1 ring-amber-500/30"
-                          : "border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 hover:border-slate-300 dark:hover:border-slate-700"
-                      }`}
-                    >
-                      <div className="space-y-3">
-                        <div className="flex items-center justify-between">
-                          <div className="flex items-center gap-2">
-                            <div className="p-2 rounded-lg bg-amber-500/10 text-amber-500">
-                              <ShieldAlert className="w-5 h-5" />
-                            </div>
-                            <h3 className="font-bold text-slate-900 dark:text-white text-sm">PDR'ye Gizli</h3>
-                          </div>
-                          {identityLevel === 1 && (
-                            <div className="rounded-full bg-amber-500 text-white p-0.5">
-                              <Check className="w-3.5 h-3.5" />
-                            </div>
-                          )}
-                        </div>
-                        
-                        <div className="space-y-2 text-xs">
-                          <div className="text-slate-500 dark:text-slate-400 font-semibold">Kimler görebilir?</div>
-                          <ul className="space-y-1">
-                            <li className="flex items-center gap-1.5 text-slate-400 dark:text-slate-500">
-                              <X className="w-3.5 h-3.5 text-rose-500 shrink-0" /> PDR uzmanı göremez
-                            </li>
-                            <li className="flex items-center gap-1.5 text-slate-400 dark:text-slate-500">
-                              <X className="w-3.5 h-3.5 text-rose-500 shrink-0" /> Okul yönetimi göremez
-                            </li>
-                            <li className="flex items-center gap-1.5 text-slate-400 dark:text-slate-500">
-                              <X className="w-3.5 h-3.5 text-rose-500 shrink-0" /> Öğretmenler göremez
-                            </li>
-                          </ul>
-                        </div>
-
-                        <div className="space-y-2 text-xs pt-1 border-t border-slate-100 dark:border-slate-800">
-                          <div className="text-slate-500 dark:text-slate-400 font-semibold">Ne yapabilirsin?</div>
-                          <ul className="space-y-1">
-                            <li className="flex items-center gap-1.5 text-slate-700 dark:text-slate-300">
-                              <Check className="w-3.5 h-3.5 text-green-500 shrink-0" /> PDR ile anonim mesajlaşma
-                            </li>
-                            <li className="flex items-center gap-1.5 text-slate-700 dark:text-slate-300">
-                              <Check className="w-3.5 h-3.5 text-green-500 shrink-0" /> Sonradan Açık Bildirim&apos;e yükseltme
-                            </li>
-                          </ul>
-                        </div>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                  {/* Seviye 1: PDR'ye Gizli */}
+                  <div
+                    onClick={() => setIdentityLevel(1)}
+                    className={`cursor-pointer rounded-xl border p-4 transition-all flex flex-col justify-between select-none ${
+                      identityLevel === 1
+                        ? "border-amber-500 bg-amber-500/[0.04] dark:bg-amber-500/[0.02] ring-1 ring-amber-500/20"
+                        : "border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 hover:border-slate-350"
+                    }`}
+                  >
+                    <div className="space-y-2">
+                      <div className="flex items-center justify-between">
+                        <span className="font-bold text-xs text-amber-600 dark:text-amber-400">Seviye 1</span>
+                        {identityLevel === 1 && <Check className="w-4 h-4 text-amber-500" />}
                       </div>
+                      <h3 className="font-bold text-sm text-slate-900 dark:text-white">PDR'ye Gizli</h3>
+                      <p className="text-[10px] text-slate-500 leading-normal">
+                        Kimliğiniz şifrelenir. PDR uzmanı da dahil kimse kimliğinizi doğrudan göremez. PDR onaylarsa okul yönetimi görebilir. Uçtan uca anonim chat aktiftir.
+                      </p>
                     </div>
+                  </div>
 
-                    {/* CARD 2: Açık Bildirim (Level 2) */}
-                    <div
-                      onClick={() => setIdentityLevel(2)}
-                      className={`cursor-pointer rounded-xl border p-5 transition-all flex flex-col justify-between select-none ${
-                        identityLevel === 2
-                          ? "border-green-500 bg-green-500/[0.04] dark:bg-green-500/[0.02] ring-1 ring-green-500/30"
-                          : "border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 hover:border-slate-300 dark:hover:border-slate-700"
-                      }`}
-                    >
-                      <div className="space-y-3">
-                        <div className="flex items-center justify-between">
-                          <div className="flex items-center gap-2">
-                            <div className="p-2 rounded-lg bg-green-500/10 text-green-500">
-                              <ShieldCheck className="w-5 h-5" />
-                            </div>
-                            <h3 className="font-bold text-slate-900 dark:text-white text-sm">Açık Bildirim</h3>
-                          </div>
-                          {identityLevel === 2 && (
-                            <div className="rounded-full bg-green-500 text-white p-0.5">
-                              <Check className="w-3.5 h-3.5" />
-                            </div>
-                          )}
-                        </div>
-                        
-                        <div className="space-y-2 text-xs">
-                          <div className="text-slate-500 dark:text-slate-400 font-semibold">Kimler görebilir?</div>
-                          <ul className="space-y-1">
-                            <li className="flex items-center gap-1.5 text-slate-700 dark:text-slate-300">
-                              <Check className="w-3.5 h-3.5 text-green-500 shrink-0" /> Sadece PDR uzmanı
-                            </li>
-                            <li className="flex items-center gap-1.5 text-slate-400 dark:text-slate-500">
-                              <X className="w-3.5 h-3.5 text-rose-500 shrink-0" /> Okul yönetimi göremez
-                            </li>
-                            <li className="flex items-center gap-1.5 text-slate-400 dark:text-slate-500">
-                              <X className="w-3.5 h-3.5 text-rose-500 shrink-0" /> Öğretmenler göremez
-                            </li>
-                          </ul>
-                        </div>
-
-                        <div className="space-y-2 text-xs pt-1 border-t border-slate-100 dark:border-slate-800">
-                          <div className="text-slate-500 dark:text-slate-400 font-semibold">Ne yapabilirsin?</div>
-                          <ul className="space-y-1">
-                            <li className="flex items-center gap-1.5 text-slate-700 dark:text-slate-300">
-                              <Check className="w-3.5 h-3.5 text-green-500 shrink-0" /> Resmi takip ve disiplin süreci
-                            </li>
-                            <li className="flex items-center gap-1.5 text-slate-700 dark:text-slate-300">
-                              <Check className="w-3.5 h-3.5 text-green-500 shrink-0" /> Süreç hakkında bilgilendirme
-                            </li>
-                          </ul>
-                        </div>
+                  {/* Seviye 2: PDR'ye Açık */}
+                  <div
+                    onClick={() => setIdentityLevel(2)}
+                    className={`cursor-pointer rounded-xl border p-4 transition-all flex flex-col justify-between select-none ${
+                      identityLevel === 2
+                        ? "border-blue-500 bg-blue-500/[0.04] dark:bg-blue-500/[0.02] ring-1 ring-blue-500/20"
+                        : "border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 hover:border-slate-350"
+                    }`}
+                  >
+                    <div className="space-y-2">
+                      <div className="flex items-center justify-between">
+                        <span className="font-bold text-xs text-blue-600 dark:text-blue-400">Seviye 2</span>
+                        {identityLevel === 2 && <Check className="w-4 h-4 text-blue-500" />}
                       </div>
+                      <h3 className="font-bold text-sm text-slate-900 dark:text-white">PDR'ye Açık</h3>
+                      <p className="text-[10px] text-slate-500 leading-normal">
+                        Kimliğiniz sadece okul PDR uzmanı tarafından çözülebilir. Okul yönetimi veya öğretmenler kimliğinizi asla göremez.
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Seviye 3: Tamamen Anonim */}
+                  <div
+                    onClick={() => {
+                      setIdentityLevel(3);
+                      setStudentName("");
+                      setStudentClass("");
+                    }}
+                    className={`cursor-pointer rounded-xl border p-4 transition-all flex flex-col justify-between select-none ${
+                      identityLevel === 3
+                        ? "border-green-500 bg-green-500/[0.04] dark:bg-green-500/[0.02] ring-1 ring-green-500/20"
+                        : "border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 hover:border-slate-350"
+                    }`}
+                  >
+                    <div className="space-y-2">
+                      <div className="flex items-center justify-between">
+                        <span className="font-bold text-xs text-green-600 dark:text-green-400">Seviye 3</span>
+                        {identityLevel === 3 && <Check className="w-4 h-4 text-green-500" />}
+                      </div>
+                      <h3 className="font-bold text-sm text-slate-900 dark:text-white">Tamamen Anonim</h3>
+                      <p className="text-[10px] text-slate-500 leading-normal">
+                        Sizden hiçbir isim veya sınıf bilgisi talep edilmez. Veritabanına hiçbir kimlik kaydı yapılmaz.
+                      </p>
                     </div>
                   </div>
                 </div>
 
-                <p className="text-center text-xs text-slate-400 dark:text-slate-500 mt-2">
-                  ℹ️ Gizlilik tercihinizi sonradan öğrenci panelinden değiştirebilirsiniz.
-                </p>
+                {identityLevel !== 3 && (
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 p-4 bg-slate-50 dark:bg-slate-950 rounded-xl border border-slate-200 dark:border-slate-800/80 animate-fade-in">
+                    <div className="space-y-2">
+                      <Label htmlFor="studentName" className="text-slate-700 dark:text-slate-300 text-xs font-semibold">Adınız Soyadınız <span className="text-rose-500">*</span></Label>
+                      <Input
+                        id="studentName"
+                        required
+                        value={studentName}
+                        onChange={(e) => setStudentName(e.target.value)}
+                        placeholder="Örn: Ahmet Yılmaz"
+                        className="bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 text-slate-900 dark:text-white h-11 focus-visible:ring-rose-500"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="studentClass" className="text-slate-700 dark:text-slate-300 text-xs font-semibold">Sınıfınız <span className="text-rose-500">*</span></Label>
+                      <Input
+                        id="studentClass"
+                        required
+                        value={studentClass}
+                        onChange={(e) => setStudentClass(e.target.value)}
+                        placeholder="Örn: 10-C"
+                        className="bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 text-slate-900 dark:text-white h-11 focus-visible:ring-rose-500"
+                      />
+                    </div>
+                    <p className="text-[10px] text-slate-500 col-span-1 sm:col-span-2 flex items-center gap-1">
+                      <Info className="h-3 w-3 text-rose-500" /> Girdiğiniz bu bilgiler AES-256 algoritmasıyla şifrelenerek veritabanında saklanır.
+                    </p>
+                  </div>
+                )}
 
                 <div className="flex gap-4">
-                  <Button
-                    type="button"
-                    variant="outline"
-                    onClick={() => setStep(1)}
-                    className="w-1/3 h-14 border-slate-200 dark:border-slate-800 text-slate-800 dark:text-slate-200"
-                  >
-                    Geri Dön
+                  <Button type="button" variant="outline" onClick={() => setStep(1)} className="w-1/3 h-12">
+                    Geri
                   </Button>
-                  <Button 
-                    disabled={isSubmitting} 
-                    type="submit" 
-                    className="flex-1 h-14 bg-rose-600 hover:bg-rose-700 text-white text-lg rounded-xl transition-all shadow-lg shadow-rose-900/20 group"
-                  >
-                    {isSubmitting ? (
-                      <><Loader2 className="mr-2 h-6 w-6 animate-spin" /> Şifreleniyor & İletiliyor...</>
-                    ) : (
-                      <><Send className="mr-2 h-5 w-5 group-hover:translate-x-1 transition-transform" /> İhbarı Tamamla</>
-                    )}
+                  <Button type="submit" className="flex-1 h-12 bg-rose-600 hover:bg-rose-700 text-white rounded-xl">
+                    Devam Et
                   </Button>
                 </div>
               </form>
             )}
+
+            {/* STEP 3: Onay ve KVKK */}
+            {step === 3 && (
+              <div className="space-y-6">
+                <div className="space-y-2">
+                  <h2 className="text-xl font-bold text-slate-900 dark:text-white">İhbar Özeti ve Onay</h2>
+                  <p className="text-xs text-slate-500 dark:text-slate-400">
+                    Lütfen bilgilerinizi son kez kontrol edin ve gönderimi onaylayın.
+                  </p>
+                </div>
+
+                <div className="bg-slate-50 dark:bg-slate-950 rounded-xl p-4 border border-slate-200 dark:border-slate-850 space-y-3 text-xs">
+                  <div>
+                    <span className="text-slate-500 block">Zorbalık Türü / Konum / Sıklık</span>
+                    <span className="font-semibold text-slate-800 dark:text-slate-200">{category} ({location} — {frequency})</span>
+                  </div>
+                  <div>
+                    <span className="text-slate-500 block">Olay Açıklaması</span>
+                    <p className="font-medium text-slate-700 dark:text-slate-300 italic whitespace-pre-line leading-relaxed">&ldquo;{content}&rdquo;</p>
+                  </div>
+                  <div className="pt-2 border-t border-slate-200 dark:border-slate-800 flex items-center justify-between">
+                    <div>
+                      <span className="text-slate-500 block">Gizlilik Seviyesi</span>
+                      <span className="font-semibold text-slate-850 dark:text-slate-200">
+                        {identityLevel === 1 && "Seviye 1 (PDR'ye Gizli)"}
+                        {identityLevel === 2 && "Seviye 2 (PDR'ye Açık)"}
+                        {identityLevel === 3 && "Seviye 3 (Tamamen Anonim)"}
+                      </span>
+                    </div>
+                    <div>
+                      <span className="text-slate-500 block">Kimlik Bilgisi</span>
+                      <span className="font-mono font-bold text-rose-500">
+                        {identityLevel === 3 ? "Anonim (Bilgi Yok)" : `${maskText(studentName)} (${studentClass})`}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* KVKK Bilgilendirme Kutusu */}
+                <div className="bg-slate-100/60 dark:bg-slate-950 p-4 rounded-xl border border-slate-250 dark:border-slate-800 text-[10px] text-slate-600 dark:text-slate-400 space-y-2 leading-relaxed">
+                  <h4 className="font-bold text-slate-800 dark:text-slate-200 flex items-center gap-1.5"><FileText className="w-3.5 h-3.5" /> KVKK Aydınlatma Metni</h4>
+                  <p>
+                    Zorbaya Dur platformu üzerinden gönderdiğiniz veriler, 6698 sayılı Kişisel Verilerin Korunması Kanunu uyarınca, okulunuzun PDR birimi tarafından vakaların takibi ve önlenmesi amacıyla işlenmektedir. Kimliğinizi gizli tutma hakkınız saklı olup, girdiğiniz ad ve sınıf bilgileri AES-256 protokolü ile şifrelenmektedir. Bilgilerinizin rızanız dışı veya yasal dayanak olmaksızın üçüncü taraflarla paylaşılması kesinlikle söz konusu değildir.
+                  </p>
+                </div>
+
+                <div className="flex items-center space-x-2 p-1">
+                  <input 
+                    type="checkbox" 
+                    id="approve-chk" 
+                    checked={isApproved} 
+                    onChange={(e) => setIsApproved(e.target.checked)}
+                    className="w-4 h-4 rounded border-slate-300 text-rose-600 focus:ring-rose-500 cursor-pointer"
+                  />
+                  <Label htmlFor="approve-chk" className="text-xs text-slate-700 dark:text-slate-300 select-none cursor-pointer">
+                    Yukarıdaki aydınlatma metnini okudum ve bildirim göndermeyi onaylıyorum. <span className="text-rose-500">*</span>
+                  </Label>
+                </div>
+
+                <div className="flex gap-4">
+                  <Button type="button" variant="outline" onClick={() => setStep(2)} className="w-1/3 h-12">
+                    Geri
+                  </Button>
+                  <Button 
+                    disabled={isSubmitting || !isApproved} 
+                    onClick={handleFormSubmit}
+                    className="flex-1 h-12 bg-rose-650 hover:bg-rose-700 text-white rounded-xl shadow-md transition-all flex items-center justify-center gap-2"
+                  >
+                    {isSubmitting ? (
+                      <><Loader2 className="w-4 h-4 animate-spin" /> Şifreleniyor...</>
+                    ) : (
+                      <><Send className="w-4 h-4" /> İhbarı Gönder</>
+                    )}
+                  </Button>
+                </div>
+              </div>
+            )}
+
+            {/* STEP 4: Teşekkür & Destek */}
+            {step === 4 && (
+              <div className="space-y-6 text-center animate-fade-in">
+                <div className="mx-auto bg-green-500/10 p-4 rounded-full w-20 h-20 flex items-center justify-center ring-1 ring-green-500/20">
+                  <CheckCircle className="h-10 w-10 text-green-500" />
+                </div>
+                <div className="space-y-2">
+                  <h2 className="text-2xl font-bold text-slate-900 dark:text-white">Bildirim Başarıyla Alındı</h2>
+                  <p className="text-xs text-slate-500 dark:text-slate-400">
+                    Konu ilgili birimlere güvenli şekilde aktarıldı.
+                  </p>
+                </div>
+
+                {/* YZ Destek Mesajı */}
+                <div className="p-4 bg-gradient-to-br from-rose-50 to-pink-50 dark:from-rose-950/20 dark:to-pink-950/20 border border-rose-100 dark:border-rose-800/40 rounded-xl text-left shadow-sm">
+                  <span className="text-[10px] font-bold text-rose-500 dark:text-rose-400 uppercase tracking-wider block mb-1">🤖 YZ Psikolojik Destek Asistanı</span>
+                  {supportMessage ? (
+                    <p className="text-xs text-slate-700 dark:text-slate-300 leading-relaxed italic">
+                      &ldquo;{supportMessage}&rdquo;
+                    </p>
+                  ) : (
+                    <div className="flex items-center gap-2 text-xs text-slate-500 dark:text-slate-400">
+                      <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                      <span>Kişiselleştirilmiş destek mesajı hazırlanıyor...</span>
+                    </div>
+                  )}
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-left">
+                  <div className="p-4 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800/80 rounded-xl shadow-sm space-y-1">
+                    <span className="text-[10px] text-slate-400 font-mono">Takip Kodu:</span>
+                    <div className="text-lg font-bold tracking-wider text-rose-500 dark:text-rose-455">{trackingCode}</div>
+                    <p className="text-[10px] text-slate-500">Bu kod ile ileride durum sorgulaması yapabilirsiniz.</p>
+                  </div>
+
+                  {identityLevel !== 3 && (
+                    <div className="p-4 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800/80 rounded-xl shadow-sm space-y-1 flex flex-col justify-between">
+                      <div>
+                        <span className="text-[10px] text-slate-400 font-mono">Anonim Mesaj Takip Linki:</span>
+                        <Link href="/dashboard/student" className="text-xs font-semibold text-blue-600 dark:text-blue-400 hover:underline block truncate mt-1">
+                          /dashboard/student
+                        </Link>
+                      </div>
+                      <p className="text-[10px] text-slate-500 mt-2">Mesajları okumak için bu linki veya panelinizi kullanabilirsiniz.</p>
+                    </div>
+                  )}
+                </div>
+
+                {/* Acil Kriz Hattı */}
+                <div className="p-4 bg-blue-500/[0.04] border border-blue-500/20 rounded-xl text-left text-xs space-y-3">
+                  <h4 className="font-bold text-slate-800 dark:text-slate-200 flex items-center gap-1.5"><ShieldAlert className="w-4 h-4 text-blue-500" /> Profesyonel Destek Kanalları</h4>
+                  <p className="text-slate-600 dark:text-slate-400 leading-normal text-[11px]">
+                    Eğer acil bir kriz veya hayati tehlike durumu varsa, lütfen aşağıdaki MEB ve Sağlık Bakanlığı ücretsiz destek hatlarını anında arayın:
+                  </p>
+                  <div className="flex gap-4 font-mono font-bold text-slate-800 dark:text-slate-100">
+                    <div className="flex-1 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-2.5 rounded-lg text-center shadow-sm">
+                      <span className="text-[10px] text-slate-400 block font-sans">📞 ALO Psikiyatri</span>
+                      <span className="text-base text-blue-600">182</span>
+                    </div>
+                    <div className="flex-1 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-2.5 rounded-lg text-center shadow-sm">
+                      <span className="text-[10px] text-slate-400 block font-sans">📞 Aile Destek Hattı</span>
+                      <span className="text-base text-blue-650">183</span>
+                    </div>
+                  </div>
+                </div>
+
+                <Button 
+                  onClick={() => {
+                    setStep(1);
+                    setCategory("");
+                    setContent("");
+                    setLocation("");
+                    setFrequency("");
+                    setFile(null);
+                    setSupportMessage(null);
+                    setIsApproved(false);
+                    setStudentName("");
+                    setStudentClass("");
+                  }} 
+                  className="w-full h-12 bg-rose-600 hover:bg-rose-700 text-white rounded-xl"
+                >
+                  Yeni Bir İhbar Oluştur
+                </Button>
+              </div>
+            )}
+
           </CardContent>
         </Card>
 
@@ -560,20 +732,20 @@ export default function StudentReportPage() {
               <Button
                 type="button"
                 variant="outline"
-                className="h-24 flex flex-col items-center justify-center gap-2 border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950 hover:bg-slate-100 dark:hover:bg-slate-800 hover:border-slate-300 dark:hover:border-slate-700"
+                className="h-24 flex flex-col items-center justify-center gap-2 border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950 hover:bg-slate-100 dark:hover:bg-slate-800"
                 onClick={() => proceedWithSubmit("teacher", tempRisk)}
               >
                 <User className="h-6 w-6 text-blue-500" />
-                <span>Sınıf Öğretmeni</span>
+                <span className="font-semibold text-xs">Sınıf Öğretmeni</span>
               </Button>
               <Button
                 type="button"
                 variant="outline"
-                className="h-24 flex flex-col items-center justify-center gap-2 border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950 hover:bg-slate-100 dark:hover:bg-slate-800 hover:border-slate-300 dark:hover:border-slate-700"
+                className="h-24 flex flex-col items-center justify-center gap-2 border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950 hover:bg-slate-100 dark:hover:bg-slate-800"
                 onClick={() => proceedWithSubmit("pdr", tempRisk)}
               >
                 <GraduationCap className="h-6 w-6 text-rose-500" />
-                <span>PDR Uzmanı</span>
+                <span className="font-semibold text-xs">PDR Uzmanı</span>
               </Button>
             </div>
           </DialogContent>

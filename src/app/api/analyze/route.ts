@@ -11,7 +11,7 @@ const supabaseAdmin = createClient(
 
 export async function POST(request: NextRequest) {
   try {
-    const { content, category, reportId } = await request.json();
+    const { content, category, reportId, location, frequency } = await request.json();
 
     if (!content || !reportId) {
       return NextResponse.json({ error: "content ve reportId gerekli" }, { status: 400 });
@@ -19,7 +19,7 @@ export async function POST(request: NextRequest) {
 
     // 3 analizi paralel çalıştır
     const [urgency, classification, supportMsg] = await Promise.all([
-      analyzeUrgency(content, category ?? "Bilinmiyor"),
+      analyzeUrgency(content, category ?? "Bilinmiyor", location ?? "Bilinmiyor", frequency ?? "Bilinmiyor"),
       classifyBullying(content),
       generateSupportMessage(category ?? "Bilinmiyor", content),
     ]);

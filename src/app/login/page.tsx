@@ -56,7 +56,7 @@ export default function LoginPage() {
         const mebPass = (document.getElementById('meb-pass') as HTMLInputElement)?.value;
 
         if (mebEmail === "admin@meb.gov.tr" && mebPass === "123") {
-          router.push("/dashboard/meb");
+          router.push("/yonetim");
         } else {
           toast.error("Hatalı e-posta veya şifre!");
           setIsLoading(false);

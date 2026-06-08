@@ -38,6 +38,7 @@ interface Report {
   evidence_url?: string;
   identity_level?: number;
   encrypted_identity?: string;
+  identity_sharing_approved?: boolean;
   ai_analysis?: {
     urgency?: {
       urgency_score: number;
@@ -559,7 +560,56 @@ export default function PDRDashboard() {
                 encryptedIdentity={selectedReport.encrypted_identity ?? null}
                 identityLevel={selectedReport.identity_level ?? 1}
                 role="pdr"
+                identitySharingApproved={selectedReport.identity_sharing_approved}
               />
+
+              {selectedReport.identity_level === 2 && (
+                <div className="p-3 bg-slate-50 dark:bg-slate-950 rounded-lg border border-slate-200 dark:border-slate-800 text-xs flex items-center justify-between gap-3">
+                  <div>
+                    <span className="font-semibold block text-slate-800 dark:text-slate-250">Okul Yönetimiyle Paylaşım</span>
+                    <span className="text-slate-500 block mt-0.5">
+                      {selectedReport.identity_sharing_approved 
+                        ? "Kimlik paylaşımı okul yönetimine açıldı." 
+                        : "Bu seviye 2 bildirimin kimliğini okul yönetimine açabilirsiniz."}
+                    </span>
+                  </div>
+                  {!selectedReport.identity_sharing_approved && (
+                    <Button 
+                      size="sm" 
+                      onClick={async () => {
+                        if (!supabase) return;
+                        const { error } = await supabase
+                          .from("reports")
+                          .update({ identity_sharing_approved: true })
+                          .eq("id", selectedReport.id);
+                        if (error) {
+                          toast.error("Kimlik paylaşımı onaylanamadı.");
+                        } else {
+                          // Log to audit logs
+                          await supabase.from('audit_logs').insert([
+                            {
+                              log_id: `LOG-${Math.floor(Math.random() * 9000 + 1000)}`,
+                              action: `Kimlik Paylaşımı Onaylandı: ${selectedReport.tracking_code}`,
+                              actor: "PDR Uzmanı",
+                              status: "Başarılı"
+                            }
+                          ]);
+                          toast.success("Kimlik paylaşımı okul yönetimine açıldı.");
+                          // Update locally
+                          setSelectedReport({
+                            ...selectedReport,
+                            identity_sharing_approved: true
+                          });
+                          fetchReports();
+                        }
+                      }}
+                      className="bg-green-600 hover:bg-green-700 text-white shrink-0 h-8 text-xs font-semibold"
+                    >
+                      Onayla ve Paylaş
+                    </Button>
+                  )}
+                </div>
+              )}
 
               {/* AI Tab */}
               {activeTab === "ai" && (
