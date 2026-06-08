@@ -5,19 +5,25 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Shield, Search, AlertTriangle, CheckCircle2, Clock, EyeOff, Activity, LogOut, LockKeyholeOpen, Loader2, MessageSquare, Paperclip, Download } from "lucide-react";
+import { Shield, Search, AlertTriangle, CheckCircle2, Clock, EyeOff, Activity, LogOut, LockKeyholeOpen, Loader2, MessageSquare, Paperclip, Download, Brain, TrendingUp, Zap, MapPin, RefreshCw } from "lucide-react";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import Link from "next/link";
 import { Input } from "@/components/ui/input";
 import { supabase } from "@/lib/supabase";
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
 import { ThemeToggle } from "@/components/theme-toggle";
+import { DecryptedIdentityView } from "@/components/DecryptedIdentityView";
 
 export default function PDRDashboard() {
   const [reports, setReports] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  
+  // AI Pattern Analysis state
+  const [showPatternModal, setShowPatternModal] = useState(false);
+  const [patternResult, setPatternResult] = useState<any>(null);
+  const [isPatternLoading, setIsPatternLoading] = useState(false);
   
   // Messages state
   const [selectedReportId, setSelectedReportId] = useState<string | null>(null);
@@ -130,6 +136,28 @@ export default function PDRDashboard() {
     return `${hours}s ${minutes}d`;
   };
 
+  const handlePatternAnalysis = async () => {
+    setShowPatternModal(true);
+    setIsPatternLoading(true);
+    try {
+      const res = await fetch('/api/analyze/patterns');
+      const data = await res.json();
+      setPatternResult(data);
+    } catch {
+      toast.error("Örüntü analizi başarısız oldu.");
+    } finally {
+      setIsPatternLoading(false);
+    }
+  };
+
+  const getUrgencyColor = (score: number) => {
+    if (score >= 80) return "bg-red-600";
+    if (score >= 60) return "bg-rose-500";
+    if (score >= 40) return "bg-amber-500";
+    if (score >= 20) return "bg-yellow-500";
+    return "bg-green-500";
+  };
+
   const getRiskBadge = (risk: string) => {
     switch(risk) {
       case "Bordo": return <Badge className="bg-red-800 hover:bg-red-900 text-white animate-pulse"><AlertTriangle className="w-3 h-3 mr-1"/> Kritik Acil</Badge>;
@@ -151,6 +179,14 @@ export default function PDRDashboard() {
           <div className="hidden sm:flex items-center gap-2 text-sm text-slate-500 dark:text-slate-400">
             <Activity className="h-4 w-4 text-green-500" /> Yapay Zeka Aktif
           </div>
+          <Button
+            size="sm"
+            variant="outline"
+            className="border-blue-500/30 bg-blue-500/5 text-blue-600 dark:text-blue-400 hover:bg-blue-500/10 hidden sm:flex items-center gap-2"
+            onClick={handlePatternAnalysis}
+          >
+            <Brain className="h-4 w-4" /> Örüntü Analizi
+          </Button>
           <ThemeToggle />
           <Link href="/login">
             <Button variant="ghost" size="sm" className="text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800">
@@ -267,25 +303,86 @@ export default function PDRDashboard() {
                                     </div>
                                   )}
                                 </div>
-                                <div className="flex items-center justify-between p-3 rounded-md bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800">
-                                  <div className="flex items-center gap-3">
-                                    <div className="bg-slate-200 dark:bg-slate-800 p-2 rounded-full">
-                                      <EyeOff className="w-4 h-4 text-slate-500 dark:text-slate-400" />
+                                <DecryptedIdentityView
+                                  encryptedIdentity={report.encrypted_identity ?? null}
+                                  identityLevel={report.identity_level ?? 1}
+                                  role="pdr"
+                                />
+
+                                {/* YZ ANALİZ KARTI */}
+                                {report.ai_analysis ? (
+                                  <div className="rounded-xl border border-blue-500/20 bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-blue-950/30 dark:to-indigo-950/30 p-4 space-y-3">
+                                    <div className="flex items-center gap-2 font-semibold text-sm text-blue-700 dark:text-blue-300">
+                                      <Brain className="h-4 w-4" />
+                                      YZ Analizi
+                                      <span className="ml-auto text-xs text-slate-500 font-normal">
+                                        {report.ai_analysis.analyzed_at ? new Date(report.ai_analysis.analyzed_at).toLocaleString('tr-TR') : ''}
+                                      </span>
                                     </div>
-                                    <div>
-                                      <p className="text-sm font-medium">Kimlik: *** Anonim ***</p>
+
+                                    {/* Aciliyet Skoru */}
+                                    <div className="space-y-1">
+                                      <div className="flex items-center justify-between text-xs">
+                                        <span className="text-slate-600 dark:text-slate-400 flex items-center gap-1"><Zap className="h-3 w-3" /> Aciliyet Skoru</span>
+                                        <span className="font-bold text-slate-800 dark:text-white">{report.ai_analysis.urgency?.urgency_score ?? '?'}/100 — {report.ai_analysis.urgency?.urgency_label ?? ''}</span>
+                                      </div>
+                                      <div className="h-2 rounded-full bg-slate-200 dark:bg-slate-800 overflow-hidden">
+                                        <div
+                                          className={`h-full rounded-full transition-all ${getUrgencyColor(report.ai_analysis.urgency?.urgency_score ?? 0)}`}
+                                          style={{ width: `${report.ai_analysis.urgency?.urgency_score ?? 0}%` }}
+                                        />
+                                      </div>
                                     </div>
+
+                                    {/* Zorbalık Tipi */}
+                                    <div className="flex flex-wrap gap-2 text-xs">
+                                      {report.ai_analysis.classification?.primary_type && (
+                                        <Badge className="bg-indigo-500/10 text-indigo-700 dark:text-indigo-300 border border-indigo-500/20">
+                                          {report.ai_analysis.classification.primary_type}
+                                        </Badge>
+                                      )}
+                                      {report.ai_analysis.classification?.severity && (
+                                        <Badge className="bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700">
+                                          Şiddet: {report.ai_analysis.classification.severity}
+                                        </Badge>
+                                      )}
+                                      {report.ai_analysis.classification?.is_recurring && (
+                                        <Badge className="bg-rose-500/10 text-rose-700 dark:text-rose-300 border border-rose-500/20">
+                                          Tekrarlayan
+                                        </Badge>
+                                      )}
+                                    </div>
+
+                                    {/* Önerilen Aksiyon */}
+                                    {report.ai_analysis.urgency?.recommended_action && (
+                                      <div className="bg-white/60 dark:bg-slate-900/60 rounded-lg p-3 text-xs text-slate-700 dark:text-slate-300">
+                                        <p className="font-semibold text-blue-700 dark:text-blue-300 mb-1">🎯 Önerilen Aksiyon:</p>
+                                        <p>{report.ai_analysis.urgency.recommended_action}</p>
+                                      </div>
+                                    )}
+
+                                    {/* Müdahale Zamanı + Eskalasyon */}
+                                    <div className="flex items-center justify-between text-xs text-slate-600 dark:text-slate-400">
+                                      <span>⏰ {report.ai_analysis.urgency?.intervention_timeline ?? '—'}</span>
+                                      {report.ai_analysis.urgency?.escalation_needed && (
+                                        <span className="text-rose-600 dark:text-rose-400 font-semibold">🚨 Eskalasyon Gerekli</span>
+                                      )}
+                                    </div>
+
+                                    {/* Tespit Edilen Kelimeler */}
+                                    {report.ai_analysis.urgency?.keywords_detected?.length > 0 && (
+                                      <div className="text-xs text-slate-500">
+                                        <span className="font-medium">Tespit Edilen: </span>
+                                        {report.ai_analysis.urgency.keywords_detected.join(', ')}
+                                      </div>
+                                    )}
                                   </div>
-                                  {report.risk_level === 'Kırmızı' && report.status !== 'Kimlik Onayında' && (
-                                    <Button size="sm" variant="destructive" className="bg-rose-600 hover:bg-rose-700 h-8 text-xs text-white" onClick={() => handleStatusChange(report.id, 'Kimlik Onayında')}>
-                                      <LockKeyholeOpen className="w-3 h-3 mr-2" />
-                                      Kimlik Onayı İste
-                                    </Button>
-                                  )}
-                                  {report.status === 'Kimlik Onayında' && (
-                                    <Badge className="bg-amber-500 hover:bg-amber-600 text-white animate-pulse">Onay Bekleniyor</Badge>
-                                  )}
-                                </div>
+                                ) : (
+                                  <div className="rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/50 p-4 flex items-center gap-3 text-sm text-slate-500">
+                                    <Brain className="h-4 w-4 animate-pulse" />
+                                    YZ analizi bekleniyor veya bu eski bir rapor...
+                                  </div>
+                                )}
                               </div>
 
                               <div className="space-y-4 flex-1 pb-4">
@@ -348,6 +445,80 @@ export default function PDRDashboard() {
           </CardContent>
         </Card>
       </main>
+
+      {/* ÖRÜNTÜ ANALİZİ MODAL */}
+      <Dialog open={showPatternModal} onOpenChange={setShowPatternModal}>
+        <DialogContent className="bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 text-slate-900 dark:text-white sm:max-w-lg">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Brain className="h-5 w-5 text-blue-500" />
+              Son 30 Gün — Örüntü Analizi
+            </DialogTitle>
+            <DialogDescription className="text-slate-500 dark:text-slate-400">
+              YZ tüm raporları tarayarak tekrar eden davranış kalıplarını tespit etti.
+            </DialogDescription>
+          </DialogHeader>
+
+          {isPatternLoading ? (
+            <div className="flex flex-col items-center justify-center py-12 gap-4">
+              <Brain className="h-10 w-10 text-blue-500 animate-pulse" />
+              <p className="text-sm text-slate-500">Raporlar analiz ediliyor...</p>
+            </div>
+          ) : patternResult?.result ? (
+            <div className="space-y-4 mt-2">
+              <div className="flex items-center gap-2">
+                <Badge className={patternResult.result.patterns_found ? "bg-rose-500/10 text-rose-600 border-rose-500/20" : "bg-green-500/10 text-green-600 border-green-500/20"}>
+                  {patternResult.result.patterns_found ? "Örüntü Tespit Edildi" : "Belirgin Örüntü Yok"}
+                </Badge>
+                <span className="text-xs text-slate-500">{patternResult.report_count} rapor analiz edildi</span>
+              </div>
+
+              <div className="bg-slate-50 dark:bg-slate-950 rounded-lg p-4 text-sm text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-800">
+                <p className="font-semibold text-blue-600 dark:text-blue-400 mb-2">📊 Genel Değerlendirme</p>
+                <p>{patternResult.result.pattern_description}</p>
+              </div>
+
+              {patternResult.result.hotspot_locations?.length > 0 && (
+                <div>
+                  <p className="text-xs font-semibold text-slate-500 mb-2 flex items-center gap-1"><MapPin className="h-3 w-3" /> Risk Noktaları</p>
+                  <div className="flex flex-wrap gap-2">
+                    {patternResult.result.hotspot_locations.map((loc: string, i: number) => (
+                      <Badge key={i} className="bg-amber-500/10 text-amber-700 dark:text-amber-300 border-amber-500/20">{loc}</Badge>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {patternResult.result.recurring_behavior_types?.length > 0 && (
+                <div>
+                  <p className="text-xs font-semibold text-slate-500 mb-2 flex items-center gap-1"><TrendingUp className="h-3 w-3" /> Tekrar Eden Davranışlar</p>
+                  <div className="flex flex-wrap gap-2">
+                    {patternResult.result.recurring_behavior_types.map((type: string, i: number) => (
+                      <Badge key={i} className="bg-rose-500/10 text-rose-700 dark:text-rose-300 border-rose-500/20">{type}</Badge>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {patternResult.result.suggested_intervention && (
+                <div className="bg-blue-50 dark:bg-blue-950/30 rounded-lg p-4 text-sm border border-blue-200 dark:border-blue-800/40">
+                  <p className="font-semibold text-blue-700 dark:text-blue-300 mb-1">💡 Önerilen Müdahale</p>
+                  <p className="text-slate-700 dark:text-slate-300">{patternResult.result.suggested_intervention}</p>
+                </div>
+              )}
+
+              <div className="flex items-center justify-between text-xs text-slate-500 pt-2 border-t border-slate-200 dark:border-slate-800">
+                <span>Zaman Kalıbı: {patternResult.result.time_pattern}</span>
+                <Button size="sm" variant="ghost" className="h-7 text-xs" onClick={handlePatternAnalysis}>
+                  <RefreshCw className="h-3 w-3 mr-1" /> Yenile
+                </Button>
+              </div>
+            </div>
+          ) : (
+            <p className="text-sm text-slate-500 py-4">Sonuç alınamadı.</p>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

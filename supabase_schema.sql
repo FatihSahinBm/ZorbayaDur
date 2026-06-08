@@ -15,6 +15,9 @@ create table if not exists public.reports (
     assigned_role varchar(20) not null default 'pdr',
     evidence_url text,
     deadline_at timestamp with time zone,
+    identity_level int default 1, -- 1: PDR'ye gizli, 2: açık
+    encrypted_identity text, -- AES-256 ile şifrelenmiş isim/sınıf bilgisi
+    identity_updated_at timestamp with time zone,
     created_at timestamp with time zone default timezone('utc'::text, now()) not null,
     updated_at timestamp with time zone default timezone('utc'::text, now()) not null
 );
@@ -56,6 +59,15 @@ create policy "Allow public inserts to reports" on public.reports for insert to 
 create policy "Allow public read reports" on public.reports for select to public using (true);
 create policy "Allow public update reports" on public.reports for update to public using (true);
 create policy "Allow public delete reports" on public.reports for delete to public using (true);
+
+-- Kademeli Kimlik Sistemi RLS Politikaları (Üretim ortamında Rol Tabanlı Auth entegrasyonu ile aktif edilir):
+-- Seviye 1 (PDR'ye Gizli - identity_level = 2): Sadece pdr_role veya JWT claim'i pdr olan görebilir
+-- CREATE POLICY "Allow read identity level 2 to PDR" ON public.reports FOR SELECT TO authenticated
+-- USING (identity_level = 1 OR (identity_level = 2 AND auth.jwt() ->> 'role' = 'pdr'));
+
+-- Seviye 2 (Açık Bildirim - identity_level = 3): pdr_role + admin_role görebilir
+-- CREATE POLICY "Allow read identity level 3 to PDR and Admin" ON public.reports FOR SELECT TO authenticated
+-- USING (identity_level = 1 OR identity_level = 2 OR (identity_level = 3 AND auth.jwt() ->> 'role' IN ('pdr', 'admin')));
 
 create policy "Allow public inserts to logs" on public.audit_logs for insert to public with check (true);
 create policy "Allow public read logs" on public.audit_logs for select to public using (true);

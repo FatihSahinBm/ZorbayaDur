@@ -124,6 +124,44 @@ export default function StudentDashboard() {
     }
   };
 
+  const handleUpgradeToLevel2 = async (reportId: string, trackingCode: string) => {
+    if (!supabase) return;
+    
+    const confirmUpgrade = window.confirm(
+      "Bu ihbarın gizlilik seviyesini 'Açık Bildirim' (Seviye 2) olarak değiştirmek istediğinize emin misiniz? " +
+      "Bu işlem sonucunda kimlik bilgileriniz okul yönetimi tarafından da deşifre edilip görülebilecektir."
+    );
+    if (!confirmUpgrade) return;
+
+    try {
+      const { error } = await supabase
+        .from("reports")
+        .update({ 
+          identity_level: 2,
+          identity_updated_at: new Date().toISOString()
+        })
+        .eq("id", reportId);
+
+      if (error) {
+        toast.error("Gizlilik seviyesi yükseltilemedi: " + error.message);
+      } else {
+        // Log to audit logs
+        await supabase.from('audit_logs').insert([
+          {
+            log_id: `LOG-${Math.floor(Math.random() * 9000 + 1000)}`,
+            action: `Gizlilik Seviyesi Açık Bildirim'e Yükseltildi: ${trackingCode}`,
+            actor: "Öğrenci",
+            status: "Başarılı"
+          }
+        ]);
+        toast.success("Gizlilik seviyesi başarıyla Seviye 2 (Açık Bildirim) olarak güncellendi.");
+        fetchReports(studentId);
+      }
+    } catch (err: any) {
+      toast.error("Bir hata oluştu: " + err.message);
+    }
+  };
+
   const getStatusBadge = (status: string) => {
     switch(status) {
       case "Yeni": return <Badge className="bg-blue-500/10 text-blue-500 hover:bg-blue-500/20">Yeni İletildi</Badge>;
@@ -177,6 +215,7 @@ export default function StudentDashboard() {
                     <TableHead className="text-slate-600 dark:text-slate-400">İhbar No</TableHead>
                     <TableHead className="text-slate-600 dark:text-slate-400">Tarih</TableHead>
                     <TableHead className="text-slate-600 dark:text-slate-400">Kategori</TableHead>
+                    <TableHead className="text-slate-600 dark:text-slate-400">Gizlilik</TableHead>
                     <TableHead className="text-slate-600 dark:text-slate-400">Durum</TableHead>
                     <TableHead className="text-right text-slate-600 dark:text-slate-400">İşlem / Mesajlaşma</TableHead>
                   </TableRow>
@@ -187,6 +226,13 @@ export default function StudentDashboard() {
                       <TableCell className="font-mono font-medium text-slate-700 dark:text-slate-300">{report.tracking_code}</TableCell>
                       <TableCell className="text-slate-600 dark:text-slate-400">{new Date(report.created_at).toLocaleDateString('tr-TR')}</TableCell>
                       <TableCell className="text-slate-700 dark:text-slate-300">{report.category}</TableCell>
+                      <TableCell>
+                        {report.identity_level === 2 ? (
+                          <Badge className="bg-green-500/10 text-green-600 dark:text-green-400 border border-green-500/20 text-xs">Seviye 2: Açık</Badge>
+                        ) : (
+                          <Badge className="bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20 text-xs">Seviye 1: PDR</Badge>
+                        )}
+                      </TableCell>
                       <TableCell>{getStatusBadge(report.status)}</TableCell>
                       <TableCell className="text-right">
                         <div className="flex items-center justify-end gap-2">
@@ -232,6 +278,33 @@ export default function StudentDashboard() {
                                       </a>
                                     )}
                                   </div>
+                                )}
+                              </div>
+
+                              <div className="p-4 rounded-md border text-sm shrink-0 flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-slate-50 dark:bg-slate-950 border-slate-200 dark:border-slate-800 animate-fade-in">
+                                <div>
+                                  <div className="flex items-center gap-2 font-semibold text-slate-850 dark:text-slate-200">
+                                    <span>Gizlilik Seviyesi:</span>
+                                    {report.identity_level === 2 ? (
+                                      <span className="text-green-600 dark:text-green-400">Seviye 2 (Açık Bildirim)</span>
+                                    ) : (
+                                      <span className="text-amber-600 dark:text-amber-400">Seviye 1 (PDR'ye Gizli)</span>
+                                    )}
+                                  </div>
+                                  <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
+                                    {report.identity_level === 2 
+                                      ? "Kimliğiniz hem okul PDR uzmanı hem de Okul Yönetimi (MEB) tarafından görülebilir." 
+                                      : "Kimliğiniz şifreli olarak sadece okul PDR uzmanı tarafından görülebilir."}
+                                  </p>
+                                </div>
+                                {report.identity_level !== 2 && (
+                                  <Button 
+                                    size="sm"
+                                    onClick={() => handleUpgradeToLevel2(report.id, report.tracking_code)}
+                                    className="bg-green-600 hover:bg-green-700 text-white shrink-0 self-start sm:self-center font-medium shadow-sm transition-all"
+                                  >
+                                    Açık Bildirim'e Yükselt
+                                  </Button>
                                 )}
                               </div>
 

@@ -14,6 +14,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
 import { ThemeToggle } from "@/components/theme-toggle";
+import { DecryptedIdentityView } from "@/components/DecryptedIdentityView";
 
 export default function TeacherDashboard() {
   const [reports, setReports] = useState<any[]>([]);
@@ -267,25 +268,11 @@ export default function TeacherDashboard() {
                                     </div>
                                   )}
                                 </div>
-                                <div className="flex items-center justify-between p-3 rounded-md bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800">
-                                  <div className="flex items-center gap-3">
-                                    <div className="bg-slate-200 dark:bg-slate-800 p-2 rounded-full">
-                                      <EyeOff className="w-4 h-4 text-slate-500 dark:text-slate-400" />
-                                    </div>
-                                    <div>
-                                      <p className="text-sm font-medium">Kimlik: *** Anonim ***</p>
-                                    </div>
-                                  </div>
-                                  {report.risk_level === 'Kırmızı' && report.status !== 'Kimlik Onayında' && (
-                                    <Button size="sm" variant="destructive" className="bg-rose-600 hover:bg-rose-700 h-8 text-xs text-white" onClick={() => handleStatusChange(report.id, 'Kimlik Onayında')}>
-                                      <LockKeyholeOpen className="w-3 h-3 mr-2" />
-                                      Kimlik Onayı İste
-                                    </Button>
-                                  )}
-                                  {report.status === 'Kimlik Onayında' && (
-                                    <Badge className="bg-amber-500 hover:bg-amber-600 text-white animate-pulse">Onay Bekleniyor</Badge>
-                                  )}
-                                </div>
+                                <DecryptedIdentityView
+                                  encryptedIdentity={report.encrypted_identity ?? null}
+                                  identityLevel={report.identity_level ?? 1}
+                                  role="teacher"
+                                />
                               </div>
 
                               <div className="space-y-4 flex-1 pb-4">
