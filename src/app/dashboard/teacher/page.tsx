@@ -15,7 +15,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
 import { ThemeToggle } from "@/components/theme-toggle";
 
-export default function PDRDashboard() {
+export default function TeacherDashboard() {
   const [reports, setReports] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   
@@ -30,7 +30,7 @@ export default function PDRDashboard() {
     const { data, error } = await supabase
       .from("reports")
       .select("*")
-      .eq("assigned_role", "pdr")
+      .eq("assigned_role", "teacher")
       .order("created_at", { ascending: false });
 
     if (error) {
@@ -81,7 +81,7 @@ export default function PDRDashboard() {
     const { error } = await supabase.from('messages').insert([
       {
         report_id: selectedReportId,
-        sender_role: 'pdr',
+        sender_role: 'teacher',
         content: content
       }
     ]);
@@ -145,7 +145,7 @@ export default function PDRDashboard() {
       <header className="px-6 h-16 flex items-center border-b border-slate-200 dark:border-slate-800/50 bg-white/80 dark:bg-slate-900/80 backdrop-blur-md sticky top-0 z-50">
         <div className="flex items-center gap-2">
           <Shield className="h-6 w-6 text-blue-500" />
-          <span className="font-bold text-lg tracking-tight text-slate-900 dark:text-white">PDR Paneli</span>
+          <span className="font-bold text-lg tracking-tight text-slate-900 dark:text-white">Sınıf Öğretmeni Paneli</span>
         </div>
         <div className="ml-auto flex items-center gap-4">
           <div className="hidden sm:flex items-center gap-2 text-sm text-slate-500 dark:text-slate-400">
@@ -294,15 +294,15 @@ export default function PDRDashboard() {
                                 ) : messages.length === 0 ? (
                                   <div className="text-center text-slate-500 mt-6">
                                     <MessageSquare className="w-8 h-8 mx-auto mb-2 opacity-20" />
-                                    <p className="text-sm">Henüz mesaj yok. Öğrenciyle anonim olarak iletişime geçebilirsiniz.</p>
+                                    <p className="text-sm">Henüz mesaj yok. Öğrenciyle iletişime geçebilirsiniz.</p>
                                   </div>
                                 ) : (
                                   messages.map((msg) => (
                                     <div key={msg.id} className={`flex flex-col ${msg.sender_role === 'pdr' ? 'items-end' : 'items-start'}`}>
                                       <span className="text-xs text-slate-500 mb-1 px-1">
-                                        {msg.sender_role === 'pdr' ? 'Siz (PDR)' : 'Öğrenci (Anonim)'}
+                                        {msg.sender_role === 'teacher' ? 'Siz (Öğretmen)' : msg.sender_role === 'pdr' ? 'PDR Uzmanı' : 'Öğrenci (Anonim)'}
                                       </span>
-                                      <div className={`px-4 py-2 rounded-2xl max-w-[80%] text-sm ${msg.sender_role === 'pdr' ? 'bg-blue-600 text-white rounded-tr-sm' : 'bg-slate-100 dark:bg-slate-800 text-slate-900 dark:text-slate-200 rounded-tl-sm'}`}>
+                                      <div className={`px-4 py-2 rounded-2xl max-w-[80%] text-sm ${msg.sender_role === 'teacher' || msg.sender_role === 'pdr' ? 'bg-blue-600 text-white rounded-tr-sm' : 'bg-slate-100 dark:bg-slate-800 text-slate-900 dark:text-slate-200 rounded-tl-sm'}`}>
                                         {msg.content}
                                       </div>
                                       <span className="text-[10px] text-slate-500 mt-1">

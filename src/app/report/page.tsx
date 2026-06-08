@@ -8,8 +8,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { Shield, ShieldAlert, Send, EyeOff, Info, CheckCircle2, Loader2, ArrowLeft, Paperclip } from "lucide-react";
+import { Shield, ShieldAlert, Send, EyeOff, Info, CheckCircle2, Loader2, ArrowLeft, Paperclip, User, GraduationCap } from "lucide-react";
 import Link from "next/link";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { toast } from "sonner";
 import { supabase } from "@/lib/supabase";
 import { ThemeToggle } from "@/components/theme-toggle";
@@ -30,18 +31,24 @@ export default function StudentReportPage() {
   const [trackingCode, setTrackingCode] = useState("");
   const [file, setFile] = useState<File | null>(null);
 
-  // Basit bir AI Simülasyonu: Belirli tehlikeli kelimeleri tarar
+  const [showAssigneeDialog, setShowAssigneeDialog] = useState(false);
+  const [tempRisk, setTempRisk] = useState("");
+
   const analyzeRiskLevel = (text: string) => {
     const lowerText = text.toLowerCase();
-    const redWords = ["intihar", "ölmek", "öldürecek", "silah", "bıçak", "kan", "tehdit", "korkuyorum", "döv"];
-    const orangeWords = ["hakaret", "küfür", "zorla", "para", "dışlıyorlar", "dalga", "vur"];
     
-    if (redWords.some(word => lowerText.includes(word))) return "Kırmızı";
-    if (orangeWords.some(word => lowerText.includes(word))) return "Turuncu";
-    return "Sarı"; // Varsayılan risk
+    // 'kantin' içinde 'kan', 'aparat' içinde 'para' geçmesi gibi hataları önlemek için kelimeleri daha belirgin yaptık
+    const bordoWords = ["intihar", "ölmek", "öldür", "silah", "bıçak", "kanlar içinde", "kan revan"]; 
+    const kirmiziWords = ["tehdit", "korkuyorum", "dövüyor", "dövdü", "dövecek", "şantaj"]; 
+    const turuncuWords = ["hakaret", "küfür", "zorla", "dışlıyor", "dalga geç"]; 
+    
+    if (bordoWords.some(word => lowerText.includes(word))) return "Bordo";
+    if (kirmiziWords.some(word => lowerText.includes(word))) return "Kırmızı";
+    if (turuncuWords.some(word => lowerText.includes(word))) return "Turuncu";
+    return "Sarı"; // Varsayılan risk (Düşük)
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleInitialSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!content.trim()) {
       toast.error("Lütfen olayı anlatın.");
@@ -53,11 +60,23 @@ export default function StudentReportPage() {
       return;
     }
 
+    const calculatedRisk = analyzeRiskLevel(content);
+    setTempRisk(calculatedRisk);
+
+    if (calculatedRisk === "Turuncu") {
+      setShowAssigneeDialog(true);
+    } else if (calculatedRisk === "Kırmızı" || calculatedRisk === "Bordo") {
+      proceedWithSubmit("pdr", calculatedRisk);
+    } else { // Sarı veya Bilinmiyor
+      proceedWithSubmit("teacher", calculatedRisk);
+    }
+  };
+
+  const proceedWithSubmit = async (assigneeRole: string, calculatedRisk: string) => {
     setIsSubmitting(true);
+    setShowAssigneeDialog(false);
     
     try {
-      // AI Risk Analizini çalıştır
-      const calculatedRisk = analyzeRiskLevel(content);
       const newTrackingCode = `ZRB-${Math.floor(100000 + Math.random() * 900000)}`;
 
       // Get student_id from localStorage if it exists
@@ -81,6 +100,22 @@ export default function StudentReportPage() {
         evidenceUrl = publicUrlData.publicUrl;
       }
 
+      // Bekleyen (aktif) vaka sayısını al
+      const { count: pendingCount } = await supabase
+        .from('reports')
+        .select('*', { count: 'exact', head: true })
+        .in('status', ['Yeni', 'İnceleniyor', 'Kimlik Onayında']);
+
+      let extraDays = 0;
+      if (pendingCount !== null) {
+        // Kota: Günde 4 vaka. Başlangıç 48 saat (2 gün) = 8 vaka.
+        extraDays = Math.max(0, Math.floor(pendingCount / 4) - 1);
+      }
+      
+      const deadlineDate = new Date();
+      // 48 saat (2 gün) standart süre + ekstra yoğunluk günleri
+      deadlineDate.setHours(deadlineDate.getHours() + 48 + (extraDays * 24));
+
       // Supabase'e kaydet
       const { error } = await supabase.from('reports').insert([
         {
@@ -90,7 +125,9 @@ export default function StudentReportPage() {
           content: content,
           risk_level: calculatedRisk,
           status: "Yeni",
-          evidence_url: evidenceUrl
+          assigned_role: assigneeRole,
+          evidence_url: evidenceUrl,
+          deadline_at: deadlineDate.toISOString()
         }
       ]);
 
@@ -178,7 +215,7 @@ export default function StudentReportPage() {
 
         <Card className="bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 shadow-xl animate-fade-in-up" style={{ animationDelay: '200ms' }}>
           <CardContent className="pt-6">
-            <form onSubmit={handleSubmit} className="space-y-6">
+            <form onSubmit={handleInitialSubmit} className="space-y-6">
               <div className="space-y-3">
                 <Label htmlFor="category" className="text-slate-700 dark:text-slate-300 text-base">Zorbalık Türü (İsteğe bağlı)</Label>
                 <Select onValueChange={(val) => setCategory(val as string)}>
@@ -245,6 +282,40 @@ export default function StudentReportPage() {
             </form>
           </CardContent>
         </Card>
+
+        <Dialog open={showAssigneeDialog} onOpenChange={setShowAssigneeDialog}>
+          <DialogContent className="sm:max-w-md bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800">
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2 text-slate-900 dark:text-white">
+                <ShieldAlert className="h-5 w-5 text-amber-500" />
+                Yönlendirme Seçimi
+              </DialogTitle>
+              <DialogDescription className="text-slate-600 dark:text-slate-400">
+                Olayın orta risk düzeyinde olduğu tespit edildi. Konuyu kime iletmek istersiniz?
+              </DialogDescription>
+            </DialogHeader>
+            <div className="grid grid-cols-2 gap-4 mt-4">
+              <Button
+                type="button"
+                variant="outline"
+                className="h-24 flex flex-col items-center justify-center gap-2 border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950 hover:bg-slate-100 dark:hover:bg-slate-800 hover:border-slate-300 dark:hover:border-slate-700"
+                onClick={() => proceedWithSubmit("teacher", tempRisk)}
+              >
+                <User className="h-6 w-6 text-blue-500" />
+                <span>Sınıf Öğretmeni</span>
+              </Button>
+              <Button
+                type="button"
+                variant="outline"
+                className="h-24 flex flex-col items-center justify-center gap-2 border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950 hover:bg-slate-100 dark:hover:bg-slate-800 hover:border-slate-300 dark:hover:border-slate-700"
+                onClick={() => proceedWithSubmit("pdr", tempRisk)}
+              >
+                <GraduationCap className="h-6 w-6 text-rose-500" />
+                <span>PDR Uzmanı</span>
+              </Button>
+            </div>
+          </DialogContent>
+        </Dialog>
       </main>
     </div>
   );

@@ -41,6 +41,16 @@ export default function LoginPage() {
           toast.error("Hatalı e-posta veya şifre!");
           setIsLoading(false);
         }
+      } else if (role === "teacher") {
+        const teacherEmail = (document.getElementById('teacher-email') as HTMLInputElement)?.value;
+        const teacherPass = (document.getElementById('teacher-pass') as HTMLInputElement)?.value;
+
+        if (teacherEmail === "ogretmen@okul.k12.tr" && teacherPass === "123") {
+          router.push("/dashboard/teacher");
+        } else {
+          toast.error("Hatalı e-posta veya şifre!");
+          setIsLoading(false);
+        }
       } else {
         const mebEmail = (document.getElementById('meb-email') as HTMLInputElement)?.value;
         const mebPass = (document.getElementById('meb-pass') as HTMLInputElement)?.value;
@@ -81,8 +91,9 @@ export default function LoginPage() {
           </CardHeader>
           <CardContent>
             <Tabs defaultValue="student" className="w-full">
-              <TabsList className="grid w-full grid-cols-3 mb-8 bg-slate-100 dark:bg-slate-950/50 p-1 border border-slate-200 dark:border-slate-800 rounded-xl">
+              <TabsList className="grid w-full grid-cols-4 mb-8 bg-slate-100 dark:bg-slate-950/50 p-1 border border-slate-200 dark:border-slate-800 rounded-xl">
                 <TabsTrigger value="student" className="rounded-lg data-[state=active]:bg-rose-600 data-[state=active]:text-white dark:data-[state=active]:text-white transition-all text-slate-600 dark:text-slate-400">Öğrenci</TabsTrigger>
+                <TabsTrigger value="teacher" className="rounded-lg data-[state=active]:bg-purple-600 data-[state=active]:text-white dark:data-[state=active]:text-white transition-all text-slate-600 dark:text-slate-400">Öğretmen</TabsTrigger>
                 <TabsTrigger value="pdr" className="rounded-lg data-[state=active]:bg-blue-600 data-[state=active]:text-white dark:data-[state=active]:text-white transition-all text-slate-600 dark:text-slate-400">PDR</TabsTrigger>
                 <TabsTrigger value="meb" className="rounded-lg data-[state=active]:bg-amber-600 data-[state=active]:text-white dark:data-[state=active]:text-white transition-all text-slate-600 dark:text-slate-400">MEB</TabsTrigger>
               </TabsList>
@@ -104,6 +115,24 @@ export default function LoginPage() {
                     <p className="text-center text-xs text-slate-500 dark:text-slate-400 mt-4 flex items-center justify-center gap-1">
                       <Shield className="h-3 w-3" /> %100 Anonim ve Güvenli
                     </p>
+                  </div>
+                </form>
+              </TabsContent>
+
+              <TabsContent value="teacher" className="animate-fade-in">
+                <form onSubmit={(e) => handleLogin(e, "teacher")} className="space-y-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="teacher-email" className="text-slate-700 dark:text-slate-300">Kurumsal E-posta</Label>
+                    <Input id="teacher-email" type="email" placeholder="ogretmen@okul.k12.tr" required className="bg-slate-50 dark:bg-slate-950 border-slate-200 dark:border-slate-800 focus-visible:ring-purple-500 text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-600 h-12" defaultValue="ogretmen@okul.k12.tr" />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="teacher-pass" className="text-slate-700 dark:text-slate-300">Şifre</Label>
+                    <Input id="teacher-pass" type="password" required className="bg-slate-50 dark:bg-slate-950 border-slate-200 dark:border-slate-800 focus-visible:ring-purple-500 text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-600 h-12" defaultValue="123" />
+                  </div>
+                  <div className="pt-4">
+                    <Button type="submit" disabled={isLoading} className="w-full h-12 bg-purple-600 hover:bg-purple-700 text-white text-base rounded-xl transition-all shadow-lg shadow-purple-900/20">
+                      {isLoading ? <Loader2 className="mr-2 h-5 w-5 animate-spin" /> : "Öğretmen Paneline Gir"}
+                    </Button>
                   </div>
                 </form>
               </TabsContent>

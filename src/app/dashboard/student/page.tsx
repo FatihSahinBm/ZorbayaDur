@@ -5,7 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Shield, Loader2, LogOut, MessageSquare, Plus, Clock, AlertTriangle, Trash2 } from "lucide-react";
+import { Shield, Loader2, LogOut, MessageSquare, Plus, Clock, AlertTriangle, Trash2, Paperclip, Search, Download } from "lucide-react";
 import Link from "next/link";
 import { supabase } from "@/lib/supabase";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
@@ -201,48 +201,72 @@ export default function StudentDashboard() {
                                 <MessageSquare className="w-4 h-4 mr-2" /> Detay & Görüş
                               </Button>
                             } />
-                          <DialogContent className="bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 text-slate-900 dark:text-white sm:max-w-xl max-h-[80vh] flex flex-col">
-                            <DialogHeader>
+                          <DialogContent className="bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 text-slate-900 dark:text-white sm:max-w-xl max-h-[90vh] h-[90vh] flex flex-col overflow-hidden">
+                            <DialogHeader className="shrink-0">
                               <DialogTitle className="flex items-center gap-2 text-slate-900 dark:text-white">
                                 İhbar Detayı: <span className="font-mono text-rose-500">{report.tracking_code}</span>
                               </DialogTitle>
                             </DialogHeader>
                             
-                            <div className="bg-slate-50 dark:bg-slate-950 p-4 rounded-md border border-slate-200 dark:border-slate-800 mt-2 text-sm text-slate-700 dark:text-slate-300">
-                              <strong>İhbar İçeriği:</strong> {report.content}
-                            </div>
-
-                            <div className="flex-1 overflow-y-auto pr-2 mt-4 space-y-4 min-h-[250px]">
-                              {isMessagesLoading ? (
-                                <div className="flex justify-center p-4"><Loader2 className="w-6 h-6 animate-spin text-slate-500" /></div>
-                              ) : messages.length === 0 ? (
-                                <div className="text-center text-slate-500 mt-10">
-                                  <MessageSquare className="w-8 h-8 mx-auto mb-2 opacity-20" />
-                                  <p>Henüz mesaj yok. PDR birimine anonim mesaj gönderebilirsiniz.</p>
-                                </div>
-                              ) : (
-                                messages.map((msg) => (
-                                  <div key={msg.id} className={`flex flex-col ${msg.sender_role === 'student' ? 'items-end' : 'items-start'}`}>
-                                    <span className="text-xs text-slate-500 mb-1 px-1">
-                                      {msg.sender_role === 'student' ? 'Siz (Anonim)' : 'PDR Uzmanı'}
-                                    </span>
-                                    <div className={`px-4 py-2 rounded-2xl max-w-[80%] text-sm ${msg.sender_role === 'student' ? 'bg-rose-600 text-white rounded-tr-sm' : 'bg-slate-100 dark:bg-slate-800 text-slate-900 dark:text-slate-200 rounded-tl-sm'}`}>
-                                      {msg.content}
-                                    </div>
-                                    <span className="text-[10px] text-slate-500 mt-1">
-                                      {new Date(msg.created_at).toLocaleTimeString('tr-TR', {hour: '2-digit', minute:'2-digit'})}
-                                    </span>
+                            <div className="flex-1 overflow-y-auto pr-2 mt-2 space-y-4 flex flex-col">
+                              <div className="bg-slate-50 dark:bg-slate-950 p-4 rounded-md border border-slate-200 dark:border-slate-800 text-sm text-slate-700 dark:text-slate-300 shrink-0">
+                                <strong>İhbar İçeriği:</strong> {report.content}
+                                {report.evidence_url && (
+                                  <div className="mt-4 pt-4 border-t border-slate-200 dark:border-slate-700">
+                                    <strong className="block mb-2">Eklenen Kanıt:</strong>
+                                    {report.evidence_url.match(/\.(jpeg|jpg|gif|png|webp)$/i) ? (
+                                      <div className="relative group inline-block">
+                                        <img src={report.evidence_url} alt="Kanıt" className="max-h-60 rounded-md border border-slate-200 dark:border-slate-700 object-contain" />
+                                        <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-3 rounded-md">
+                                          <a href={report.evidence_url} target="_blank" rel="noopener noreferrer" className="bg-white/20 hover:bg-white/40 p-2 rounded-full text-white backdrop-blur-sm transition-colors" title="Büyüt">
+                                            <Search className="h-4 w-4" />
+                                          </a>
+                                          <a href={report.evidence_url} download target="_blank" rel="noopener noreferrer" className="bg-white/20 hover:bg-white/40 p-2 rounded-full text-white backdrop-blur-sm transition-colors" title="İndir">
+                                            <Download className="h-4 w-4" />
+                                          </a>
+                                        </div>
+                                      </div>
+                                    ) : (
+                                      <a href={report.evidence_url} target="_blank" rel="noopener noreferrer" className="text-rose-600 hover:underline flex items-center gap-2">
+                                        <Paperclip className="h-4 w-4" /> Kanıt Dosyasını Görüntüle
+                                      </a>
+                                    )}
                                   </div>
-                                ))
-                              )}
-                              <div ref={(el) => {
-                                if (el) {
-                                  el.scrollIntoView({ behavior: 'smooth' });
-                                }
-                              }} />
+                                )}
+                              </div>
+
+                              <div className="space-y-4 flex-1 pb-4">
+                                {isMessagesLoading ? (
+                                  <div className="flex justify-center p-4"><Loader2 className="w-6 h-6 animate-spin text-slate-500" /></div>
+                                ) : messages.length === 0 ? (
+                                  <div className="text-center text-slate-500 mt-10">
+                                    <MessageSquare className="w-8 h-8 mx-auto mb-2 opacity-20" />
+                                    <p>Henüz mesaj yok. Yetkili kişiye (Sınıf Öğretmeni veya PDR) anonim mesaj gönderebilirsiniz.</p>
+                                  </div>
+                                ) : (
+                                  messages.map((msg) => (
+                                    <div key={msg.id} className={`flex flex-col ${msg.sender_role === 'student' ? 'items-end' : 'items-start'}`}>
+                                      <span className="text-xs text-slate-500 mb-1 px-1">
+                                        {msg.sender_role === 'student' ? 'Siz (Anonim)' : msg.sender_role === 'teacher' ? 'Sınıf Öğretmeni' : 'PDR Uzmanı'}
+                                      </span>
+                                      <div className={`px-4 py-2 rounded-2xl max-w-[80%] text-sm ${msg.sender_role === 'student' ? 'bg-rose-600 text-white rounded-tr-sm' : 'bg-slate-100 dark:bg-slate-800 text-slate-900 dark:text-slate-200 rounded-tl-sm'}`}>
+                                        {msg.content}
+                                      </div>
+                                      <span className="text-[10px] text-slate-500 mt-1">
+                                        {new Date(msg.created_at).toLocaleTimeString('tr-TR', {hour: '2-digit', minute:'2-digit'})}
+                                      </span>
+                                    </div>
+                                  ))
+                                )}
+                                <div ref={(el) => {
+                                  if (el) {
+                                    el.scrollIntoView({ behavior: 'smooth' });
+                                  }
+                                }} />
+                              </div>
                             </div>
 
-                            <form onSubmit={sendMessage} className="mt-4 pt-4 border-t border-slate-200 dark:border-slate-800 flex gap-2">
+                            <form onSubmit={sendMessage} className="pt-4 border-t border-slate-200 dark:border-slate-800 flex gap-2 shrink-0">
                               <Textarea 
                                 value={newMessage}
                                 onChange={(e) => setNewMessage(e.target.value)}

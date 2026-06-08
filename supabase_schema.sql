@@ -12,6 +12,9 @@ create table if not exists public.reports (
     content text not null,
     risk_level varchar(20) not null default 'Bilinmiyor',
     status varchar(20) not null default 'Yeni',
+    assigned_role varchar(20) not null default 'pdr',
+    evidence_url text,
+    deadline_at timestamp with time zone,
     created_at timestamp with time zone default timezone('utc'::text, now()) not null,
     updated_at timestamp with time zone default timezone('utc'::text, now()) not null
 );
