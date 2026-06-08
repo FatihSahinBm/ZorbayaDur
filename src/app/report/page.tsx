@@ -425,8 +425,8 @@ export default function StudentReportPage() {
                         <div className="space-y-2 text-xs">
                           <div className="text-slate-500 dark:text-slate-400 font-semibold">Kimler görebilir?</div>
                           <ul className="space-y-1">
-                            <li className="flex items-center gap-1.5 text-slate-700 dark:text-slate-300">
-                              <Check className="w-3.5 h-3.5 text-green-500 shrink-0" /> Sadece okul PDR uzmanı
+                            <li className="flex items-center gap-1.5 text-slate-400 dark:text-slate-500">
+                              <X className="w-3.5 h-3.5 text-rose-500 shrink-0" /> PDR uzmanı göremez
                             </li>
                             <li className="flex items-center gap-1.5 text-slate-400 dark:text-slate-500">
                               <X className="w-3.5 h-3.5 text-rose-500 shrink-0" /> Okul yönetimi göremez
@@ -444,7 +444,7 @@ export default function StudentReportPage() {
                               <Check className="w-3.5 h-3.5 text-green-500 shrink-0" /> PDR ile anonim mesajlaşma
                             </li>
                             <li className="flex items-center gap-1.5 text-slate-700 dark:text-slate-300">
-                              <Check className="w-3.5 h-3.5 text-green-500 shrink-0" /> Sonradan Açık Bildirim'e yükseltme
+                              <Check className="w-3.5 h-3.5 text-green-500 shrink-0" /> Sonradan Açık Bildirim&apos;e yükseltme
                             </li>
                           </ul>
                         </div>
@@ -479,10 +479,13 @@ export default function StudentReportPage() {
                           <div className="text-slate-500 dark:text-slate-400 font-semibold">Kimler görebilir?</div>
                           <ul className="space-y-1">
                             <li className="flex items-center gap-1.5 text-slate-700 dark:text-slate-300">
-                              <Check className="w-3.5 h-3.5 text-green-500 shrink-0" /> Okul PDR uzmanı
+                              <Check className="w-3.5 h-3.5 text-green-500 shrink-0" /> Sadece PDR uzmanı
                             </li>
-                            <li className="flex items-center gap-1.5 text-slate-700 dark:text-slate-300">
-                              <Check className="w-3.5 h-3.5 text-green-500 shrink-0" /> Okul Yönetimi (Müdür vb.)
+                            <li className="flex items-center gap-1.5 text-slate-400 dark:text-slate-500">
+                              <X className="w-3.5 h-3.5 text-rose-500 shrink-0" /> Okul yönetimi göremez
+                            </li>
+                            <li className="flex items-center gap-1.5 text-slate-400 dark:text-slate-500">
+                              <X className="w-3.5 h-3.5 text-rose-500 shrink-0" /> Öğretmenler göremez
                             </li>
                           </ul>
                         </div>

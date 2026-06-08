@@ -1,12 +1,15 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Shield, Search, AlertTriangle, CheckCircle2, Clock, EyeOff, Activity, LogOut, LockKeyholeOpen, Loader2, MessageSquare, Paperclip, Download, Brain, TrendingUp, Zap, MapPin, RefreshCw } from "lucide-react";
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import {
+  Shield, AlertTriangle, Activity, LogOut, Loader2, MessageSquare,
+  Paperclip, Download, Brain, TrendingUp, Zap, MapPin, RefreshCw,
+  Search, Filter, Clock, CheckCircle2, XCircle, ChevronDown, Send
+} from "lucide-react";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import Link from "next/link";
 import { Input } from "@/components/ui/input";
 import { supabase } from "@/lib/supabase";
@@ -15,21 +18,116 @@ import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { DecryptedIdentityView } from "@/components/DecryptedIdentityView";
+import {
+  LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
+  PieChart, Pie, Cell, Legend
+} from "recharts";
 
+// ─── Types ────────────────────────────────────────────────────────────────────
+interface Report {
+  id: string;
+  tracking_code: string;
+  content: string;
+  category: string;
+  risk_level: string;
+  status: string;
+  assigned_role: string;
+  created_at: string;
+  deadline_at?: string;
+  evidence_url?: string;
+  identity_level?: number;
+  encrypted_identity?: string;
+  ai_analysis?: {
+    urgency?: {
+      urgency_score: number;
+      urgency_label: string;
+      risk_factors: string[];
+      recommended_action: string;
+      emotional_state: string;
+      intervention_timeline: string;
+      escalation_needed: boolean;
+      keywords_detected: string[];
+    };
+    classification?: {
+      primary_type: string;
+      secondary_types: string[];
+      severity: string;
+      is_recurring: boolean;
+      involves_group: boolean;
+      platform_if_cyber: string | null;
+      location_type: string;
+      confidence_score: number;
+    };
+    analyzed_at?: string;
+  };
+}
+
+// ─── Helpers ──────────────────────────────────────────────────────────────────
+const URGENCY_COLORS: Record<string, string> = {
+  Acil: "bg-red-600 text-white",
+  Yüksek: "bg-rose-500 text-white",
+  Orta: "bg-amber-500 text-white",
+  Düşük: "bg-green-500 text-white",
+};
+
+const RISK_COLORS: Record<string, string> = {
+  Bordo: "#991b1b",
+  Kırmızı: "#f43f5e",
+  Turuncu: "#f59e0b",
+  Sarı: "#eab308",
+};
+
+const PIE_PALETTE = ["#f43f5e", "#3b82f6", "#8b5cf6", "#f59e0b", "#10b981", "#ec4899"];
+
+function urgencyBar(score: number) {
+  const color =
+    score >= 80 ? "bg-red-600" :
+    score >= 60 ? "bg-rose-500" :
+    score >= 40 ? "bg-amber-500" :
+    score >= 20 ? "bg-yellow-500" : "bg-green-500";
+  return (
+    <div className="flex items-center gap-2 w-full">
+      <div className="flex-1 h-1.5 rounded-full bg-slate-200 dark:bg-slate-800 overflow-hidden">
+        <div className={`h-full rounded-full ${color}`} style={{ width: `${score}%` }} />
+      </div>
+      <span className="text-xs font-bold tabular-nums text-slate-700 dark:text-slate-300 w-8 text-right">{score}</span>
+    </div>
+  );
+}
+
+function timeAgo(dateStr: string) {
+  const diff = Date.now() - new Date(dateStr).getTime();
+  const m = Math.floor(diff / 60000);
+  if (m < 60) return `${m}d önce`;
+  const h = Math.floor(m / 60);
+  if (h < 24) return `${h}s önce`;
+  return `${Math.floor(h / 24)}g önce`;
+}
+
+// ─── Main Component ───────────────────────────────────────────────────────────
 export default function PDRDashboard() {
-  const [reports, setReports] = useState<any[]>([]);
+  const [reports, setReports] = useState<Report[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  
-  // AI Pattern Analysis state
-  const [showPatternModal, setShowPatternModal] = useState(false);
-  const [patternResult, setPatternResult] = useState<any>(null);
-  const [isPatternLoading, setIsPatternLoading] = useState(false);
-  
-  // Messages state
-  const [selectedReportId, setSelectedReportId] = useState<string | null>(null);
+
+  // Filters
+  const [filterUrgency, setFilterUrgency] = useState("Tümü");
+  const [filterType, setFilterType] = useState("Tümü");
+  const [filterLevel, setFilterLevel] = useState("Tümü");
+  const [filterDate, setFilterDate] = useState("Tümü");
+  const [filterStatus, setFilterStatus] = useState("Tümü");
+  const [searchQuery, setSearchQuery] = useState("");
+
+  // Dialog state
+  const [selectedReport, setSelectedReport] = useState<Report | null>(null);
+  const [activeTab, setActiveTab] = useState<"ai" | "message">("ai");
   const [messages, setMessages] = useState<any[]>([]);
   const [newMessage, setNewMessage] = useState("");
   const [isMessagesLoading, setIsMessagesLoading] = useState(false);
+
+  // Pattern analysis
+  const [showPatternModal, setShowPatternModal] = useState(false);
+  const [patternResult, setPatternResult] = useState<any>(null);
+  const [isPatternLoading, setIsPatternLoading] = useState(false);
 
   const fetchReports = async () => {
     if (!supabase) return;
@@ -38,429 +136,620 @@ export default function PDRDashboard() {
       .select("*")
       .eq("assigned_role", "pdr")
       .order("created_at", { ascending: false });
-
-    if (error) {
-      toast.error("Veriler çekilemedi: " + error.message);
-    } else {
-      setReports(data || []);
-    }
+    if (error) toast.error("Veriler çekilemedi: " + error.message);
+    else setReports(data || []);
     setIsLoading(false);
   };
 
   useEffect(() => {
     fetchReports();
-    const interval = setInterval(fetchReports, 5000);
+    const interval = setInterval(fetchReports, 8000);
     return () => clearInterval(interval);
   }, []);
 
-  const fetchMessages = async (reportId: string, showLoading = true) => {
-    if (!supabase) return;
-    if (showLoading) setIsMessagesLoading(true);
-    const { data, error } = await supabase
+  // Fetch messages when report selected
+  useEffect(() => {
+    if (!selectedReport || !supabase) return;
+    setIsMessagesLoading(true);
+    supabase
       .from("messages")
       .select("*")
-      .eq("report_id", reportId)
-      .order("created_at", { ascending: true });
-      
-    if (!error) {
+      .eq("report_id", selectedReport.id)
+      .order("created_at", { ascending: true })
+      .then(({ data }) => { setMessages(data || []); setIsMessagesLoading(false); });
+    const interval = setInterval(async () => {
+      if (!selectedReport || !supabase) return;
+      const { data } = await supabase
+        .from("messages")
+        .select("*")
+        .eq("report_id", selectedReport.id)
+        .order("created_at", { ascending: true });
       setMessages(data || []);
-    }
-    if (showLoading) setIsMessagesLoading(false);
-  };
-
-  // Mesajları canlı (polling) yenile
-  useEffect(() => {
-    if (!selectedReportId) return;
-    const interval = setInterval(() => {
-      fetchMessages(selectedReportId, false);
     }, 3000);
     return () => clearInterval(interval);
-  }, [selectedReportId]);
+  }, [selectedReport]);
 
   const sendMessage = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!newMessage.trim() || !selectedReportId || !supabase) return;
-    
-    const content = newMessage;
-    setNewMessage(""); 
-    
-    const { error } = await supabase.from('messages').insert([
-      {
-        report_id: selectedReportId,
-        sender_role: 'pdr',
-        content: content
-      }
-    ]);
-    
-    if (error) {
-      toast.error("Mesaj gönderilemedi");
-    } else {
-      fetchMessages(selectedReportId);
-    }
+    if (!newMessage.trim() || !selectedReport || !supabase) return;
+    const msg = newMessage;
+    setNewMessage("");
+    const { error } = await supabase.from("messages").insert([{
+      report_id: selectedReport.id, sender_role: "pdr", content: msg
+    }]);
+    if (error) toast.error("Mesaj gönderilemedi");
   };
 
   const handleStatusChange = async (id: string, newStatus: string) => {
     if (!supabase) return;
-    const { error } = await supabase
-      .from("reports")
-      .update({ status: newStatus })
-      .eq("id", id);
-      
-    if (error) {
-      toast.error("Durum güncellenemedi.");
-    } else {
-      toast.success("Durum başarıyla güncellendi.");
-      fetchReports();
-    }
-  };
-
-  const calculateTimeLeft = (deadlineAt: string, createdAt: string) => {
-    let deadline;
-    if (deadlineAt) {
-      deadline = new Date(deadlineAt);
-    } else {
-      const createdDate = new Date(createdAt);
-      deadline = new Date(createdDate.getTime() + 48 * 60 * 60 * 1000); // 48 hours fallback
-    }
-    
-    const now = new Date();
-    const diff = deadline.getTime() - now.getTime();
-    
-    if (diff <= 0) return "Süre Doldu (Eskale Edildi)";
-    
-    const days = Math.floor(diff / (1000 * 60 * 60 * 24));
-    const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
-    const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
-    
-    if (days > 0) return `${days}g ${hours}s ${minutes}d`;
-    return `${hours}s ${minutes}d`;
+    const { error } = await supabase.from("reports").update({ status: newStatus }).eq("id", id);
+    if (error) toast.error("Durum güncellenemedi.");
+    else { toast.success("Durum güncellendi."); fetchReports(); }
   };
 
   const handlePatternAnalysis = async () => {
     setShowPatternModal(true);
     setIsPatternLoading(true);
     try {
-      const res = await fetch('/api/analyze/patterns');
+      const res = await fetch("/api/analyze/patterns");
       const data = await res.json();
       setPatternResult(data);
-    } catch {
-      toast.error("Örüntü analizi başarısız oldu.");
-    } finally {
-      setIsPatternLoading(false);
+    } catch { toast.error("Örüntü analizi başarısız."); }
+    finally { setIsPatternLoading(false); }
+  };
+
+  // ─── KPI Calculations ─────────────────────────────────────────────────────
+  const today = new Date(); today.setHours(0, 0, 0, 0);
+  const weekAgo = new Date(Date.now() - 7 * 86400000);
+
+  const kpi = useMemo(() => {
+    const todayReports = reports.filter(r => new Date(r.created_at) >= today);
+    const urgentReports = reports.filter(r => (r.ai_analysis?.urgency?.urgency_score ?? 0) >= 80);
+    const weekReports = reports.filter(r => new Date(r.created_at) >= weekAgo);
+    const scores = reports.filter(r => r.ai_analysis?.urgency?.urgency_score != null)
+      .map(r => r.ai_analysis!.urgency!.urgency_score);
+    const avgScore = scores.length ? Math.round(scores.reduce((a, b) => a + b, 0) / scores.length) : 0;
+    return { todayCount: todayReports.length, urgentCount: urgentReports.length, weekCount: weekReports.length, avgScore };
+  }, [reports]);
+
+  // ─── Filtering ────────────────────────────────────────────────────────────
+  const filtered = useMemo(() => {
+    return reports.filter(r => {
+      if (searchQuery && !r.content.toLowerCase().includes(searchQuery.toLowerCase()) &&
+          !r.tracking_code.toLowerCase().includes(searchQuery.toLowerCase())) return false;
+      if (filterUrgency !== "Tümü" && r.ai_analysis?.urgency?.urgency_label !== filterUrgency) return false;
+      if (filterType !== "Tümü" && r.ai_analysis?.classification?.primary_type !== filterType) return false;
+      if (filterLevel !== "Tümü") {
+        if (filterLevel === "Anonim" && r.identity_level !== undefined) return false;
+        if (filterLevel === "Seviye 1" && r.identity_level !== 1) return false;
+        if (filterLevel === "Seviye 2" && r.identity_level !== 2) return false;
+      }
+      if (filterStatus !== "Tümü") {
+        if (filterStatus === "Beklemede" && r.status !== "Yeni") return false;
+        if (filterStatus === "İşlemde" && r.status !== "İnceleniyor") return false;
+        if (filterStatus === "Kapatıldı" && r.status !== "Çözüldü") return false;
+      }
+      if (filterDate !== "Tümü") {
+        const t = new Date(r.created_at).getTime();
+        if (filterDate === "Bugün" && t < today.getTime()) return false;
+        if (filterDate === "Bu Hafta" && t < weekAgo.getTime()) return false;
+        if (filterDate === "Bu Ay" && t < Date.now() - 30 * 86400000) return false;
+      }
+      return true;
+    });
+  }, [reports, searchQuery, filterUrgency, filterType, filterLevel, filterDate, filterStatus]);
+
+  // ─── Chart Data ───────────────────────────────────────────────────────────
+  const weeklyChartData = useMemo(() => {
+    const weeks: Record<string, { week: string; toplam: number; müdahale: number }> = {};
+    for (let i = 11; i >= 0; i--) {
+      const d = new Date(Date.now() - i * 7 * 86400000);
+      const key = `H${Math.ceil((d.getDate()) / 7)} ${d.toLocaleDateString("tr-TR", { month: "short" })}`;
+      weeks[key] = { week: key, toplam: 0, müdahale: 0 };
     }
+    reports.forEach(r => {
+      const d = new Date(r.created_at);
+      const key = `H${Math.ceil(d.getDate() / 7)} ${d.toLocaleDateString("tr-TR", { month: "short" })}`;
+      if (weeks[key]) {
+        weeks[key].toplam++;
+        if (r.status === "Çözüldü" || r.status === "İnceleniyor") weeks[key].müdahale++;
+      }
+    });
+    return Object.values(weeks);
+  }, [reports]);
+
+  const pieData = useMemo(() => {
+    const counts: Record<string, number> = {};
+    reports.forEach(r => {
+      const type = r.ai_analysis?.classification?.primary_type ?? r.category ?? "Diğer";
+      counts[type] = (counts[type] || 0) + 1;
+    });
+    return Object.entries(counts).map(([name, value]) => ({ name, value }));
+  }, [reports]);
+
+  const locationData = useMemo(() => {
+    const counts: Record<string, number> = {};
+    reports.forEach(r => {
+      const loc = r.ai_analysis?.classification?.location_type ?? "Bilinmiyor";
+      counts[loc] = (counts[loc] || 0) + 1;
+    });
+    return Object.entries(counts).sort((a, b) => b[1] - a[1]).slice(0, 6);
+  }, [reports]);
+
+  const LOCATION_EMOJIS: Record<string, string> = {
+    Sınıf: "📚", Koridor: "🚪", Teneffüs: "⛹️", "Okul Dışı": "🏙️",
+    Online: "💻", Karma: "🔀", Bilinmiyor: "❓"
   };
 
-  const getUrgencyColor = (score: number) => {
-    if (score >= 80) return "bg-red-600";
-    if (score >= 60) return "bg-rose-500";
-    if (score >= 40) return "bg-amber-500";
-    if (score >= 20) return "bg-yellow-500";
-    return "bg-green-500";
-  };
-
-  const getRiskBadge = (risk: string) => {
-    switch(risk) {
-      case "Bordo": return <Badge className="bg-red-800 hover:bg-red-900 text-white animate-pulse"><AlertTriangle className="w-3 h-3 mr-1"/> Kritik Acil</Badge>;
-      case "Kırmızı": return <Badge className="bg-rose-500 hover:bg-rose-600 text-white">Yüksek Risk</Badge>;
-      case "Turuncu": return <Badge className="bg-amber-500 hover:bg-amber-600 text-white">Orta Risk</Badge>;
-      case "Sarı": return <Badge className="bg-yellow-500 hover:bg-yellow-600 text-slate-800">Düşük Risk</Badge>;
-      default: return <Badge variant="outline">Bilinmiyor</Badge>;
-    }
-  };
-
+  // ─── JSX ──────────────────────────────────────────────────────────────────
   return (
     <div className="flex flex-col min-h-[100dvh] bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-50">
+      {/* HEADER */}
       <header className="px-6 h-16 flex items-center border-b border-slate-200 dark:border-slate-800/50 bg-white/80 dark:bg-slate-900/80 backdrop-blur-md sticky top-0 z-50">
         <div className="flex items-center gap-2">
           <Shield className="h-6 w-6 text-blue-500" />
           <span className="font-bold text-lg tracking-tight text-slate-900 dark:text-white">PDR Paneli</span>
         </div>
-        <div className="ml-auto flex items-center gap-4">
-          <div className="hidden sm:flex items-center gap-2 text-sm text-slate-500 dark:text-slate-400">
-            <Activity className="h-4 w-4 text-green-500" /> Yapay Zeka Aktif
+        <div className="ml-auto flex items-center gap-3">
+          <div className="hidden sm:flex items-center gap-1.5 text-xs text-green-600 dark:text-green-400 bg-green-500/10 px-3 py-1.5 rounded-full border border-green-500/20">
+            <Activity className="h-3 w-3" /> YZ Aktif
           </div>
-          <Button
-            size="sm"
-            variant="outline"
-            className="border-blue-500/30 bg-blue-500/5 text-blue-600 dark:text-blue-400 hover:bg-blue-500/10 hidden sm:flex items-center gap-2"
-            onClick={handlePatternAnalysis}
-          >
-            <Brain className="h-4 w-4" /> Örüntü Analizi
+          <Button size="sm" variant="outline"
+            className="border-blue-500/30 bg-blue-500/5 text-blue-600 dark:text-blue-400 hover:bg-blue-500/10 hidden sm:flex items-center gap-1.5"
+            onClick={handlePatternAnalysis}>
+            <Brain className="h-3.5 w-3.5" /> Örüntü Analizi
           </Button>
           <ThemeToggle />
           <Link href="/login">
-            <Button variant="ghost" size="sm" className="text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800">
-              <LogOut className="h-4 w-4 mr-2" /> Çıkış
+            <Button variant="ghost" size="sm" className="text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white">
+              <LogOut className="h-4 w-4 mr-1" /> Çıkış
             </Button>
           </Link>
         </div>
       </header>
 
-      <main className="flex-1 p-6 lg:p-8 space-y-8 max-w-7xl mx-auto w-full">
-        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 animate-fade-in-up">
-          <div>
-            <h1 className="text-3xl font-bold tracking-tight text-slate-900 dark:text-white mb-1">Vaka Yönetimi</h1>
-            <p className="text-slate-600 dark:text-slate-400">Gelen anonim ihbarları ve yapay zeka analizlerini buradan takip edin.</p>
-          </div>
-          <div className="flex gap-4">
-            <Card className="bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 flex items-center px-4 py-2 gap-3 shadow-sm">
-              <div className="bg-rose-500/20 p-2 rounded-full"><AlertTriangle className="h-5 w-5 text-rose-500"/></div>
-              <div>
-                <p className="text-sm text-slate-500 dark:text-slate-400 font-medium">Kırmızı Kod</p>
-                <p className="text-2xl font-bold text-slate-900 dark:text-white">{reports.filter(r => r.risk_level === 'Kırmızı').length}</p>
-              </div>
+      <main className="flex-1 p-4 lg:p-6 space-y-6 max-w-[1600px] mx-auto w-full">
+        {/* ── KPI CARDS ── */}
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+          {[
+            { label: "Bugün", value: kpi.todayCount, sub: "yeni bildirim", icon: <Clock className="h-5 w-5 text-blue-500" />, color: "blue" },
+            { label: "Acil (>80)", value: kpi.urgentCount, sub: "yüksek öncelikli", icon: <AlertTriangle className="h-5 w-5 text-red-500" />, color: "red" },
+            { label: "Bu Hafta", value: kpi.weekCount, sub: "toplam bildirim", icon: <TrendingUp className="h-5 w-5 text-purple-500" />, color: "purple" },
+            { label: "Ort. Aciliyet", value: `${kpi.avgScore}/100`, sub: "YZ skoru", icon: <Zap className="h-5 w-5 text-amber-500" />, color: "amber" },
+          ].map((k) => (
+            <Card key={k.label} className="bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 shadow-sm">
+              <CardContent className="p-4 flex items-start gap-3">
+                <div className={`mt-0.5 p-2 rounded-lg bg-${k.color}-500/10 border border-${k.color}-500/20 shrink-0`}>
+                  {k.icon}
+                </div>
+                <div>
+                  <p className="text-xs text-slate-500 dark:text-slate-400 font-medium">{k.label}</p>
+                  <p className="text-2xl font-bold text-slate-900 dark:text-white leading-tight">{k.value}</p>
+                  <p className="text-xs text-slate-500">{k.sub}</p>
+                </div>
+              </CardContent>
             </Card>
+          ))}
+        </div>
+
+        {/* ── MIDDLE: LIST + PATTERN PANEL ── */}
+        <div className="grid grid-cols-1 xl:grid-cols-3 gap-4">
+          {/* LEFT: Filters + Report List */}
+          <div className="xl:col-span-2 space-y-3">
+            {/* Filters */}
+            <Card className="bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 shadow-sm">
+              <CardContent className="p-3">
+                <div className="flex flex-col sm:flex-row gap-2">
+                  <div className="relative flex-1">
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+                    <Input placeholder="İhbar ara..." value={searchQuery} onChange={e => setSearchQuery(e.target.value)}
+                      className="pl-9 bg-slate-50 dark:bg-slate-950 border-slate-200 dark:border-slate-800 h-9 text-sm" />
+                  </div>
+                  <div className="flex gap-2 flex-wrap">
+                    {[
+                      { val: filterUrgency, set: setFilterUrgency, opts: ["Tümü","Acil","Yüksek","Orta","Düşük"], ph: "Aciliyet" },
+                      { val: filterType, set: setFilterType, opts: ["Tümü","Fiziksel","Sözlü","Siber","Sosyal/İlişkisel"], ph: "Tip" },
+                      { val: filterDate, set: setFilterDate, opts: ["Tümü","Bugün","Bu Hafta","Bu Ay"], ph: "Tarih" },
+                      { val: filterStatus, set: setFilterStatus, opts: ["Tümü","Beklemede","İşlemde","Kapatıldı"], ph: "Durum" },
+                    ].map(f => (
+                      <Select key={f.ph} value={f.val} onValueChange={(v) => v && f.set(v)}>
+                        <SelectTrigger className="h-9 w-[100px] bg-slate-50 dark:bg-slate-950 border-slate-200 dark:border-slate-800 text-xs">
+                          <SelectValue placeholder={f.ph} />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {f.opts.map(o => <SelectItem key={o} value={o} className="text-xs">{o}</SelectItem>)}
+                        </SelectContent>
+                      </Select>
+                    ))}
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Report List */}
+            <div className="space-y-3">
+              {isLoading ? (
+                <div className="flex justify-center py-16"><Loader2 className="w-8 h-8 animate-spin text-slate-400" /></div>
+              ) : filtered.length === 0 ? (
+                <div className="text-center py-16 text-slate-500">
+                  <Filter className="w-10 h-10 mx-auto mb-3 opacity-20" />
+                  <p>Filtrelerle eşleşen kayıt bulunamadı.</p>
+                </div>
+              ) : filtered.map(report => {
+                const score = report.ai_analysis?.urgency?.urgency_score;
+                const label = report.ai_analysis?.urgency?.urgency_label;
+                const type = report.ai_analysis?.classification?.primary_type ?? report.category;
+                const hasAI = !!report.ai_analysis;
+                return (
+                  <Card key={report.id} className="bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 shadow-sm hover:shadow-md transition-shadow">
+                    <CardContent className="p-4">
+                      <div className="flex items-start gap-3">
+                        {/* Score Circle */}
+                        <div className={`shrink-0 w-12 h-12 rounded-xl flex flex-col items-center justify-center font-bold text-sm border-2 ${
+                          !score ? "border-slate-200 dark:border-slate-700 text-slate-400" :
+                          score >= 80 ? "border-red-500 bg-red-500/10 text-red-600 dark:text-red-400" :
+                          score >= 60 ? "border-rose-400 bg-rose-500/10 text-rose-600 dark:text-rose-400" :
+                          score >= 40 ? "border-amber-400 bg-amber-500/10 text-amber-600 dark:text-amber-400" :
+                          "border-green-400 bg-green-500/10 text-green-600 dark:text-green-400"
+                        }`}>
+                          <span className="text-base leading-none">{score ?? "?"}</span>
+                          <span className="text-[9px] opacity-70">puan</span>
+                        </div>
+
+                        <div className="flex-1 min-w-0">
+                          <div className="flex flex-wrap items-center gap-2 mb-1.5">
+                            <span className="font-mono text-xs text-slate-500 dark:text-slate-400">{report.tracking_code}</span>
+                            {label && <Badge className={`text-[10px] px-1.5 py-0 ${URGENCY_COLORS[label] ?? "bg-slate-500 text-white"}`}>{label}</Badge>}
+                            {type && <Badge variant="outline" className="text-[10px] px-1.5 py-0 border-indigo-500/30 text-indigo-600 dark:text-indigo-400">{type}</Badge>}
+                            <Badge variant="outline" className={`text-[10px] px-1.5 py-0 ${
+                              report.status === "Çözüldü" ? "border-green-500/30 text-green-600 dark:text-green-400" :
+                              report.status === "İnceleniyor" ? "border-amber-500/30 text-amber-600 dark:text-amber-400" :
+                              "border-slate-300 dark:border-slate-600 text-slate-500"
+                            }`}>{report.status}</Badge>
+                          </div>
+                          <p className="text-sm text-slate-700 dark:text-slate-300 line-clamp-2 leading-relaxed">{report.content}</p>
+                          <div className="flex items-center gap-4 mt-2 text-xs text-slate-500">
+                            <span>{timeAgo(report.created_at)}</span>
+                            {report.ai_analysis?.urgency?.intervention_timeline && (
+                              <span className="flex items-center gap-1"><Clock className="h-3 w-3" />{report.ai_analysis.urgency.intervention_timeline}</span>
+                            )}
+                            {report.ai_analysis?.urgency?.escalation_needed && (
+                              <span className="text-rose-500 font-medium flex items-center gap-1"><AlertTriangle className="h-3 w-3" />Eskalasyon</span>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="flex gap-2 mt-3 pt-3 border-t border-slate-100 dark:border-slate-800">
+                        <Button size="sm" variant="outline"
+                          className="h-8 text-xs border-blue-500/30 text-blue-600 dark:text-blue-400 hover:bg-blue-500/10 flex-1"
+                          onClick={() => { setSelectedReport(report); setActiveTab("ai"); }}>
+                          <Brain className="h-3.5 w-3.5 mr-1" /> YZ Analizi
+                        </Button>
+                        <Button size="sm" variant="outline"
+                          className="h-8 text-xs border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800 flex-1"
+                          onClick={() => { setSelectedReport(report); setActiveTab("message"); }}>
+                          <MessageSquare className="h-3.5 w-3.5 mr-1" /> Yanıtla
+                        </Button>
+                        {report.status === "Yeni" && (
+                          <Button size="sm" variant="outline"
+                            className="h-8 text-xs border-amber-500/30 text-amber-600 hover:bg-amber-500/10"
+                            onClick={() => handleStatusChange(report.id, "İnceleniyor")}>
+                            <Activity className="h-3.5 w-3.5 mr-1" /> İncele
+                          </Button>
+                        )}
+                        {report.status === "İnceleniyor" && (
+                          <Button size="sm" variant="outline"
+                            className="h-8 text-xs border-green-500/30 text-green-600 hover:bg-green-500/10"
+                            onClick={() => handleStatusChange(report.id, "Çözüldü")}>
+                            <CheckCircle2 className="h-3.5 w-3.5 mr-1" /> Çözüldü
+                          </Button>
+                        )}
+                      </div>
+                    </CardContent>
+                  </Card>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* RIGHT: Pattern & Charts */}
+          <div className="space-y-4">
+            {/* Pie: Bullying Types */}
+            <Card className="bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 shadow-sm">
+              <CardHeader className="pb-2 pt-4 px-4">
+                <CardTitle className="text-sm text-slate-700 dark:text-slate-300">Zorbalık Tipi Dağılımı</CardTitle>
+              </CardHeader>
+              <CardContent className="px-4 pb-4">
+                {pieData.length > 0 ? (
+                  <ResponsiveContainer width="100%" height={200}>
+                    <PieChart>
+                      <Pie data={pieData} cx="50%" cy="50%" outerRadius={70} dataKey="value" label={({ name, percent }) => `${name} ${((percent ?? 0) * 100).toFixed(0)}%`} labelLine={false} fontSize={10}>
+                        {pieData.map((_, i) => <Cell key={i} fill={PIE_PALETTE[i % PIE_PALETTE.length]} />)}
+                      </Pie>
+                      <Tooltip formatter={(v: any) => [`${v} rapor`, ""]} />
+                    </PieChart>
+                  </ResponsiveContainer>
+                ) : (
+                  <div className="h-[200px] flex items-center justify-center text-slate-400 text-sm">
+                    YZ analizi olan rapor yok
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+
+            {/* Location Heatmap */}
+            <Card className="bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 shadow-sm">
+              <CardHeader className="pb-2 pt-4 px-4">
+                <CardTitle className="text-sm text-slate-700 dark:text-slate-300 flex items-center gap-2">
+                  <MapPin className="h-4 w-4 text-rose-500" /> Risk Lokasyonları
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="px-4 pb-4 space-y-2">
+                {locationData.length > 0 ? locationData.map(([loc, count]) => (
+                  <div key={loc} className="flex items-center gap-2">
+                    <span className="text-base w-6 text-center">{LOCATION_EMOJIS[loc] ?? "📍"}</span>
+                    <div className="flex-1">
+                      <div className="flex justify-between text-xs text-slate-600 dark:text-slate-400 mb-0.5">
+                        <span>{loc}</span><span className="font-medium">{count}</span>
+                      </div>
+                      <div className="h-1.5 rounded-full bg-slate-100 dark:bg-slate-800 overflow-hidden">
+                        <div className="h-full rounded-full bg-rose-400"
+                          style={{ width: `${(count / (locationData[0]?.[1] || 1)) * 100}%` }} />
+                      </div>
+                    </div>
+                  </div>
+                )) : (
+                  <p className="text-xs text-slate-500 text-center py-4">YZ analizi bekleniyor</p>
+                )}
+              </CardContent>
+            </Card>
+
+            {/* Pattern Analysis Button */}
+            <Button className="w-full bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white h-11 shadow-lg shadow-blue-500/20"
+              onClick={handlePatternAnalysis}>
+              <Brain className="h-4 w-4 mr-2" /> YZ Desen Raporu Oluştur
+            </Button>
           </div>
         </div>
 
-        <Card className="bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 shadow-sm animate-fade-in-up" style={{ animationDelay: '100ms' }}>
-          <CardHeader className="border-b border-slate-200 dark:border-slate-800 pb-4">
-            <div className="flex justify-between items-center">
-              <CardTitle className="text-slate-900 dark:text-white">Gelen İhbarlar (Canlı)</CardTitle>
-            </div>
+        {/* ── BOTTOM: TIMELINE ── */}
+        <Card className="bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 shadow-sm">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm text-slate-700 dark:text-slate-300">Son 12 Hafta — Bildirim Trendi</CardTitle>
+            <CardDescription className="text-xs text-slate-500">Toplam bildirim vs müdahale edilen vaka karşılaştırması</CardDescription>
           </CardHeader>
-          <CardContent className="p-0">
-            {isLoading ? (
-              <div className="p-12 flex justify-center"><Loader2 className="w-8 h-8 animate-spin text-slate-500" /></div>
-            ) : (
-              <Table>
-                <TableHeader className="bg-slate-100/50 dark:bg-slate-950/50">
-                  <TableRow className="border-slate-200 dark:border-slate-800">
-                    <TableHead className="text-slate-600 dark:text-slate-400">İhbar No</TableHead>
-                    <TableHead className="text-slate-600 dark:text-slate-400">Risk Analizi</TableHead>
-                    <TableHead className="text-slate-600 dark:text-slate-400">Kategori</TableHead>
-                    <TableHead className="text-slate-600 dark:text-slate-400">Durum</TableHead>
-                    <TableHead className="text-slate-600 dark:text-slate-400">Kalan Süre (Dinamik)</TableHead>
-                    <TableHead className="text-right text-slate-600 dark:text-slate-400">İşlem</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {reports.map((report) => (
-                    <TableRow key={report.id} className="border-slate-200 dark:border-slate-800 hover:bg-slate-100/50 dark:hover:bg-slate-800/50 transition-colors">
-                      <TableCell className="font-mono font-medium text-slate-700 dark:text-slate-300">{report.tracking_code}</TableCell>
-                      <TableCell>{getRiskBadge(report.risk_level)}</TableCell>
-                      <TableCell className="text-slate-700 dark:text-slate-300">{report.category}</TableCell>
-                      <TableCell>
-                        <Select defaultValue={report.status} onValueChange={(val) => handleStatusChange(report.id, val as string)}>
-                          <SelectTrigger className="w-[130px] h-8 bg-slate-50 dark:bg-slate-950 border-slate-200 dark:border-slate-800 text-slate-900 dark:text-slate-300 text-xs">
-                            <SelectValue />
-                          </SelectTrigger>
-                          <SelectContent className="bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 text-slate-900 dark:text-slate-300">
-                            <SelectItem value="Yeni">Yeni</SelectItem>
-                            <SelectItem value="İnceleniyor">İnceleniyor</SelectItem>
-                            <SelectItem value="Çözüldü">Çözüldü</SelectItem>
-                          </SelectContent>
-                        </Select>
-                      </TableCell>
-                      <TableCell>
-                        <div className={`flex items-center text-sm ${report.status === 'Çözüldü' ? 'text-green-500' : 'text-amber-500'}`}>
-                          {report.status === 'Çözüldü' ? "-" : <><Clock className="w-4 h-4 mr-1" /> {calculateTimeLeft(report.deadline_at, report.created_at)}</>}
-                        </div>
-                      </TableCell>
-                      <TableCell className="text-right">
-                        <Dialog onOpenChange={(open) => {
-                          if (open) {
-                            setSelectedReportId(report.id);
-                            fetchMessages(report.id);
-                          }
-                        }}>
-                          <DialogTrigger render={
-                            <Button variant="outline" size="sm" className="border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-white hover:bg-slate-100 dark:hover:bg-slate-800">
-                              <MessageSquare className="w-4 h-4 mr-2" /> Detay & Mesaj
-                            </Button>
-                          } />
-                          <DialogContent className="bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 text-slate-900 dark:text-white sm:max-w-xl max-h-[90vh] h-[90vh] flex flex-col overflow-hidden">
-                            <DialogHeader className="shrink-0">
-                              <DialogTitle className="flex items-center gap-2 text-slate-900 dark:text-white">
-                                İhbar Detayı: <span className="font-mono text-rose-500">{report.tracking_code}</span>
-                              </DialogTitle>
-                            </DialogHeader>
-                            
-                            <div className="flex-1 overflow-y-auto pr-2 mt-2 space-y-4 flex flex-col">
-                              <div className="space-y-4 shrink-0">
-                                <div className="bg-slate-50 dark:bg-slate-950 p-4 rounded-md border border-slate-200 dark:border-slate-800">
-                                  <p className="text-sm leading-relaxed text-slate-700 dark:text-slate-300"><strong>İhbar İçeriği:</strong> {report.content}</p>
-                                  {report.evidence_url && (
-                                    <div className="mt-4 pt-4 border-t border-slate-200 dark:border-slate-700">
-                                      <strong className="block mb-2 text-sm">Eklenen Kanıt:</strong>
-                                      {report.evidence_url.match(/\.(jpeg|jpg|gif|png|webp)$/i) ? (
-                                        <div className="relative group inline-block">
-                                          <img src={report.evidence_url} alt="Kanıt" className="max-h-60 rounded-md border border-slate-200 dark:border-slate-700 object-contain" />
-                                          <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-3 rounded-md">
-                                            <a href={report.evidence_url} target="_blank" rel="noopener noreferrer" className="bg-white/20 hover:bg-white/40 p-2 rounded-full text-white backdrop-blur-sm transition-colors" title="Büyüt">
-                                              <Search className="h-4 w-4" />
-                                            </a>
-                                            <a href={report.evidence_url} download target="_blank" rel="noopener noreferrer" className="bg-white/20 hover:bg-white/40 p-2 rounded-full text-white backdrop-blur-sm transition-colors" title="İndir">
-                                              <Download className="h-4 w-4" />
-                                            </a>
-                                          </div>
-                                        </div>
-                                      ) : (
-                                        <a href={report.evidence_url} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline flex items-center gap-2 text-sm">
-                                          <Paperclip className="h-4 w-4" /> Kanıt Dosyasını Görüntüle
-                                        </a>
-                                      )}
-                                    </div>
-                                  )}
-                                </div>
-                                <DecryptedIdentityView
-                                  encryptedIdentity={report.encrypted_identity ?? null}
-                                  identityLevel={report.identity_level ?? 1}
-                                  role="pdr"
-                                />
-
-                                {/* YZ ANALİZ KARTI */}
-                                {report.ai_analysis ? (
-                                  <div className="rounded-xl border border-blue-500/20 bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-blue-950/30 dark:to-indigo-950/30 p-4 space-y-3">
-                                    <div className="flex items-center gap-2 font-semibold text-sm text-blue-700 dark:text-blue-300">
-                                      <Brain className="h-4 w-4" />
-                                      YZ Analizi
-                                      <span className="ml-auto text-xs text-slate-500 font-normal">
-                                        {report.ai_analysis.analyzed_at ? new Date(report.ai_analysis.analyzed_at).toLocaleString('tr-TR') : ''}
-                                      </span>
-                                    </div>
-
-                                    {/* Aciliyet Skoru */}
-                                    <div className="space-y-1">
-                                      <div className="flex items-center justify-between text-xs">
-                                        <span className="text-slate-600 dark:text-slate-400 flex items-center gap-1"><Zap className="h-3 w-3" /> Aciliyet Skoru</span>
-                                        <span className="font-bold text-slate-800 dark:text-white">{report.ai_analysis.urgency?.urgency_score ?? '?'}/100 — {report.ai_analysis.urgency?.urgency_label ?? ''}</span>
-                                      </div>
-                                      <div className="h-2 rounded-full bg-slate-200 dark:bg-slate-800 overflow-hidden">
-                                        <div
-                                          className={`h-full rounded-full transition-all ${getUrgencyColor(report.ai_analysis.urgency?.urgency_score ?? 0)}`}
-                                          style={{ width: `${report.ai_analysis.urgency?.urgency_score ?? 0}%` }}
-                                        />
-                                      </div>
-                                    </div>
-
-                                    {/* Zorbalık Tipi */}
-                                    <div className="flex flex-wrap gap-2 text-xs">
-                                      {report.ai_analysis.classification?.primary_type && (
-                                        <Badge className="bg-indigo-500/10 text-indigo-700 dark:text-indigo-300 border border-indigo-500/20">
-                                          {report.ai_analysis.classification.primary_type}
-                                        </Badge>
-                                      )}
-                                      {report.ai_analysis.classification?.severity && (
-                                        <Badge className="bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700">
-                                          Şiddet: {report.ai_analysis.classification.severity}
-                                        </Badge>
-                                      )}
-                                      {report.ai_analysis.classification?.is_recurring && (
-                                        <Badge className="bg-rose-500/10 text-rose-700 dark:text-rose-300 border border-rose-500/20">
-                                          Tekrarlayan
-                                        </Badge>
-                                      )}
-                                    </div>
-
-                                    {/* Önerilen Aksiyon */}
-                                    {report.ai_analysis.urgency?.recommended_action && (
-                                      <div className="bg-white/60 dark:bg-slate-900/60 rounded-lg p-3 text-xs text-slate-700 dark:text-slate-300">
-                                        <p className="font-semibold text-blue-700 dark:text-blue-300 mb-1">🎯 Önerilen Aksiyon:</p>
-                                        <p>{report.ai_analysis.urgency.recommended_action}</p>
-                                      </div>
-                                    )}
-
-                                    {/* Müdahale Zamanı + Eskalasyon */}
-                                    <div className="flex items-center justify-between text-xs text-slate-600 dark:text-slate-400">
-                                      <span>⏰ {report.ai_analysis.urgency?.intervention_timeline ?? '—'}</span>
-                                      {report.ai_analysis.urgency?.escalation_needed && (
-                                        <span className="text-rose-600 dark:text-rose-400 font-semibold">🚨 Eskalasyon Gerekli</span>
-                                      )}
-                                    </div>
-
-                                    {/* Tespit Edilen Kelimeler */}
-                                    {report.ai_analysis.urgency?.keywords_detected?.length > 0 && (
-                                      <div className="text-xs text-slate-500">
-                                        <span className="font-medium">Tespit Edilen: </span>
-                                        {report.ai_analysis.urgency.keywords_detected.join(', ')}
-                                      </div>
-                                    )}
-                                  </div>
-                                ) : (
-                                  <div className="rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/50 p-4 flex items-center gap-3 text-sm text-slate-500">
-                                    <Brain className="h-4 w-4 animate-pulse" />
-                                    YZ analizi bekleniyor veya bu eski bir rapor...
-                                  </div>
-                                )}
-                              </div>
-
-                              <div className="space-y-4 flex-1 pb-4">
-                                {isMessagesLoading ? (
-                                  <div className="flex justify-center p-4"><Loader2 className="w-6 h-6 animate-spin text-slate-500" /></div>
-                                ) : messages.length === 0 ? (
-                                  <div className="text-center text-slate-500 mt-6">
-                                    <MessageSquare className="w-8 h-8 mx-auto mb-2 opacity-20" />
-                                    <p className="text-sm">Henüz mesaj yok. Öğrenciyle anonim olarak iletişime geçebilirsiniz.</p>
-                                  </div>
-                                ) : (
-                                  messages.map((msg) => (
-                                    <div key={msg.id} className={`flex flex-col ${msg.sender_role === 'pdr' ? 'items-end' : 'items-start'}`}>
-                                      <span className="text-xs text-slate-500 mb-1 px-1">
-                                        {msg.sender_role === 'pdr' ? 'Siz (PDR)' : 'Öğrenci (Anonim)'}
-                                      </span>
-                                      <div className={`px-4 py-2 rounded-2xl max-w-[80%] text-sm ${msg.sender_role === 'pdr' ? 'bg-blue-600 text-white rounded-tr-sm' : 'bg-slate-100 dark:bg-slate-800 text-slate-900 dark:text-slate-200 rounded-tl-sm'}`}>
-                                        {msg.content}
-                                      </div>
-                                      <span className="text-[10px] text-slate-500 mt-1">
-                                        {new Date(msg.created_at).toLocaleTimeString('tr-TR', {hour: '2-digit', minute:'2-digit'})}
-                                      </span>
-                                    </div>
-                                  ))
-                                )}
-                                <div ref={(el) => {
-                                  if (el) {
-                                    el.scrollIntoView({ behavior: 'smooth' });
-                                  }
-                                }} />
-                              </div>
-                            </div>
-
-                            <form onSubmit={sendMessage} className="pt-4 border-t border-slate-200 dark:border-slate-800 flex gap-2 shrink-0">
-                              <Textarea 
-                                value={newMessage}
-                                onChange={(e) => setNewMessage(e.target.value)}
-                                placeholder="Öğrenciye mesaj gönder (Anonim kalacak)..."
-                                className="resize-none h-[60px] bg-slate-50 dark:bg-slate-950 border-slate-200 dark:border-slate-800 text-slate-900 dark:text-white focus-visible:ring-blue-500"
-                              />
-                              <Button type="submit" className="h-[60px] px-6 bg-blue-600 hover:bg-blue-700 text-white">
-                                Gönder
-                              </Button>
-                            </form>
-                          </DialogContent>
-                        </Dialog>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                  {reports.length === 0 && !isLoading && (
-                    <TableRow>
-                      <TableCell colSpan={6} className="text-center p-8 text-slate-500">
-                        Henüz bir kayıt bulunmuyor. Öğrenci panelinden yeni bir ihbar yapın.
-                      </TableCell>
-                    </TableRow>
-                  )}
-                </TableBody>
-              </Table>
-            )}
+          <CardContent>
+            <ResponsiveContainer width="100%" height={200}>
+              <LineChart data={weeklyChartData} margin={{ top: 5, right: 10, left: -20, bottom: 5 }}>
+                <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" className="dark:stroke-slate-800" />
+                <XAxis dataKey="week" tick={{ fontSize: 10 }} tickLine={false} />
+                <YAxis tick={{ fontSize: 10 }} tickLine={false} axisLine={false} allowDecimals={false} />
+                <Tooltip contentStyle={{ fontSize: 12, borderRadius: 8, border: "1px solid #e2e8f0" }} />
+                <Line type="monotone" dataKey="toplam" stroke="#3b82f6" strokeWidth={2} dot={{ r: 3 }} name="Toplam" />
+                <Line type="monotone" dataKey="müdahale" stroke="#10b981" strokeWidth={2} dot={{ r: 3 }} name="Müdahale" />
+                <Legend iconSize={10} iconType="circle" wrapperStyle={{ fontSize: 11 }} />
+              </LineChart>
+            </ResponsiveContainer>
           </CardContent>
         </Card>
       </main>
 
-      {/* ÖRÜNTÜ ANALİZİ MODAL */}
+      {/* ── REPORT DETAIL DIALOG ── */}
+      {selectedReport && (
+        <Dialog open={!!selectedReport} onOpenChange={open => { if (!open) setSelectedReport(null); }}>
+          <DialogContent className="bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 text-slate-900 dark:text-white sm:max-w-2xl max-h-[90vh] flex flex-col">
+            <DialogHeader className="shrink-0">
+              <DialogTitle className="flex items-center gap-2 text-slate-900 dark:text-white">
+                <span className="font-mono text-blue-500">{selectedReport.tracking_code}</span>
+                {selectedReport.ai_analysis?.urgency?.urgency_label && (
+                  <Badge className={`text-xs ${URGENCY_COLORS[selectedReport.ai_analysis.urgency.urgency_label] ?? ""}`}>
+                    {selectedReport.ai_analysis.urgency.urgency_label}
+                  </Badge>
+                )}
+              </DialogTitle>
+              <DialogDescription className="text-xs text-slate-500">
+                {new Date(selectedReport.created_at).toLocaleString("tr-TR")} — {selectedReport.category}
+              </DialogDescription>
+            </DialogHeader>
+
+            {/* Tabs */}
+            <div className="flex gap-1 bg-slate-100 dark:bg-slate-950 rounded-lg p-1 shrink-0">
+              <button onClick={() => setActiveTab("ai")}
+                className={`flex-1 text-xs py-1.5 rounded-md transition-all ${activeTab === "ai" ? "bg-white dark:bg-slate-800 shadow font-semibold text-blue-600 dark:text-blue-400" : "text-slate-500"}`}>
+                🤖 YZ Analizi
+              </button>
+              <button onClick={() => setActiveTab("message")}
+                className={`flex-1 text-xs py-1.5 rounded-md transition-all ${activeTab === "message" ? "bg-white dark:bg-slate-800 shadow font-semibold text-blue-600 dark:text-blue-400" : "text-slate-500"}`}>
+                💬 Mesajlar
+              </button>
+            </div>
+
+            <div className="flex-1 overflow-y-auto space-y-3 pr-1">
+              {/* İhbar içeriği */}
+              <div className="bg-slate-50 dark:bg-slate-950 p-3 rounded-lg border border-slate-200 dark:border-slate-800 text-sm text-slate-700 dark:text-slate-300">
+                {selectedReport.content}
+                {selectedReport.evidence_url && (
+                  <div className="mt-3 pt-3 border-t border-slate-200 dark:border-slate-700">
+                    {selectedReport.evidence_url.match(/\.(jpeg|jpg|gif|png|webp)$/i) ? (
+                      <div className="relative group inline-block">
+                        <img src={selectedReport.evidence_url} alt="Kanıt" className="max-h-48 rounded-md border border-slate-200 dark:border-slate-700 object-contain" />
+                        <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2 rounded-md">
+                          <a href={selectedReport.evidence_url} target="_blank" rel="noopener noreferrer" className="bg-white/20 hover:bg-white/40 p-2 rounded-full text-white backdrop-blur-sm"><Search className="h-4 w-4" /></a>
+                          <a href={selectedReport.evidence_url} download className="bg-white/20 hover:bg-white/40 p-2 rounded-full text-white backdrop-blur-sm"><Download className="h-4 w-4" /></a>
+                        </div>
+                      </div>
+                    ) : (
+                      <a href={selectedReport.evidence_url} target="_blank" rel="noopener noreferrer" className="text-blue-500 hover:underline flex items-center gap-1.5 text-xs">
+                        <Paperclip className="h-3.5 w-3.5" /> Kanıt Dosyasını Görüntüle
+                      </a>
+                    )}
+                  </div>
+                )}
+              </div>
+
+              <DecryptedIdentityView
+                encryptedIdentity={selectedReport.encrypted_identity ?? null}
+                identityLevel={selectedReport.identity_level ?? 1}
+                role="pdr"
+              />
+
+              {/* AI Tab */}
+              {activeTab === "ai" && (
+                selectedReport.ai_analysis ? (
+                  <div className="space-y-3">
+                    {/* Urgency Score */}
+                    <div className="rounded-xl border border-blue-500/20 bg-blue-50 dark:bg-blue-950/30 p-4 space-y-3">
+                      <div className="flex items-center gap-2 font-semibold text-sm text-blue-700 dark:text-blue-300">
+                        <Brain className="h-4 w-4" /> YZ Analizi
+                        <span className="ml-auto text-xs text-slate-500 font-normal">
+                          {selectedReport.ai_analysis.analyzed_at ? new Date(selectedReport.ai_analysis.analyzed_at).toLocaleString("tr-TR") : ""}
+                        </span>
+                      </div>
+
+                      <div className="space-y-1">
+                        <div className="flex justify-between text-xs text-slate-600 dark:text-slate-400">
+                          <span className="flex items-center gap-1"><Zap className="h-3 w-3" /> Aciliyet Skoru</span>
+                          <span className="font-bold text-slate-800 dark:text-white">
+                            {selectedReport.ai_analysis.urgency?.urgency_score}/100 — {selectedReport.ai_analysis.urgency?.urgency_label}
+                          </span>
+                        </div>
+                        {urgencyBar(selectedReport.ai_analysis.urgency?.urgency_score ?? 0)}
+                      </div>
+
+                      <div className="flex flex-wrap gap-1.5">
+                        {selectedReport.ai_analysis.classification?.primary_type && (
+                          <Badge className="bg-indigo-500/10 text-indigo-700 dark:text-indigo-300 border border-indigo-500/20 text-xs">
+                            {selectedReport.ai_analysis.classification.primary_type}
+                          </Badge>
+                        )}
+                        {selectedReport.ai_analysis.classification?.severity && (
+                          <Badge className="bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border text-xs">
+                            Şiddet: {selectedReport.ai_analysis.classification.severity}
+                          </Badge>
+                        )}
+                        {selectedReport.ai_analysis.classification?.is_recurring && (
+                          <Badge className="bg-rose-500/10 text-rose-700 dark:text-rose-300 border border-rose-500/20 text-xs">Tekrarlayan</Badge>
+                        )}
+                        {selectedReport.ai_analysis.classification?.involves_group && (
+                          <Badge className="bg-purple-500/10 text-purple-700 dark:text-purple-300 border border-purple-500/20 text-xs">Grup</Badge>
+                        )}
+                      </div>
+
+                      {selectedReport.ai_analysis.urgency?.recommended_action && (
+                        <div className="bg-white/60 dark:bg-slate-900/60 rounded-lg p-3 text-xs text-slate-700 dark:text-slate-300">
+                          <p className="font-semibold text-blue-700 dark:text-blue-300 mb-1">🎯 Önerilen Aksiyon</p>
+                          <p>{selectedReport.ai_analysis.urgency.recommended_action}</p>
+                        </div>
+                      )}
+
+                      {selectedReport.ai_analysis.urgency?.emotional_state && (
+                        <div className="text-xs text-slate-600 dark:text-slate-400">
+                          <span className="font-medium">Duygusal Durum: </span>
+                          {selectedReport.ai_analysis.urgency.emotional_state}
+                        </div>
+                      )}
+
+                      <div className="flex items-center justify-between text-xs text-slate-600 dark:text-slate-400">
+                        <span>⏰ {selectedReport.ai_analysis.urgency?.intervention_timeline}</span>
+                        {selectedReport.ai_analysis.urgency?.escalation_needed && (
+                          <span className="text-rose-600 dark:text-rose-400 font-semibold">🚨 Eskalasyon Gerekli</span>
+                        )}
+                      </div>
+
+                      {(selectedReport.ai_analysis?.urgency?.risk_factors?.length ?? 0) > 0 && (
+                        <div className="text-xs">
+                          <span className="font-medium text-slate-600 dark:text-slate-400">Risk Faktörleri: </span>
+                          {selectedReport.ai_analysis?.urgency?.risk_factors?.join(" · ")}
+                        </div>
+                      )}
+
+                      {(selectedReport.ai_analysis?.urgency?.keywords_detected?.length ?? 0) > 0 && (
+                        <div className="text-xs text-slate-500">
+                          <span className="font-medium">Tespit Edilen: </span>
+                          {selectedReport.ai_analysis?.urgency?.keywords_detected?.join(", ")}
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Status change */}
+                    <div className="flex gap-2">
+                      {["Yeni", "İnceleniyor", "Çözüldü"].map(s => (
+                        <Button key={s} size="sm" variant={selectedReport.status === s ? "default" : "outline"}
+                          className={`flex-1 h-8 text-xs ${selectedReport.status === s ? "bg-blue-600 text-white" : ""}`}
+                          onClick={() => handleStatusChange(selectedReport.id, s)}>
+                          {s}
+                        </Button>
+                      ))}
+                    </div>
+                  </div>
+                ) : (
+                  <div className="rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/50 p-6 flex flex-col items-center gap-3 text-sm text-slate-500">
+                    <Brain className="h-8 w-8 animate-pulse text-blue-400" />
+                    <p>YZ analizi henüz tamamlanmadı.</p>
+                    <p className="text-xs text-slate-400">Yeni raporlar otomatik analiz edilir. Eski raporlar için analiz mevcut değil.</p>
+                  </div>
+                )
+              )}
+
+              {/* Message Tab */}
+              {activeTab === "message" && (
+                <div className="space-y-3">
+                  <div className="space-y-2 max-h-60 overflow-y-auto">
+                    {isMessagesLoading ? (
+                      <div className="flex justify-center py-4"><Loader2 className="w-5 h-5 animate-spin text-slate-400" /></div>
+                    ) : messages.length === 0 ? (
+                      <div className="text-center text-slate-500 py-6">
+                        <MessageSquare className="w-6 h-6 mx-auto mb-2 opacity-20" />
+                        <p className="text-xs">Henüz mesaj yok.</p>
+                      </div>
+                    ) : messages.map(msg => (
+                      <div key={msg.id} className={`flex flex-col ${msg.sender_role === "pdr" ? "items-end" : "items-start"}`}>
+                        <span className="text-[10px] text-slate-400 mb-0.5 px-1">
+                          {msg.sender_role === "pdr" ? "Siz (PDR)" : "Öğrenci (Anonim)"}
+                        </span>
+                        <div className={`px-3 py-2 rounded-2xl max-w-[80%] text-xs ${
+                          msg.sender_role === "pdr"
+                            ? "bg-blue-600 text-white rounded-tr-sm"
+                            : "bg-slate-100 dark:bg-slate-800 text-slate-900 dark:text-slate-200 rounded-tl-sm"
+                        }`}>{msg.content}</div>
+                        <span className="text-[9px] text-slate-400 mt-0.5 px-1">
+                          {new Date(msg.created_at).toLocaleTimeString("tr-TR", { hour: "2-digit", minute: "2-digit" })}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                  <form onSubmit={sendMessage} className="flex gap-2">
+                    <Textarea
+                      value={newMessage}
+                      onChange={e => setNewMessage(e.target.value)}
+                      placeholder="Öğrenciye mesaj gönder (anonim kalacak)..."
+                      className="resize-none h-[56px] text-xs bg-slate-50 dark:bg-slate-950 border-slate-200 dark:border-slate-800"
+                    />
+                    <Button type="submit" className="h-[56px] px-4 bg-blue-600 hover:bg-blue-700 text-white">
+                      <Send className="h-4 w-4" />
+                    </Button>
+                  </form>
+                </div>
+              )}
+            </div>
+          </DialogContent>
+        </Dialog>
+      )}
+
+      {/* ── PATTERN MODAL ── */}
       <Dialog open={showPatternModal} onOpenChange={setShowPatternModal}>
         <DialogContent className="bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 text-slate-900 dark:text-white sm:max-w-lg">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
-              <Brain className="h-5 w-5 text-blue-500" />
-              Son 30 Gün — Örüntü Analizi
+              <Brain className="h-5 w-5 text-blue-500" /> Son 30 Gün — Örüntü Analizi
             </DialogTitle>
             <DialogDescription className="text-slate-500 dark:text-slate-400">
               YZ tüm raporları tarayarak tekrar eden davranış kalıplarını tespit etti.
             </DialogDescription>
           </DialogHeader>
-
           {isPatternLoading ? (
-            <div className="flex flex-col items-center justify-center py-12 gap-4">
+            <div className="flex flex-col items-center py-12 gap-3">
               <Brain className="h-10 w-10 text-blue-500 animate-pulse" />
               <p className="text-sm text-slate-500">Raporlar analiz ediliyor...</p>
             </div>
@@ -472,12 +761,10 @@ export default function PDRDashboard() {
                 </Badge>
                 <span className="text-xs text-slate-500">{patternResult.report_count} rapor analiz edildi</span>
               </div>
-
               <div className="bg-slate-50 dark:bg-slate-950 rounded-lg p-4 text-sm text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-800">
                 <p className="font-semibold text-blue-600 dark:text-blue-400 mb-2">📊 Genel Değerlendirme</p>
                 <p>{patternResult.result.pattern_description}</p>
               </div>
-
               {patternResult.result.hotspot_locations?.length > 0 && (
                 <div>
                   <p className="text-xs font-semibold text-slate-500 mb-2 flex items-center gap-1"><MapPin className="h-3 w-3" /> Risk Noktaları</p>
@@ -488,25 +775,12 @@ export default function PDRDashboard() {
                   </div>
                 </div>
               )}
-
-              {patternResult.result.recurring_behavior_types?.length > 0 && (
-                <div>
-                  <p className="text-xs font-semibold text-slate-500 mb-2 flex items-center gap-1"><TrendingUp className="h-3 w-3" /> Tekrar Eden Davranışlar</p>
-                  <div className="flex flex-wrap gap-2">
-                    {patternResult.result.recurring_behavior_types.map((type: string, i: number) => (
-                      <Badge key={i} className="bg-rose-500/10 text-rose-700 dark:text-rose-300 border-rose-500/20">{type}</Badge>
-                    ))}
-                  </div>
-                </div>
-              )}
-
               {patternResult.result.suggested_intervention && (
                 <div className="bg-blue-50 dark:bg-blue-950/30 rounded-lg p-4 text-sm border border-blue-200 dark:border-blue-800/40">
                   <p className="font-semibold text-blue-700 dark:text-blue-300 mb-1">💡 Önerilen Müdahale</p>
                   <p className="text-slate-700 dark:text-slate-300">{patternResult.result.suggested_intervention}</p>
                 </div>
               )}
-
               <div className="flex items-center justify-between text-xs text-slate-500 pt-2 border-t border-slate-200 dark:border-slate-800">
                 <span>Zaman Kalıbı: {patternResult.result.time_pattern}</span>
                 <Button size="sm" variant="ghost" className="h-7 text-xs" onClick={handlePatternAnalysis}>
@@ -515,7 +789,7 @@ export default function PDRDashboard() {
               </div>
             </div>
           ) : (
-            <p className="text-sm text-slate-500 py-4">Sonuç alınamadı.</p>
+            <p className="text-sm text-slate-500 py-4 text-center">Sonuç alınamadı.</p>
           )}
         </DialogContent>
       </Dialog>
