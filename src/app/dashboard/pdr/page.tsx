@@ -18,6 +18,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { DecryptedIdentityView } from "@/components/DecryptedIdentityView";
+import { MessageThread } from "@/components/MessageThread";
 import {
   LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
   PieChart, Pie, Cell, Legend
@@ -120,9 +121,6 @@ export default function PDRDashboard() {
   // Dialog state
   const [selectedReport, setSelectedReport] = useState<Report | null>(null);
   const [activeTab, setActiveTab] = useState<"ai" | "message">("ai");
-  const [messages, setMessages] = useState<any[]>([]);
-  const [newMessage, setNewMessage] = useState("");
-  const [isMessagesLoading, setIsMessagesLoading] = useState(false);
 
   // Pattern analysis
   const [showPatternModal, setShowPatternModal] = useState(false);
@@ -147,38 +145,7 @@ export default function PDRDashboard() {
     return () => clearInterval(interval);
   }, []);
 
-  // Fetch messages when report selected
-  useEffect(() => {
-    if (!selectedReport || !supabase) return;
-    setIsMessagesLoading(true);
-    supabase
-      .from("messages")
-      .select("*")
-      .eq("report_id", selectedReport.id)
-      .order("created_at", { ascending: true })
-      .then(({ data }) => { setMessages(data || []); setIsMessagesLoading(false); });
-    const interval = setInterval(async () => {
-      if (!selectedReport || !supabase) return;
-      const { data } = await supabase
-        .from("messages")
-        .select("*")
-        .eq("report_id", selectedReport.id)
-        .order("created_at", { ascending: true });
-      setMessages(data || []);
-    }, 3000);
-    return () => clearInterval(interval);
-  }, [selectedReport]);
 
-  const sendMessage = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!newMessage.trim() || !selectedReport || !supabase) return;
-    const msg = newMessage;
-    setNewMessage("");
-    const { error } = await supabase.from("messages").insert([{
-      report_id: selectedReport.id, sender_role: "pdr", content: msg
-    }]);
-    if (error) toast.error("Mesaj gönderilemedi");
-  };
 
   const handleStatusChange = async (id: string, newStatus: string) => {
     if (!supabase) return;
@@ -694,42 +661,8 @@ export default function PDRDashboard() {
 
               {/* Message Tab */}
               {activeTab === "message" && (
-                <div className="space-y-3">
-                  <div className="space-y-2 max-h-60 overflow-y-auto">
-                    {isMessagesLoading ? (
-                      <div className="flex justify-center py-4"><Loader2 className="w-5 h-5 animate-spin text-slate-400" /></div>
-                    ) : messages.length === 0 ? (
-                      <div className="text-center text-slate-500 py-6">
-                        <MessageSquare className="w-6 h-6 mx-auto mb-2 opacity-20" />
-                        <p className="text-xs">Henüz mesaj yok.</p>
-                      </div>
-                    ) : messages.map(msg => (
-                      <div key={msg.id} className={`flex flex-col ${msg.sender_role === "pdr" ? "items-end" : "items-start"}`}>
-                        <span className="text-[10px] text-slate-400 mb-0.5 px-1">
-                          {msg.sender_role === "pdr" ? "Siz (PDR)" : "Öğrenci (Anonim)"}
-                        </span>
-                        <div className={`px-3 py-2 rounded-2xl max-w-[80%] text-xs ${
-                          msg.sender_role === "pdr"
-                            ? "bg-blue-600 text-white rounded-tr-sm"
-                            : "bg-slate-100 dark:bg-slate-800 text-slate-900 dark:text-slate-200 rounded-tl-sm"
-                        }`}>{msg.content}</div>
-                        <span className="text-[9px] text-slate-400 mt-0.5 px-1">
-                          {new Date(msg.created_at).toLocaleTimeString("tr-TR", { hour: "2-digit", minute: "2-digit" })}
-                        </span>
-                      </div>
-                    ))}
-                  </div>
-                  <form onSubmit={sendMessage} className="flex gap-2">
-                    <Textarea
-                      value={newMessage}
-                      onChange={e => setNewMessage(e.target.value)}
-                      placeholder="Öğrenciye mesaj gönder (anonim kalacak)..."
-                      className="resize-none h-[56px] text-xs bg-slate-50 dark:bg-slate-950 border-slate-200 dark:border-slate-800"
-                    />
-                    <Button type="submit" className="h-[56px] px-4 bg-blue-600 hover:bg-blue-700 text-white">
-                      <Send className="h-4 w-4" />
-                    </Button>
-                  </form>
+                <div className="pt-2">
+                  <MessageThread reportId={selectedReport.id} viewerRole="pdr" compact={true} />
                 </div>
               )}
             </div>

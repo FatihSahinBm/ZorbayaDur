@@ -151,6 +151,9 @@ export default function StudentReportPage() {
         return;
       }
 
+      // Anonim session token üret (mesajlaşma için)
+      const sessionToken = crypto.randomUUID();
+
       // Supabase'e kaydet (id döndür)
       const { data: inserted, error } = await supabase.from('reports').insert([
         {
@@ -165,7 +168,8 @@ export default function StudentReportPage() {
           deadline_at: deadlineDate.toISOString(),
           identity_level: identityLevel,
           encrypted_identity: encryptedIdData,
-          identity_updated_at: new Date().toISOString()
+          identity_updated_at: new Date().toISOString(),
+          session_token: sessionToken,
         }
       ]).select('id').single();
 
@@ -185,6 +189,11 @@ export default function StudentReportPage() {
       setInsertedReportId(inserted?.id ?? null);
       setIsSuccess(true);
       toast.success("İhbarınız başarıyla iletildi.");
+
+      // Session token'i localStorage'a kaydet (mesajlaşma için)
+      if (inserted?.id) {
+        localStorage.setItem(`anonToken_${inserted.id}`, sessionToken);
+      }
 
       // YZ analizini arka planda başlat (fire-and-forget)
       if (inserted?.id) {

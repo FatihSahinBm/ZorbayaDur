@@ -9,21 +9,15 @@ import { Shield, Loader2, LogOut, MessageSquare, Plus, Clock, AlertTriangle, Tra
 import Link from "next/link";
 import { supabase } from "@/lib/supabase";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
 import { ThemeToggle } from "@/components/theme-toggle";
+import { MessageThread } from "@/components/MessageThread";
 
 export default function StudentDashboard() {
   const [reports, setReports] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [studentId, setStudentId] = useState<string>('');
-  
-  // Mesajlaşma state'leri
-  const [selectedReportId, setSelectedReportId] = useState<string | null>(null);
-  const [messages, setMessages] = useState<any[]>([]);
-  const [newMessage, setNewMessage] = useState("");
-  const [isMessagesLoading, setIsMessagesLoading] = useState(false);
   const router = useRouter();
 
   useEffect(() => {
@@ -53,52 +47,6 @@ export default function StudentDashboard() {
       setReports(data || []);
     }
     setIsLoading(false);
-  };
-
-  const fetchMessages = async (reportId: string, showLoading = true) => {
-    if (!supabase) return;
-    if (showLoading) setIsMessagesLoading(true);
-    const { data, error } = await supabase
-      .from("messages")
-      .select("*")
-      .eq("report_id", reportId)
-      .order("created_at", { ascending: true });
-      
-    if (!error) {
-      setMessages(data || []);
-    }
-    if (showLoading) setIsMessagesLoading(false);
-  };
-
-  // Mesajları canlı (polling) yenile
-  useEffect(() => {
-    if (!selectedReportId) return;
-    const interval = setInterval(() => {
-      fetchMessages(selectedReportId, false);
-    }, 3000);
-    return () => clearInterval(interval);
-  }, [selectedReportId]);
-
-  const sendMessage = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!newMessage.trim() || !selectedReportId || !supabase) return;
-    
-    const content = newMessage;
-    setNewMessage(""); // Hızlı UI geri bildirimi için
-    
-    const { error } = await supabase.from('messages').insert([
-      {
-        report_id: selectedReportId,
-        sender_role: 'student',
-        content: content
-      }
-    ]);
-    
-    if (error) {
-      toast.error("Mesaj gönderilemedi");
-    } else {
-      fetchMessages(selectedReportId);
-    }
   };
 
   const handleDeleteReport = async (reportId: string) => {
@@ -236,12 +184,7 @@ export default function StudentDashboard() {
                       <TableCell>{getStatusBadge(report.status)}</TableCell>
                       <TableCell className="text-right">
                         <div className="flex items-center justify-end gap-2">
-                          <Dialog onOpenChange={(open) => {
-                            if (open) {
-                              setSelectedReportId(report.id);
-                              fetchMessages(report.id);
-                            }
-                          }}>
+                          <Dialog>
                             <DialogTrigger render={
                               <Button variant="outline" size="sm" className="border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-white hover:bg-slate-100 dark:hover:bg-slate-800">
                                 <MessageSquare className="w-4 h-4 mr-2" /> Detay & Görüş
@@ -308,48 +251,21 @@ export default function StudentDashboard() {
                                 )}
                               </div>
 
-                              <div className="space-y-4 flex-1 pb-4">
-                                {isMessagesLoading ? (
-                                  <div className="flex justify-center p-4"><Loader2 className="w-6 h-6 animate-spin text-slate-500" /></div>
-                                ) : messages.length === 0 ? (
-                                  <div className="text-center text-slate-500 mt-10">
-                                    <MessageSquare className="w-8 h-8 mx-auto mb-2 opacity-20" />
-                                    <p>Henüz mesaj yok. Yetkili kişiye (Sınıf Öğretmeni veya PDR) anonim mesaj gönderebilirsiniz.</p>
-                                  </div>
-                                ) : (
-                                  messages.map((msg) => (
-                                    <div key={msg.id} className={`flex flex-col ${msg.sender_role === 'student' ? 'items-end' : 'items-start'}`}>
-                                      <span className="text-xs text-slate-500 mb-1 px-1">
-                                        {msg.sender_role === 'student' ? 'Siz (Anonim)' : msg.sender_role === 'teacher' ? 'Sınıf Öğretmeni' : 'PDR Uzmanı'}
-                                      </span>
-                                      <div className={`px-4 py-2 rounded-2xl max-w-[80%] text-sm ${msg.sender_role === 'student' ? 'bg-rose-600 text-white rounded-tr-sm' : 'bg-slate-100 dark:bg-slate-800 text-slate-900 dark:text-slate-200 rounded-tl-sm'}`}>
-                                        {msg.content}
-                                      </div>
-                                      <span className="text-[10px] text-slate-500 mt-1">
-                                        {new Date(msg.created_at).toLocaleTimeString('tr-TR', {hour: '2-digit', minute:'2-digit'})}
-                                      </span>
-                                    </div>
-                                  ))
-                                )}
-                                <div ref={(el) => {
-                                  if (el) {
-                                    el.scrollIntoView({ behavior: 'smooth' });
-                                  }
-                                }} />
+                              <div className="border-t border-slate-200 dark:border-slate-800 pt-4 flex-1 flex flex-col min-h-0">
+                                <h3 className="font-semibold text-sm mb-3 flex items-center gap-2">
+                                  <MessageSquare className="w-4 h-4 text-rose-500" />
+                                  <span>PDR ile Mesajlaşma (Anonim)</span>
+                                </h3>
+                                <div className="flex-1 min-h-0 overflow-y-auto">
+                                  <MessageThread
+                                    reportId={report.id}
+                                    viewerRole="student"
+                                    sessionToken={report.session_token || localStorage.getItem(`anonToken_${report.id}`) || ""}
+                                    compact={true}
+                                  />
+                                </div>
                               </div>
                             </div>
-
-                            <form onSubmit={sendMessage} className="pt-4 border-t border-slate-200 dark:border-slate-800 flex gap-2 shrink-0">
-                              <Textarea 
-                                value={newMessage}
-                                onChange={(e) => setNewMessage(e.target.value)}
-                                placeholder="PDR uzmanına anonim olarak yaz..."
-                                className="resize-none h-[60px] bg-slate-50 dark:bg-slate-950 border-slate-200 dark:border-slate-800 text-slate-900 dark:text-white focus-visible:ring-rose-500"
-                              />
-                              <Button type="submit" className="h-[60px] px-6 bg-rose-600 hover:bg-rose-700 text-white">
-                                Gönder
-                              </Button>
-                            </form>
                           </DialogContent>
                         </Dialog>
 
