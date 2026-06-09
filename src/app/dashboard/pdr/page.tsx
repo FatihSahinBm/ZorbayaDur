@@ -689,6 +689,21 @@ export default function PDRDashboard() {
               <Brain className="h-10 w-10 text-blue-500 animate-pulse" />
               <p className="text-sm text-slate-500">Raporlar analiz ediliyor...</p>
             </div>
+          ) : patternResult?.error ? (
+            <div className="space-y-4 my-2">
+              <div className="bg-rose-500/[0.03] dark:bg-rose-500/[0.05] p-4 rounded-xl border border-rose-500/20 text-sm text-rose-600 dark:text-rose-400 flex items-start gap-2.5">
+                <AlertTriangle className="w-5 h-5 shrink-0 text-rose-500 mt-0.5" />
+                <div>
+                  <p className="font-semibold">Örüntü Analizi Tamamlanamadı</p>
+                  <p className="text-xs text-rose-500/80 mt-1">{patternResult.error}</p>
+                </div>
+              </div>
+              <div className="flex justify-end pt-2 border-t border-slate-200 dark:border-slate-800">
+                <Button size="sm" variant="outline" className="h-8 text-xs flex items-center gap-1.5" onClick={handlePatternAnalysis}>
+                  <RefreshCw className="h-3.5 h-3.5" /> Yeniden Dene
+                </Button>
+              </div>
+            </div>
           ) : patternResult?.result ? (
             <div className="space-y-4 mt-2">
               <div className="flex items-center gap-2">

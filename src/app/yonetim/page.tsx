@@ -3,7 +3,7 @@
 import { useEffect, useState, useMemo } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Shield, ShieldAlert, LogOut, Loader2, MessageSquare, Paperclip, Download, Search, AlertTriangle, FileText, CheckCircle2, TrendingUp, BarChart2, Printer } from "lucide-react";
+import { Shield, ShieldAlert, LogOut, Loader2, MessageSquare, Paperclip, Download, Search, AlertTriangle, FileText, CheckCircle2, TrendingUp, BarChart2, Printer, Trash2 } from "lucide-react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -82,6 +82,30 @@ export default function SchoolManagementPage() {
   // Rapor Çıktısı (Yazdır)
   const handlePrint = () => {
     window.print();
+  };
+
+  const handleDeleteReport = async (reportId: string) => {
+    if (!supabase) return;
+    
+    const confirmDelete = window.confirm("Bu ihbarı sistemden tamamen ve kalıcı olarak silmek istediğinize emin misiniz? Bu işlem geri alınamaz.");
+    if (!confirmDelete) return;
+
+    try {
+      const { error } = await supabase
+        .from("reports")
+        .delete()
+        .eq("id", reportId);
+
+      if (error) {
+        toast.error("İhbar silinirken bir hata oluştu: " + error.message);
+      } else {
+        toast.success("İhbar sistemden kalıcı olarak silindi.");
+        setSelectedReport(null);
+        fetchReports();
+      }
+    } catch (err: any) {
+      toast.error("Bir hata oluştu: " + err.message);
+    }
   };
 
   return (
@@ -358,6 +382,17 @@ export default function SchoolManagementPage() {
                   <span className="text-slate-500 text-xs">Tarih</span>
                   <div className="mt-1 font-semibold text-slate-800 dark:text-slate-200">{new Date(selectedReport.created_at).toLocaleDateString('tr-TR')}</div>
                 </div>
+              </div>
+
+              {/* Kalıcı Olarak Sil Butonu (Sadece Okul Yönetimi silebilir) */}
+              <div className="pt-4 border-t border-slate-200 dark:border-slate-800 flex justify-end">
+                <Button 
+                  variant="destructive"
+                  onClick={() => handleDeleteReport(selectedReport.id)}
+                  className="bg-rose-600 hover:bg-rose-700 text-white font-medium h-9 px-4 rounded-lg flex items-center gap-2"
+                >
+                  <Trash2 className="w-4 h-4" /> Vaka Raporunu Kalıcı Olarak Sil
+                </Button>
               </div>
             </div>
           </DialogContent>

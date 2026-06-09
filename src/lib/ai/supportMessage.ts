@@ -16,7 +16,7 @@ export async function generateSupportMessage(
   reportSummary: string
 ): Promise<string> {
   const model = genAI.getGenerativeModel({
-    model: "gemini-flash-latest",
+    model: "gemini-2.5-flash",
     generationConfig: { temperature: 0.7 },
   });
 
