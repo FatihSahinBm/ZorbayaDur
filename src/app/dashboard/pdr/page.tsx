@@ -106,6 +106,29 @@ function timeAgo(dateStr: string) {
   return `${Math.floor(h / 24)}g önce`;
 }
 
+function calculateTimeLeft(deadlineAt?: string, createdAt?: string) {
+  if (!createdAt) return "-";
+  let deadline;
+  if (deadlineAt) {
+    deadline = new Date(deadlineAt);
+  } else {
+    const createdDate = new Date(createdAt);
+    deadline = new Date(createdDate.getTime() + 48 * 60 * 60 * 1000); // 48 saat fallback
+  }
+  
+  const now = new Date();
+  const diff = deadline.getTime() - now.getTime();
+  
+  if (diff <= 0) return "Süre Doldu";
+  
+  const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+  const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+  const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+  
+  if (days > 0) return `${days}g ${hours}s ${minutes}d`;
+  return `${hours}s ${minutes}d`;
+}
+
 // ─── Main Component ───────────────────────────────────────────────────────────
 export default function PDRDashboard() {
   const [reports, setReports] = useState<Report[]>([]);
@@ -378,8 +401,18 @@ export default function PDRDashboard() {
                           <p className="text-sm text-slate-700 dark:text-slate-300 line-clamp-2 leading-relaxed">{report.content}</p>
                           <div className="flex items-center gap-4 mt-2 text-xs text-slate-500">
                             <span>{timeAgo(report.created_at)}</span>
+                            {report.status !== "Çözüldü" && (
+                              <span className={`flex items-center gap-1 font-medium ${
+                                calculateTimeLeft(report.deadline_at, report.created_at) === "Süre Doldu" 
+                                  ? "text-rose-500 animate-pulse" 
+                                  : "text-amber-500"
+                              }`}>
+                                <Clock className="h-3 w-3" />
+                                Kalan Süre: {calculateTimeLeft(report.deadline_at, report.created_at)}
+                              </span>
+                            )}
                             {report.ai_analysis?.urgency?.intervention_timeline && (
-                              <span className="flex items-center gap-1"><Clock className="h-3 w-3" />{report.ai_analysis.urgency.intervention_timeline}</span>
+                              <span className="flex items-center gap-1"><Activity className="h-3 w-3" />{report.ai_analysis.urgency.intervention_timeline}</span>
                             )}
                             {report.ai_analysis?.urgency?.escalation_needed && (
                               <span className="text-rose-500 font-medium flex items-center gap-1"><AlertTriangle className="h-3 w-3" />Eskalasyon</span>
@@ -516,8 +549,18 @@ export default function PDRDashboard() {
                   </Badge>
                 )}
               </DialogTitle>
-              <DialogDescription className="text-xs text-slate-500">
-                {new Date(selectedReport.created_at).toLocaleString("tr-TR")} — {selectedReport.category}
+              <DialogDescription className="text-xs text-slate-500 flex flex-wrap items-center gap-2 mt-1">
+                <span>{new Date(selectedReport.created_at).toLocaleString("tr-TR")}</span>
+                <span>•</span>
+                <span>{selectedReport.category}</span>
+                {selectedReport.status !== "Çözüldü" && (
+                  <>
+                    <span>•</span>
+                    <span className={`font-semibold ${calculateTimeLeft(selectedReport.deadline_at, selectedReport.created_at) === "Süre Doldu" ? "text-rose-500" : "text-amber-500"}`}>
+                      Kalan Süre: {calculateTimeLeft(selectedReport.deadline_at, selectedReport.created_at)}
+                    </span>
+                  </>
+                )}
               </DialogDescription>
             </DialogHeader>
 

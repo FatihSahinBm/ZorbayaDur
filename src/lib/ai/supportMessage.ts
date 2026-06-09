@@ -1,6 +1,4 @@
-import { GoogleGenerativeAI } from "@google/generative-ai";
-
-const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY!);
+import { callGroq } from "./groqClient";
 
 const SUPPORT_PROMPT = `
 Zorbalık bildirimi gönderen bir öğrenciye kısa, sıcak, destekleyici bir mesaj yaz.
@@ -15,18 +13,13 @@ export async function generateSupportMessage(
   bullyingType: string,
   reportSummary: string
 ): Promise<string> {
-  const model = genAI.getGenerativeModel({
-    model: "gemini-2.5-flash",
-    generationConfig: { temperature: 0.7 },
-  });
-
   const prompt = SUPPORT_PROMPT
     .replace("{BULLYING_TYPE}", bullyingType)
     .replace("{REPORT_SUMMARY}", reportSummary.slice(0, 300));
 
   try {
-    const result = await model.generateContent(prompt);
-    return result.response.text().trim();
+    const text = await callGroq(prompt, { temperature: 0.7 });
+    return text.trim();
   } catch (err) {
     console.error("generateSupportMessage failed, using fallback:", err);
     return "Bildirimin için teşekkürler. PDR uzmanın en kısa sürede seninle ilgilenecek. Yalnız değilsin.";

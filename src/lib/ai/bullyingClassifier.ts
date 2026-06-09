@@ -1,4 +1,4 @@
-import { callGemini, safeParseJSON } from "./geminiClient";
+import { callGroq, safeParseJSON } from "./groqClient";
 
 export interface ClassificationResult {
   primary_type: "Fiziksel" | "Sözlü" | "Sosyal/İlişkisel" | "Siber" | "Cinsel" | "Karma";
@@ -42,7 +42,7 @@ const FALLBACK: ClassificationResult = {
 export async function classifyBullying(reportText: string): Promise<ClassificationResult> {
   try {
     const prompt = CLASSIFICATION_PROMPT.replace("{REPORT_TEXT}", reportText);
-    const raw = await callGemini(prompt);
+    const raw = await callGroq(prompt, { jsonMode: true });
     return safeParseJSON<ClassificationResult>(raw, FALLBACK);
   } catch (err) {
     console.error("classifyBullying failed, using fallback:", err);

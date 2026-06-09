@@ -1,4 +1,4 @@
-import { callGemini, safeParseJSON } from "./geminiClient";
+import { callGroq, safeParseJSON } from "./groqClient";
 
 export interface PatternResult {
   patterns_found: boolean;
@@ -42,6 +42,6 @@ const FALLBACK: PatternResult = {
 
 export async function detectPatterns(reportsSummary: string): Promise<PatternResult> {
   const prompt = PATTERN_PROMPT.replace("{REPORTS_SUMMARY}", reportsSummary);
-  const raw = await callGemini(prompt);
+  const raw = await callGroq(prompt, { model: "llama-3.3-70b-versatile", jsonMode: true });
   return safeParseJSON<PatternResult>(raw, FALLBACK);
 }

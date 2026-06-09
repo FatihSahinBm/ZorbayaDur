@@ -1,4 +1,4 @@
-import { callGemini, safeParseJSON } from "./geminiClient";
+import { callGroq, safeParseJSON } from "./groqClient";
 
 export interface UrgencyResult {
   urgency_score: number;
@@ -69,7 +69,7 @@ export async function analyzeUrgency(
       .replace("{LOCATION}", location)
       .replace("{FREQUENCY}", frequency);
 
-    const raw = await callGemini(prompt);
+    const raw = await callGroq(prompt, { jsonMode: true });
     return safeParseJSON<UrgencyResult>(raw, FALLBACK);
   } catch (err) {
     console.error("analyzeUrgency failed, using fallback:", err);
