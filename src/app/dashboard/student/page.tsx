@@ -76,8 +76,8 @@ export default function StudentDashboard() {
     if (!supabase) return;
     
     const confirmUpgrade = window.confirm(
-      "Bu ihbarın gizlilik seviyesini 'Açık Bildirim' (Seviye 2) olarak değiştirmek istediğinize emin misiniz? " +
-      "Bu işlem sonucunda kimlik bilgileriniz okul yönetimi tarafından da deşifre edilip görülebilecektir."
+      "Bu ihbarın gizlilik seviyesini 'Açık İhbar' (Seviye 2) olarak değiştirmek istediğinize emin misiniz? " +
+      "Bu işlem sonucunda kimlik bilgileriniz okul PDR uzmanı tarafından deşifre edilip görülebilecektir."
     );
     if (!confirmUpgrade) return;
 
@@ -176,9 +176,9 @@ export default function StudentDashboard() {
                       <TableCell className="text-slate-700 dark:text-slate-300">{report.category}</TableCell>
                       <TableCell>
                         {report.identity_level === 2 ? (
-                          <Badge className="bg-green-500/10 text-green-600 dark:text-green-400 border border-green-500/20 text-xs">Seviye 2: Açık</Badge>
+                          <Badge className="bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/20 text-xs">Seviye 2: Açık İhbar</Badge>
                         ) : (
-                          <Badge className="bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20 text-xs">Seviye 1: PDR</Badge>
+                          <Badge className="bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20 text-xs">Seviye 1: Gizli İhbar</Badge>
                         )}
                       </TableCell>
                       <TableCell>{getStatusBadge(report.status)}</TableCell>
@@ -229,15 +229,15 @@ export default function StudentDashboard() {
                                   <div className="flex items-center gap-2 font-semibold text-slate-850 dark:text-slate-200">
                                     <span>Gizlilik Seviyesi:</span>
                                     {report.identity_level === 2 ? (
-                                      <span className="text-green-600 dark:text-green-400">Seviye 2 (Açık Bildirim)</span>
+                                      <span className="text-blue-600 dark:text-blue-400">Seviye 2 (Açık İhbar)</span>
                                     ) : (
-                                      <span className="text-amber-600 dark:text-amber-400">Seviye 1 (PDR'ye Gizli)</span>
+                                      <span className="text-amber-600 dark:text-amber-400">Seviye 1 (Gizli İhbar)</span>
                                     )}
                                   </div>
                                   <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
                                     {report.identity_level === 2 
-                                      ? "Kimliğiniz hem okul PDR uzmanı hem de Okul Yönetimi (MEB) tarafından görülebilir." 
-                                      : "Kimliğiniz şifreli olarak sadece okul PDR uzmanı tarafından görülebilir."}
+                                      ? "Kimliğiniz sadece okul PDR uzmanı tarafından görülebilir." 
+                                      : "Kimliğiniz gizli tutulmaktadır. PDR uzmanı dahil kimse doğrudan göremez."}
                                   </p>
                                 </div>
                                 {report.identity_level !== 2 && (
@@ -246,7 +246,7 @@ export default function StudentDashboard() {
                                     onClick={() => handleUpgradeToLevel2(report.id, report.tracking_code)}
                                     className="bg-green-600 hover:bg-green-700 text-white shrink-0 self-start sm:self-center font-medium shadow-sm transition-all"
                                   >
-                                    Açık Bildirim'e Yükselt
+                                    Açık İhbar'a Yükselt
                                   </Button>
                                 )}
                               </div>

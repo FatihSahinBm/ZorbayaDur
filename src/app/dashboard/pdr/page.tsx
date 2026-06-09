@@ -188,7 +188,6 @@ export default function PDRDashboard() {
       if (filterUrgency !== "Tümü" && r.ai_analysis?.urgency?.urgency_label !== filterUrgency) return false;
       if (filterType !== "Tümü" && r.ai_analysis?.classification?.primary_type !== filterType) return false;
       if (filterLevel !== "Tümü") {
-        if (filterLevel === "Anonim" && r.identity_level !== undefined) return false;
         if (filterLevel === "Seviye 1" && r.identity_level !== 1) return false;
         if (filterLevel === "Seviye 2" && r.identity_level !== 2) return false;
       }
@@ -317,6 +316,7 @@ export default function PDRDashboard() {
                     {[
                       { val: filterUrgency, set: setFilterUrgency, opts: ["Tümü","Acil","Yüksek","Orta","Düşük"], ph: "Aciliyet" },
                       { val: filterType, set: setFilterType, opts: ["Tümü","Fiziksel","Sözlü","Siber","Sosyal/İlişkisel"], ph: "Tip" },
+                      { val: filterLevel, set: setFilterLevel, opts: ["Tümü","Seviye 1","Seviye 2"], ph: "Gizlilik" },
                       { val: filterDate, set: setFilterDate, opts: ["Tümü","Bugün","Bu Hafta","Bu Ay"], ph: "Tarih" },
                       { val: filterStatus, set: setFilterStatus, opts: ["Tümü","Beklemede","İşlemde","Kapatıldı"], ph: "Durum" },
                     ].map(f => (
@@ -560,56 +560,9 @@ export default function PDRDashboard() {
                 encryptedIdentity={selectedReport.encrypted_identity ?? null}
                 identityLevel={selectedReport.identity_level ?? 1}
                 role="pdr"
-                identitySharingApproved={selectedReport.identity_sharing_approved}
               />
 
-              {selectedReport.identity_level === 2 && (
-                <div className="p-3 bg-slate-50 dark:bg-slate-950 rounded-lg border border-slate-200 dark:border-slate-800 text-xs flex items-center justify-between gap-3">
-                  <div>
-                    <span className="font-semibold block text-slate-800 dark:text-slate-250">Okul Yönetimiyle Paylaşım</span>
-                    <span className="text-slate-500 block mt-0.5">
-                      {selectedReport.identity_sharing_approved 
-                        ? "Kimlik paylaşımı okul yönetimine açıldı." 
-                        : "Bu seviye 2 bildirimin kimliğini okul yönetimine açabilirsiniz."}
-                    </span>
-                  </div>
-                  {!selectedReport.identity_sharing_approved && (
-                    <Button 
-                      size="sm" 
-                      onClick={async () => {
-                        if (!supabase) return;
-                        const { error } = await supabase
-                          .from("reports")
-                          .update({ identity_sharing_approved: true })
-                          .eq("id", selectedReport.id);
-                        if (error) {
-                          toast.error("Kimlik paylaşımı onaylanamadı.");
-                        } else {
-                          // Log to audit logs
-                          await supabase.from('audit_logs').insert([
-                            {
-                              log_id: `LOG-${Math.floor(Math.random() * 9000 + 1000)}`,
-                              action: `Kimlik Paylaşımı Onaylandı: ${selectedReport.tracking_code}`,
-                              actor: "PDR Uzmanı",
-                              status: "Başarılı"
-                            }
-                          ]);
-                          toast.success("Kimlik paylaşımı okul yönetimine açıldı.");
-                          // Update locally
-                          setSelectedReport({
-                            ...selectedReport,
-                            identity_sharing_approved: true
-                          });
-                          fetchReports();
-                        }
-                      }}
-                      className="bg-green-600 hover:bg-green-700 text-white shrink-0 h-8 text-xs font-semibold"
-                    >
-                      Onayla ve Paylaş
-                    </Button>
-                  )}
-                </div>
-              )}
+
 
               {/* AI Tab */}
               {activeTab === "ai" && (

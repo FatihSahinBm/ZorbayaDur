@@ -39,7 +39,7 @@ export default function StudentReportPage() {
   const [file, setFile] = useState<File | null>(null);
   
   // Step 2: Kimlik Tercihi
-  const [identityLevel, setIdentityLevel] = useState<number>(2); // Default Level 2: PDR'ye Açık
+  const [identityLevel, setIdentityLevel] = useState<number>(1); // Default Level 1: Gizli İhbar
   const [studentName, setStudentName] = useState("");
   const [studentClass, setStudentClass] = useState("");
   
@@ -91,11 +91,9 @@ export default function StudentReportPage() {
 
   const handleNextToStep3 = (e: React.FormEvent) => {
     e.preventDefault();
-    if (identityLevel !== 3) {
-      if (!studentName.trim() || !studentClass.trim()) {
-        toast.error("Seviye 1 veya Seviye 2 gizlilik için ad ve sınıf alanları zorunludur.");
-        return;
-      }
+    if (!studentName.trim() || !studentClass.trim()) {
+      toast.error("Seviye 1 veya Seviye 2 gizlilik için ad ve sınıf alanları zorunludur.");
+      return;
     }
     setStep(3);
   };
@@ -172,16 +170,14 @@ export default function StudentReportPage() {
       const deadlineDate = new Date();
       deadlineDate.setHours(deadlineDate.getHours() + 48 + (extraDays * 24));
 
-      // Kimliği şifrele (Level 3 ise şifreleme yapılmaz)
+      // Kimliği şifrele
       let encryptedIdData = null;
-      if (identityLevel !== 3) {
-        try {
-          encryptedIdData = await encryptIdentity(studentName, studentClass);
-        } catch (err: any) {
-          toast.error("Kimlik şifrelenirken bir hata oluştu: " + err.message);
-          setIsSubmitting(false);
-          return;
-        }
+      try {
+        encryptedIdData = await encryptIdentity(studentName, studentClass);
+      } catch (err: any) {
+        toast.error("Kimlik şifrelenirken bir hata oluştu: " + err.message);
+        setIsSubmitting(false);
+        return;
       }
 
       const { data: inserted, error } = await client.from('reports').insert([
@@ -221,7 +217,7 @@ export default function StudentReportPage() {
       setSessionToken(generatedToken);
       setInsertedReportId(inserted?.id ?? null);
       
-      if (inserted?.id && identityLevel !== 3) {
+      if (inserted?.id) {
         localStorage.setItem(`anonToken_${inserted.id}`, generatedToken);
       }
 
@@ -441,11 +437,11 @@ export default function StudentReportPage() {
                   </p>
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-                  {/* Seviye 1: PDR'ye Gizli */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {/* Seviye 1: Gizli İhbar */}
                   <div
                     onClick={() => setIdentityLevel(1)}
-                    className={`cursor-pointer rounded-xl border p-4 transition-all flex flex-col justify-between select-none ${
+                    className={`cursor-pointer rounded-xl border p-5 transition-all flex flex-col justify-between select-none ${
                       identityLevel === 1
                         ? "border-amber-500 bg-amber-500/[0.04] dark:bg-amber-500/[0.02] ring-1 ring-amber-500/20"
                         : "border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 hover:border-slate-350"
@@ -456,17 +452,17 @@ export default function StudentReportPage() {
                         <span className="font-bold text-xs text-amber-600 dark:text-amber-400">Seviye 1</span>
                         {identityLevel === 1 && <Check className="w-4 h-4 text-amber-500" />}
                       </div>
-                      <h3 className="font-bold text-sm text-slate-900 dark:text-white">PDR'ye Gizli</h3>
-                      <p className="text-[10px] text-slate-500 leading-normal">
-                        Kimliğiniz şifrelenir. PDR uzmanı da dahil kimse kimliğinizi doğrudan göremez. PDR onaylarsa okul yönetimi görebilir. Uçtan uca anonim chat aktiftir.
+                      <h3 className="font-bold text-sm text-slate-900 dark:text-white">Gizli İhbar</h3>
+                      <p className="text-[11px] text-slate-500 leading-normal">
+                        Kimliğiniz AES-256 ile şifrelenir. PDR uzmanı da dahil okul personeli kimliğinizi göremez. Sadece asılsız iftira durumlarında sistem yöneticileri tarafından çözülebilir. PDR ile anonim olarak mesajlaşabilirsiniz.
                       </p>
                     </div>
                   </div>
 
-                  {/* Seviye 2: PDR'ye Açık */}
+                  {/* Seviye 2: Açık İhbar */}
                   <div
                     onClick={() => setIdentityLevel(2)}
-                    className={`cursor-pointer rounded-xl border p-4 transition-all flex flex-col justify-between select-none ${
+                    className={`cursor-pointer rounded-xl border p-5 transition-all flex flex-col justify-between select-none ${
                       identityLevel === 2
                         ? "border-blue-500 bg-blue-500/[0.04] dark:bg-blue-500/[0.02] ring-1 ring-blue-500/20"
                         : "border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 hover:border-slate-350"
@@ -477,68 +473,41 @@ export default function StudentReportPage() {
                         <span className="font-bold text-xs text-blue-600 dark:text-blue-400">Seviye 2</span>
                         {identityLevel === 2 && <Check className="w-4 h-4 text-blue-500" />}
                       </div>
-                      <h3 className="font-bold text-sm text-slate-900 dark:text-white">PDR'ye Açık</h3>
-                      <p className="text-[10px] text-slate-500 leading-normal">
-                        Kimliğiniz sadece okul PDR uzmanı tarafından çözülebilir. Okul yönetimi veya öğretmenler kimliğinizi asla göremez.
-                      </p>
-                    </div>
-                  </div>
-
-                  {/* Seviye 3: Tamamen Anonim */}
-                  <div
-                    onClick={() => {
-                      setIdentityLevel(3);
-                      setStudentName("");
-                      setStudentClass("");
-                    }}
-                    className={`cursor-pointer rounded-xl border p-4 transition-all flex flex-col justify-between select-none ${
-                      identityLevel === 3
-                        ? "border-green-500 bg-green-500/[0.04] dark:bg-green-500/[0.02] ring-1 ring-green-500/20"
-                        : "border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 hover:border-slate-350"
-                    }`}
-                  >
-                    <div className="space-y-2">
-                      <div className="flex items-center justify-between">
-                        <span className="font-bold text-xs text-green-600 dark:text-green-400">Seviye 3</span>
-                        {identityLevel === 3 && <Check className="w-4 h-4 text-green-500" />}
-                      </div>
-                      <h3 className="font-bold text-sm text-slate-900 dark:text-white">Tamamen Anonim</h3>
-                      <p className="text-[10px] text-slate-500 leading-normal">
-                        Sizden hiçbir isim veya sınıf bilgisi talep edilmez. Veritabanına hiçbir kimlik kaydı yapılmaz.
+                      <h3 className="font-bold text-sm text-slate-900 dark:text-white">Açık İhbar</h3>
+                      <p className="text-[11px] text-slate-500 leading-normal">
+                        Kimliğiniz sadece okul PDR uzmanı tarafından çözülebilir. Okul yönetimi veya öğretmenler kimliğinizi asla göremez. Sorunun daha hızlı çözülmesine yardımcı olur.
                       </p>
                     </div>
                   </div>
                 </div>
 
-                {identityLevel !== 3 && (
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 p-4 bg-slate-50 dark:bg-slate-950 rounded-xl border border-slate-200 dark:border-slate-800/80 animate-fade-in">
-                    <div className="space-y-2">
-                      <Label htmlFor="studentName" className="text-slate-700 dark:text-slate-300 text-xs font-semibold">Adınız Soyadınız <span className="text-rose-500">*</span></Label>
-                      <Input
-                        id="studentName"
-                        required
-                        value={studentName}
-                        onChange={(e) => setStudentName(e.target.value)}
-                        placeholder="Örn: Ahmet Yılmaz"
-                        className="bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 text-slate-900 dark:text-white h-11 focus-visible:ring-rose-500"
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="studentClass" className="text-slate-700 dark:text-slate-300 text-xs font-semibold">Sınıfınız <span className="text-rose-500">*</span></Label>
-                      <Input
-                        id="studentClass"
-                        required
-                        value={studentClass}
-                        onChange={(e) => setStudentClass(e.target.value)}
-                        placeholder="Örn: 10-C"
-                        className="bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 text-slate-900 dark:text-white h-11 focus-visible:ring-rose-500"
-                      />
-                    </div>
-                    <p className="text-[10px] text-slate-500 col-span-1 sm:col-span-2 flex items-center gap-1">
-                      <Info className="h-3 w-3 text-rose-500" /> Girdiğiniz bu bilgiler AES-256 algoritmasıyla şifrelenerek veritabanında saklanır.
-                    </p>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 p-4 bg-slate-50 dark:bg-slate-950 rounded-xl border border-slate-200 dark:border-slate-800/80 animate-fade-in">
+                  <div className="space-y-2">
+                    <Label htmlFor="studentName" className="text-slate-700 dark:text-slate-300 text-xs font-semibold">Adınız Soyadınız <span className="text-rose-500">*</span></Label>
+                    <Input
+                      id="studentName"
+                      required
+                      value={studentName}
+                      onChange={(e) => setStudentName(e.target.value)}
+                      placeholder="Örn: Ahmet Yılmaz"
+                      className="bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 text-slate-900 dark:text-white h-11 focus-visible:ring-rose-500"
+                    />
                   </div>
-                )}
+                  <div className="space-y-2">
+                    <Label htmlFor="studentClass" className="text-slate-700 dark:text-slate-300 text-xs font-semibold">Sınıfınız <span className="text-rose-500">*</span></Label>
+                    <Input
+                      id="studentClass"
+                      required
+                      value={studentClass}
+                      onChange={(e) => setStudentClass(e.target.value)}
+                      placeholder="Örn: 10-C"
+                      className="bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 text-slate-900 dark:text-white h-11 focus-visible:ring-rose-500"
+                    />
+                  </div>
+                  <p className="text-[10px] text-slate-500 col-span-1 sm:col-span-2 flex items-center gap-1">
+                    <Info className="h-3 w-3 text-rose-500" /> Girdiğiniz bu bilgiler AES-256 algoritmasıyla şifrelenerek veritabanında saklanır.
+                  </p>
+                </div>
 
                 <div className="flex gap-4">
                   <Button type="button" variant="outline" onClick={() => setStep(1)} className="w-1/3 h-12">
@@ -574,15 +543,13 @@ export default function StudentReportPage() {
                     <div>
                       <span className="text-slate-500 block">Gizlilik Seviyesi</span>
                       <span className="font-semibold text-slate-850 dark:text-slate-200">
-                        {identityLevel === 1 && "Seviye 1 (PDR'ye Gizli)"}
-                        {identityLevel === 2 && "Seviye 2 (PDR'ye Açık)"}
-                        {identityLevel === 3 && "Seviye 3 (Tamamen Anonim)"}
+                        {identityLevel === 1 ? "Seviye 1 (Gizli İhbar)" : "Seviye 2 (Açık İhbar)"}
                       </span>
                     </div>
                     <div>
                       <span className="text-slate-500 block">Kimlik Bilgisi</span>
                       <span className="font-mono font-bold text-rose-500">
-                        {identityLevel === 3 ? "Anonim (Bilgi Yok)" : `${maskText(studentName)} (${studentClass})`}
+                        {maskText(studentName)} ({studentClass})
                       </span>
                     </div>
                   </div>
@@ -663,17 +630,15 @@ export default function StudentReportPage() {
                     <p className="text-[10px] text-slate-500">Bu kod ile ileride durum sorgulaması yapabilirsiniz.</p>
                   </div>
 
-                  {identityLevel !== 3 && (
-                    <div className="p-4 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800/80 rounded-xl shadow-sm space-y-1 flex flex-col justify-between">
-                      <div>
-                        <span className="text-[10px] text-slate-400 font-mono">Anonim Mesaj Takip Linki:</span>
-                        <Link href="/dashboard/student" className="text-xs font-semibold text-blue-600 dark:text-blue-400 hover:underline block truncate mt-1">
-                          /dashboard/student
-                        </Link>
-                      </div>
-                      <p className="text-[10px] text-slate-500 mt-2">Mesajları okumak için bu linki veya panelinizi kullanabilirsiniz.</p>
+                  <div className="p-4 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800/80 rounded-xl shadow-sm space-y-1 flex flex-col justify-between">
+                    <div>
+                      <span className="text-[10px] text-slate-400 font-mono">Anonim Mesaj Takip Linki:</span>
+                      <Link href="/dashboard/student" className="text-xs font-semibold text-blue-600 dark:text-blue-400 hover:underline block truncate mt-1">
+                        /dashboard/student
+                      </Link>
                     </div>
-                  )}
+                    <p className="text-[10px] text-slate-500 mt-2">Mesajları okumak için bu linki veya panelinizi kullanabilirsiniz.</p>
+                  </div>
                 </div>
 
                 {/* Acil Kriz Hattı */}

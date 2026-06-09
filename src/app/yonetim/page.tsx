@@ -196,10 +196,10 @@ export default function SchoolManagementPage() {
               </div>
               <h3 className="font-bold text-lg">Veri Koruma Politikası</h3>
               <p className="text-xs text-slate-400 leading-relaxed">
-                KVKK ve Çift Kör Gizlilik kuralları gereği, okul yönetimi sadece **Seviye 3 (Anonim Olmayan)** ve **PDR Uzmanı tarafından onaylanmış Seviye 2** bildirimlerin kimlik bilgilerine erişebilir. 
+                KVKK ve Çift Kör Gizlilik kuralları gereği, okul yönetimi hiçbir bildirimde kimlik bilgilerine erişemez. Kimlik bilgileri Seviye 1 (Gizli İhbar) bildirimlerde sadece sistem tarafından (iftira durumlarında tespit için) saklanır, Seviye 2 (Açık İhbar) bildirimlerde ise sadece PDR Uzmanı tarafından çözülebilir.
               </p>
               <p className="text-xs text-slate-400 leading-relaxed">
-                Seviye 1 (Gizli) bildirimlerin içerikleri sistem tarafından maskelenir ve okul yönetimine gösterilmez.
+                Seviye 1 (Gizli İhbar) bildirimlerin içerikleri ve kimlikleri okul yönetimi tarafından görülemez. Bu ihbarların içeriğini sadece PDR uzmanı görebilir.
               </p>
             </div>
           </Card>
@@ -243,12 +243,10 @@ export default function SchoolManagementPage() {
                         <TableCell className="text-slate-750 dark:text-slate-300">{report.category}</TableCell>
                         <TableCell className="text-slate-700 dark:text-slate-300 font-medium">{report.location || "Online"}</TableCell>
                         <TableCell>
-                          {report.identity_level === 3 ? (
-                            <Badge className="bg-slate-500/10 text-slate-600 dark:text-slate-400 border border-slate-500/20 text-xs">Seviye 3: Anonim</Badge>
-                          ) : report.identity_level === 2 ? (
-                            <Badge className="bg-green-500/10 text-green-600 dark:text-green-400 border border-green-500/20 text-xs">Seviye 2: PDR'de</Badge>
+                          {report.identity_level === 2 ? (
+                            <Badge className="bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/20 text-xs">Seviye 2: Açık İhbar</Badge>
                           ) : (
-                            <Badge className="bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20 text-xs">Seviye 1: Gizli</Badge>
+                            <Badge className="bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20 text-xs">Seviye 1: Gizli İhbar</Badge>
                           )}
                         </TableCell>
                         <TableCell>
@@ -301,7 +299,7 @@ export default function SchoolManagementPage() {
               {selectedReport.identity_level === 1 ? (
                 <div className="bg-amber-500/[0.04] p-4 rounded-xl border border-amber-500/20 text-xs text-amber-600 dark:text-amber-400 flex items-center gap-2">
                   <Shield className="w-4 h-4 shrink-0 text-amber-500" />
-                  <span>🔒 İçerik gizlidir (Anonim Bildirim). Bu seviye 1 ihbarın içeriğini sadece PDR uzmanı görebilir.</span>
+                  <span>🔒 İçerik gizlidir (Gizli İhbar). Bu seviye 1 ihbarın içeriğini sadece PDR uzmanı görebilir.</span>
                 </div>
               ) : (
                 <div className="bg-slate-50 dark:bg-slate-950 p-4 rounded-md border border-slate-200 dark:border-slate-800 text-sm text-slate-700 dark:text-slate-300">

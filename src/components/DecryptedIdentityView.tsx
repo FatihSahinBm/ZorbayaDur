@@ -21,11 +21,9 @@ export function DecryptedIdentityView({
   const [isLoading, setIsLoading] = useState(false);
 
   // Erişim kuralları:
-  // Seviye 1 (PDR'ye Gizli)  → Kimse göremez (PDR dahil — tamamen anonim)
-  // Seviye 2 (PDR'ye Açık)  → PDR görebilir. MEB (Yönetim) ise sadece PDR onaylayınca görebilir.
-  const canDecrypt = 
-    (level === 2 && role === "pdr") || 
-    (level === 2 && role === "meb" && !!identitySharingApproved);
+  // Seviye 1 (Gizli İhbar) → Kimse göremez (Sadece sistem veritabanında şifreli saklar)
+  // Seviye 2 (Açık İhbar)  → Sadece PDR görebilir. Okul yönetimi ve öğretmenler göremez.
+  const canDecrypt = level === 2 && role === "pdr";
 
   useEffect(() => {
     async function performDecryption() {
@@ -44,54 +42,22 @@ export function DecryptedIdentityView({
       }
     }
     performDecryption();
-  }, [encryptedIdentity, level, role, canDecrypt, identitySharingApproved]);
+  }, [encryptedIdentity, level, role, canDecrypt]);
 
   const getLevelBadge = () => {
     if (level === 2) {
-      if (identitySharingApproved) {
-        return (
-          <Badge className="bg-green-500/15 text-green-600 dark:text-green-400 border border-green-500/30 font-medium text-xs flex items-center gap-1">
-            <ShieldCheck className="w-3.5 h-3.5" /> Seviye 2: Yönetimle Paylaşıldı
-          </Badge>
-        );
-      }
       return (
         <Badge className="bg-blue-500/15 text-blue-600 dark:text-blue-400 border border-blue-500/30 font-medium text-xs flex items-center gap-1">
-          <ShieldAlert className="w-3.5 h-3.5" /> Seviye 2: PDR'ye Açık
-        </Badge>
-      );
-    }
-    if (level === 1) {
-      return (
-        <Badge className="bg-amber-500/15 text-amber-600 dark:text-amber-400 border border-amber-500/30 font-medium text-xs flex items-center gap-1">
-          <ShieldAlert className="w-3.5 h-3.5" /> Seviye 1: PDR'ye Gizli
+          <ShieldAlert className="w-3.5 h-3.5" /> Seviye 2: Açık İhbar
         </Badge>
       );
     }
     return (
-      <Badge className="bg-slate-500/15 text-slate-655 dark:text-slate-400 border border-slate-500/30 font-medium text-xs flex items-center gap-1">
-        <EyeOff className="w-3.5 h-3.5" /> Seviye 3: Tamamen Anonim
+      <Badge className="bg-amber-500/15 text-amber-600 dark:text-amber-400 border border-amber-500/30 font-medium text-xs flex items-center gap-1">
+        <ShieldAlert className="w-3.5 h-3.5" /> Seviye 1: Gizli İhbar
       </Badge>
     );
   };
-
-  // Eski sistem raporu veya Seviye 3 (Tamamen Anonim) — şifrelenmiş kimlik yok
-  if (!encryptedIdentity || level === 3) {
-    return (
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between p-4 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800/60 gap-3">
-        <div className="flex items-center gap-3">
-          <div className="bg-slate-500/10 p-2.5 rounded-lg border border-slate-500/20">
-            <EyeOff className="w-4 h-4 text-slate-500" />
-          </div>
-          <div>
-            <p className="text-sm font-semibold text-slate-800 dark:text-slate-200">Kimlik: Tamamen Anonim</p>
-            <p className="text-xs text-slate-500 dark:text-slate-400">Bu bildirim tamamen anonim olarak (kimlik girişi olmadan) iletilmiştir.</p>
-          </div>
-        </div>
-        <div className="self-start sm:self-center">{getLevelBadge()}</div>
-      </div>
-    );
-  }
 
   // Seviye 1: Kimse göremez (PDR dahil)
   if (level === 1) {
@@ -102,9 +68,9 @@ export function DecryptedIdentityView({
             <EyeOff className="w-4 h-4 text-amber-600 dark:text-amber-400" />
           </div>
           <div>
-            <p className="text-sm font-semibold text-slate-800 dark:text-slate-200">Kimlik: PDR'ye Gizli (Anonim)</p>
+            <p className="text-sm font-semibold text-slate-800 dark:text-slate-200">Kimlik: Gizli İhbar</p>
             <p className="text-xs text-slate-500 dark:text-slate-400">
-              Öğrenci kimliğini gizli tutmayı seçti. PDR ve okul yönetimi kimliği çözemez.
+              Öğrenci kimliğini gizli tutmayı seçti. PDR ve okul yönetimi kimliği göremez. Sadece iftira gibi durumlarda sistem tarafından tespit edilebilir.
             </p>
           </div>
         </div>
@@ -113,20 +79,18 @@ export function DecryptedIdentityView({
     );
   }
 
-  // Seviye 2, çözme yetkisi yok → gizli (Örn: MEB rolü henüz PDR onaylamadıysa)
+  // Seviye 2, çözme yetkisi yok → gizli (MEB ve Öğretmen rolleri için)
   if (!canDecrypt) {
     return (
       <div className="flex flex-col sm:flex-row sm:items-center justify-between p-4 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800/60 gap-3">
         <div className="flex items-center gap-3">
-          <div className="bg-slate-200 dark:bg-slate-800 p-2.5 rounded-lg border border-slate-300 dark:border-slate-700">
-            <EyeOff className="w-4 h-4 text-slate-500 dark:text-slate-400" />
+          <div className="bg-slate-250 dark:bg-slate-850 p-2.5 rounded-lg border border-slate-300 dark:border-slate-700">
+            <EyeOff className="w-4 h-4 text-slate-550 dark:text-slate-400" />
           </div>
           <div>
-            <p className="text-sm font-semibold text-slate-800 dark:text-slate-200">Kimlik: *** GİZLİ ***</p>
+            <p className="text-sm font-semibold text-slate-800 dark:text-slate-200">Kimlik: PDR'ye Açık (Yönetime Gizli)</p>
             <p className="text-xs text-slate-500 dark:text-slate-400">
-              {role === "meb" 
-                ? "Kimlik PDR onayından sonra okul yönetimine açılacaktır." 
-                : "Bu kimlik bilgisine erişim yetkiniz bulunmuyor."}
+              Bu ihbarda kimlik bilgileri sadece okul PDR uzmanı tarafından görülebilir.
             </p>
           </div>
         </div>
@@ -135,7 +99,7 @@ export function DecryptedIdentityView({
     );
   }
 
-  // Seviye 2 + PDR (veya PDR Onaylı MEB): şifreyi çöz ve göster
+  // Seviye 2 + PDR: şifreyi çöz ve göster
   return (
     <div className="flex flex-col sm:flex-row sm:items-center justify-between p-4 rounded-xl bg-green-500/[0.03] dark:bg-green-500/[0.05] border border-green-500/20 gap-3 shadow-sm">
       <div className="flex items-center gap-3">

@@ -251,9 +251,9 @@ export default function MebDashboard() {
                           </TableCell>
                           <TableCell>
                             {report.identity_level === 2 ? (
-                              <Badge className="bg-green-500/10 text-green-600 dark:text-green-400 border border-green-500/20 text-xs">Seviye 2: Açık</Badge>
+                              <Badge className="bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/20 text-xs">Seviye 2: Açık İhbar</Badge>
                             ) : (
-                              <Badge className="bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20 text-xs">Seviye 1: Gizli</Badge>
+                              <Badge className="bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20 text-xs">Seviye 1: Gizli İhbar</Badge>
                             )}
                           </TableCell>
                           <TableCell className="text-right">
