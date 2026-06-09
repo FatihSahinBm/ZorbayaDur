@@ -62,12 +62,17 @@ export async function analyzeUrgency(
   location: string = "Bilinmiyor",
   frequency: string = "Bilinmiyor"
 ): Promise<UrgencyResult> {
-  const prompt = URGENCY_PROMPT
-    .replace("{REPORT_TEXT}", reportText)
-    .replace("{BULLYING_TYPE}", bullyingType)
-    .replace("{LOCATION}", location)
-    .replace("{FREQUENCY}", frequency);
+  try {
+    const prompt = URGENCY_PROMPT
+      .replace("{REPORT_TEXT}", reportText)
+      .replace("{BULLYING_TYPE}", bullyingType)
+      .replace("{LOCATION}", location)
+      .replace("{FREQUENCY}", frequency);
 
-  const raw = await callGemini(prompt);
-  return safeParseJSON<UrgencyResult>(raw, FALLBACK);
+    const raw = await callGemini(prompt);
+    return safeParseJSON<UrgencyResult>(raw, FALLBACK);
+  } catch (err) {
+    console.error("analyzeUrgency failed, using fallback:", err);
+    return FALLBACK;
+  }
 }

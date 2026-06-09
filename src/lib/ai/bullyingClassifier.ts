@@ -40,7 +40,12 @@ const FALLBACK: ClassificationResult = {
 };
 
 export async function classifyBullying(reportText: string): Promise<ClassificationResult> {
-  const prompt = CLASSIFICATION_PROMPT.replace("{REPORT_TEXT}", reportText);
-  const raw = await callGemini(prompt);
-  return safeParseJSON<ClassificationResult>(raw, FALLBACK);
+  try {
+    const prompt = CLASSIFICATION_PROMPT.replace("{REPORT_TEXT}", reportText);
+    const raw = await callGemini(prompt);
+    return safeParseJSON<ClassificationResult>(raw, FALLBACK);
+  } catch (err) {
+    console.error("classifyBullying failed, using fallback:", err);
+    return FALLBACK;
+  }
 }

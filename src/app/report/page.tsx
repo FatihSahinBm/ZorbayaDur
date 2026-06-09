@@ -25,7 +25,18 @@ export default function StudentReportPage() {
     const studentId = localStorage.getItem('student_id');
     if (!studentId) {
       router.push('/login');
+      return;
     }
+    
+    // Okul numarasına göre isim ve sınıf eşleştirmesi
+    const MOCK_STUDENTS: Record<string, { name: string; studentClass: string }> = {
+      "1234": { name: "Ahmet Yılmaz", studentClass: "10-C" },
+      "5678": { name: "Zeynep Kaya", studentClass: "11-B" },
+      "9012": { name: "Can Demir", studentClass: "9-A" },
+    };
+    const details = MOCK_STUDENTS[studentId] || { name: `Öğrenci #${studentId}`, studentClass: "Bilinmiyor" };
+    setStudentName(details.name);
+    setStudentClass(details.studentClass);
   }, [router]);
   
   // Form Steps
@@ -91,10 +102,6 @@ export default function StudentReportPage() {
 
   const handleNextToStep3 = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!studentName.trim() || !studentClass.trim()) {
-      toast.error("Seviye 1 veya Seviye 2 gizlilik için ad ve sınıf alanları zorunludur.");
-      return;
-    }
     setStep(3);
   };
 
@@ -330,7 +337,7 @@ export default function StudentReportPage() {
 
                 <div className="space-y-3">
                   <Label htmlFor="category" className="text-slate-700 dark:text-slate-300 text-sm font-semibold">Zorbalık Türü <span className="text-rose-500">*</span></Label>
-                  <Select onValueChange={(val) => val && setCategory(val)} defaultValue={category}>
+                  <Select onValueChange={(val) => val && setCategory(val)} value={category || undefined}>
                     <SelectTrigger className="bg-slate-50 dark:bg-slate-950 border-slate-200 dark:border-slate-800 text-slate-850 dark:text-slate-300 h-12">
                       <SelectValue placeholder="Zorbalık türünü seçin..." />
                     </SelectTrigger>
@@ -367,7 +374,7 @@ export default function StudentReportPage() {
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div className="space-y-3">
                     <Label htmlFor="location" className="text-slate-700 dark:text-slate-300 text-sm font-semibold">Nerede Yaşandı? <span className="text-rose-500">*</span></Label>
-                    <Select onValueChange={(val) => val && setLocation(val)} defaultValue={location}>
+                    <Select onValueChange={(val) => val && setLocation(val)} value={location || undefined}>
                       <SelectTrigger className="bg-slate-50 dark:bg-slate-950 border-slate-200 dark:border-slate-800 text-slate-855 h-12">
                         <SelectValue placeholder="Konum seçin..." />
                       </SelectTrigger>
@@ -382,7 +389,7 @@ export default function StudentReportPage() {
 
                   <div className="space-y-3">
                     <Label htmlFor="frequency" className="text-slate-700 dark:text-slate-300 text-sm font-semibold">Ne Sıklıkla Yaşanıyor? <span className="text-rose-500">*</span></Label>
-                    <Select onValueChange={(val) => val && setFrequency(val)} defaultValue={frequency}>
+                    <Select onValueChange={(val) => val && setFrequency(val)} value={frequency || undefined}>
                       <SelectTrigger className="bg-slate-50 dark:bg-slate-950 border-slate-200 dark:border-slate-800 text-slate-855 h-12">
                         <SelectValue placeholder="Sıklık seçin..." />
                       </SelectTrigger>
@@ -481,31 +488,12 @@ export default function StudentReportPage() {
                   </div>
                 </div>
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 p-4 bg-slate-50 dark:bg-slate-950 rounded-xl border border-slate-200 dark:border-slate-800/80 animate-fade-in">
-                  <div className="space-y-2">
-                    <Label htmlFor="studentName" className="text-slate-700 dark:text-slate-300 text-xs font-semibold">Adınız Soyadınız <span className="text-rose-500">*</span></Label>
-                    <Input
-                      id="studentName"
-                      required
-                      value={studentName}
-                      onChange={(e) => setStudentName(e.target.value)}
-                      placeholder="Örn: Ahmet Yılmaz"
-                      className="bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 text-slate-900 dark:text-white h-11 focus-visible:ring-rose-500"
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="studentClass" className="text-slate-700 dark:text-slate-300 text-xs font-semibold">Sınıfınız <span className="text-rose-500">*</span></Label>
-                    <Input
-                      id="studentClass"
-                      required
-                      value={studentClass}
-                      onChange={(e) => setStudentClass(e.target.value)}
-                      placeholder="Örn: 10-C"
-                      className="bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 text-slate-900 dark:text-white h-11 focus-visible:ring-rose-500"
-                    />
-                  </div>
-                  <p className="text-[10px] text-slate-500 col-span-1 sm:col-span-2 flex items-center gap-1">
-                    <Info className="h-3 w-3 text-rose-500" /> Girdiğiniz bu bilgiler AES-256 algoritmasıyla şifrelenerek veritabanında saklanır.
+                <div className="p-4 bg-blue-500/[0.04] dark:bg-blue-500/[0.02] border border-blue-500/20 rounded-xl text-xs space-y-1">
+                  <p className="font-semibold text-slate-850 dark:text-slate-200 flex items-center gap-1.5">
+                    <ShieldCheck className="w-4 h-4 text-blue-500" /> Kimlik Bilgisi Otomatik Eşleştirildi
+                  </p>
+                  <p className="text-slate-500 dark:text-slate-400">
+                    Sisteme giriş yaptığınız okul numarası (<strong>{typeof window !== 'undefined' ? localStorage.getItem('student_id') || '1234' : '1234'}</strong>) ile ilişkili kimlik bilgileriniz (<strong>{maskText(studentName)} - {studentClass}</strong>) otomatik olarak eşleştirilmiştir. Bu bilgiler AES-256 protokolü ile şifrelenerek saklanacaktır.
                   </p>
                 </div>
 
@@ -549,7 +537,7 @@ export default function StudentReportPage() {
                     <div>
                       <span className="text-slate-500 block">Kimlik Bilgisi</span>
                       <span className="font-mono font-bold text-rose-500">
-                        {maskText(studentName)} ({studentClass})
+                        {identityLevel === 1 ? "************" : `${studentName} (${studentClass})`}
                       </span>
                     </div>
                   </div>
@@ -583,7 +571,7 @@ export default function StudentReportPage() {
                   <Button 
                     disabled={isSubmitting || !isApproved} 
                     onClick={handleFormSubmit}
-                    className="flex-1 h-12 bg-rose-650 hover:bg-rose-700 text-white rounded-xl shadow-md transition-all flex items-center justify-center gap-2"
+                    className="flex-1 h-12 bg-rose-600 hover:bg-rose-700 text-white rounded-xl shadow-md transition-all flex items-center justify-center gap-2"
                   >
                     {isSubmitting ? (
                       <><Loader2 className="w-4 h-4 animate-spin" /> Şifreleniyor...</>

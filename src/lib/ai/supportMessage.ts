@@ -16,7 +16,7 @@ export async function generateSupportMessage(
   reportSummary: string
 ): Promise<string> {
   const model = genAI.getGenerativeModel({
-    model: "gemini-2.0-flash",
+    model: "gemini-flash-latest",
     generationConfig: { temperature: 0.7 },
   });
 
@@ -27,7 +27,8 @@ export async function generateSupportMessage(
   try {
     const result = await model.generateContent(prompt);
     return result.response.text().trim();
-  } catch {
+  } catch (err) {
+    console.error("generateSupportMessage failed, using fallback:", err);
     return "Bildirimin için teşekkürler. PDR uzmanın en kısa sürede seninle ilgilenecek. Yalnız değilsin.";
   }
 }
