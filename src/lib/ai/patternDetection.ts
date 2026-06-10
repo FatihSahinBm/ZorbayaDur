@@ -42,6 +42,6 @@ const FALLBACK: PatternResult = {
 
 export async function detectPatterns(reportsSummary: string): Promise<PatternResult> {
   const prompt = PATTERN_PROMPT.replace("{REPORTS_SUMMARY}", reportsSummary);
-  const raw = await callGroq(prompt, { model: "llama-3.3-70b-versatile", jsonMode: true });
+  const raw = await callGroq(prompt, { model: "llama-3.1-8b-instant", jsonMode: true });
   return safeParseJSON<PatternResult>(raw, FALLBACK);
 }
