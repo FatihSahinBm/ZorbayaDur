@@ -12,19 +12,23 @@ export interface PatternResult {
 }
 
 const PATTERN_PROMPT = `
-Aşağıda son 30 günün anonim bildirim özetleri var.
-Tekrar eden örüntüleri tespit et. SADECE JSON döndür, başka hiçbir şey yazma.
+Sen profesyonel bir Okul Psikolojik Danışmanı (PDR) veri analizi asistanısın. Görevin, son 30 güne ait anonim bildirim özetlerini inceleyerek okul genelindeki akran zorbalığı örüntülerini, eğilimlerini ve sistemik riskleri derinlemesine analiz etmektir. 
 
-BİLDİRİMLER: {REPORTS_SUMMARY}
+Metinleri dikkatlice oku, birbirleriyle olan bağlantıları, lokasyonları ve tekrarlayan temaları ortaya çıkar.
+
+BİLDİRİMLER:
+{REPORTS_SUMMARY}
+
+Aşağıdaki JSON yapısını tam olarak doldur ve SADECE geçerli bir JSON objesi döndür. Açıklama veya ek metin ekleme. JSON içindeki metinler oldukça detaylı, kurumsal ve profesyonel bir dille yazılmalıdır.
 
 {
-  "patterns_found": true veya false,
-  "hotspot_locations": ["lokasyon1"],
-  "recurring_behavior_types": ["tip1"],
-  "victim_cluster": true veya false,
-  "perpetrator_cluster": true veya false,
-  "pattern_description": "PDR için 2-3 cümle özet",
-  "suggested_intervention": "Önerilen grup/okul müdahalesi",
+  "patterns_found": true veya false (Eğer benzer konumlarda, benzer kişiler arasında veya benzer davranışlarda 2 veya daha fazla eşleşme/eğilim varsa true yap),
+  "hotspot_locations": ["Olayların en sık yaşandığı spesifik konumlar, sınıflar veya alanlar. Örn: 'A Blok 3. Kat Koridoru', 'Kantin Arkasındaki Bahçe Alanı'. Oldukça spesifik olmalıdır."],
+  "recurring_behavior_types": ["Tekrar eden spesifik zorbalık ve taciz davranış türleri. Örn: 'Sosyal dışlama ve akran baskısı', 'Siber ortamda grupça lakap takma ve alay etme', 'Fiziksel hırpalama ve eşyalara zarar verme'"],
+  "victim_cluster": true veya false (Belirli bir mağdura veya mağdur grubuna yönelik sistematik/tekrarlayan bir odaklanma tespit edildi mi?),
+  "perpetrator_cluster": true veya false (Aynı failin veya akran grubunun birden fazla olayın arkasında olduğuna dair bulgular var mı?),
+  "pattern_description": "PDR uzmanı için profesyonel, klinik ve analitik bir dille yazılmış kapsamlı değerlendirme. Olayların gelişim eğilimini, mağdur/fail dinamiklerini, psikolojik etkilerini ve tespit edilen kalıpları en az 4-5 detaylı cümleyle açıkla. Basit veya tek cümlelik yüzeysel özetler kesinlikle yazma.",
+  "suggested_intervention": "PDR uzmanının ve okul yönetiminin hemen uygulayabileceği, eyleme dökülebilir, somut ve detaylı müdahale önerileri. Akran arabuluculuğu, sınıf içi psikososyal destek etkinlikleri, nöbetçi öğretmen konumlandırması veya veli bilgilendirme/seminer adımları gibi spesifik adımlar içermelidir (En az 3-4 cümle).",
   "time_pattern": "Sabah" veya "Öğle" veya "Teneffüs" veya "Özel bir gün" veya "Belirsiz"
 }
 `;
