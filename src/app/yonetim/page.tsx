@@ -357,6 +357,7 @@ export default function SchoolManagementPage() {
 
               {/* Decrypted Identity Component for Okul Yönetimi */}
               <DecryptedIdentityView
+                reportId={selectedReport.id}
                 encryptedIdentity={selectedReport.encrypted_identity ?? null}
                 identityLevel={selectedReport.identity_level ?? 1}
                 role="meb"

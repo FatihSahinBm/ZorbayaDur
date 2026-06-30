@@ -545,6 +545,7 @@ export default function TeacherDashboard() {
               </div>
 
               <DecryptedIdentityView
+                reportId={selectedReport.id}
                 encryptedIdentity={selectedReport.encrypted_identity ?? null}
                 identityLevel={selectedReport.identity_level ?? 1}
                 role="teacher"

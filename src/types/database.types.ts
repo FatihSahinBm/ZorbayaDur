@@ -345,6 +345,45 @@ export type Database = {
           }
         ]
       }
+      emergency_bypasses: {
+        Row: {
+          id: string
+          report_id: string
+          actor_id: string | null
+          justification: string
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          report_id: string
+          actor_id?: string | null
+          justification: string
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          report_id?: string
+          actor_id?: string | null
+          justification?: string
+          created_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "emergency_bypasses_report_id_fkey"
+            columns: ["report_id"]
+            isOneToOne: false
+            referencedRelation: "reports"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "emergency_bypasses_actor_id_fkey"
+            columns: ["actor_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          }
+        ]
+      }
     }
     Views: {
       audit_logs_readable: {
@@ -379,6 +418,13 @@ export type Database = {
           target_code: string
         }
         Returns: Json
+      }
+      decrypt_identity_emergency: {
+        Args: {
+          target_report_id: string
+          justification: string
+        }
+        Returns: string
       }
     }
     Enums: {

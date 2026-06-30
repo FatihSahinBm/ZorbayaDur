@@ -67,6 +67,17 @@ vi.mock("@supabase/supabase-js", () => {
             });
           }
           return Promise.resolve({ data: { found: false }, error: null });
+        } else if (fnName === "decrypt_identity_emergency") {
+          if (currentUserRole !== "okul_yoneticisi" && currentUserRole !== "admin") {
+            return Promise.resolve({ data: null, error: { message: "Yetkisiz işlem: Sadece okul yöneticileri acil durum yetkisini kullanabilir." } });
+          }
+          if (!args.justification || !args.justification.trim()) {
+            return Promise.resolve({ data: null, error: { message: "Zorunlu yasal gerekçe boş bırakılamaz." } });
+          }
+          if (args.target_report_id === "rep-1") {
+            return Promise.resolve({ data: '{"name": "Gizli Öğrenci", "studentClass": "9-A"}', error: null });
+          }
+          return Promise.resolve({ data: null, error: { message: "Bu ihbara ait şifreli kimlik bulunamadı." } });
         }
         throw new Error(`Unsupported RPC ${fnName}`);
       })
@@ -125,5 +136,47 @@ describe("School Manager Dashboard & RLS Security checks", () => {
     expect(data!.history).toHaveLength(2);
     expect(data!.history[0].actor).toBe("PDR Yetkilisi"); // Formatted from "Ahmet Y. (PDR)"
     expect(data!.history[1].actor).toBe("Sistem"); // Formatted from "SYSTEM"
+  });
+
+  it("should allow manager to use emergency break-glass decryption with justification", async () => {
+    const { createClient } = await import("@supabase/supabase-js");
+    const client = createClient("url", "key");
+
+    const { data, error } = await client.rpc("decrypt_identity_emergency", {
+      target_report_id: "rep-1",
+      justification: "İntihar riski taşıyan acil vaka sebebiyle kimlik açılması yasal sorumluluğu üstlenilerek onaylandı."
+    });
+
+    expect(error).toBeNull();
+    expect(data).toBe('{"name": "Gizli Öğrenci", "studentClass": "9-A"}');
+  });
+
+  it("should reject emergency break-glass decryption for managers if justification is empty", async () => {
+    const { createClient } = await import("@supabase/supabase-js");
+    const client = createClient("url", "key");
+
+    const { data, error } = await client.rpc("decrypt_identity_emergency", {
+      target_report_id: "rep-1",
+      justification: "   "
+    });
+
+    expect(error).not.toBeNull();
+    expect(error?.message).toBe("Zorunlu yasal gerekçe boş bırakılamaz.");
+    expect(data).toBeNull();
+  });
+
+  it("should reject emergency break-glass decryption if current user is not a manager", async () => {
+    currentUserRole = "pdr";
+    const { createClient } = await import("@supabase/supabase-js");
+    const client = createClient("url", "key");
+
+    const { data, error } = await client.rpc("decrypt_identity_emergency", {
+      target_report_id: "rep-1",
+      justification: "Gerekçe var ama rol yetersiz"
+    });
+
+    expect(error).not.toBeNull();
+    expect(error?.message).toBe("Yetkisiz işlem: Sadece okul yöneticileri acil durum yetkisini kullanabilir.");
+    expect(data).toBeNull();
   });
 });
