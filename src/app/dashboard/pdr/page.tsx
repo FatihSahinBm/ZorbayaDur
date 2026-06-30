@@ -433,7 +433,7 @@ export default function PDRDashboard() {
 
   const LOCATION_EMOJIS: Record<string, string> = {
     Sınıf: "📚", Koridor: "🚪", Teneffüs: "⛹️", "Okul Dışı": "🏙️",
-    "Okul Bahçesi": "🌳", Kantin: "🍔",
+    "Okul Bahçesi": "🌳", Kantin: "🍔", Tuvalet: "🚽",
     Online: "💻", Karma: "🔀", Bilinmiyor: "❓"
   };
 

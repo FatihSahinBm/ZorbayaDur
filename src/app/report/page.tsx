@@ -55,7 +55,7 @@ export default function StudentReportPage() {
   const [studentClass, setStudentClass] = useState("");
   
   // Step 3: Onay
-  const [isApproved, setIsApproved] = useState(false);
+  const [isApproved, setIsApproved] = useState(true);
   
   // Step 4: Sonuç / Başarı
   const [trackingCode, setTrackingCode] = useState("");
@@ -108,11 +108,6 @@ export default function StudentReportPage() {
   };
 
   const handleFormSubmit = async () => {
-    if (!isApproved) {
-      toast.error("Devam etmek için bildirim gönderileceğini onaylamanız gerekmektedir.");
-      return;
-    }
-
     if (!supabase) {
       toast.error("Veritabanı bağlantısı yok. Lütfen Supabase ayarlarını yapın.");
       return;
@@ -279,6 +274,11 @@ export default function StudentReportPage() {
             <ArrowLeft className="h-5 w-5" />
             <span className="hidden sm:inline">Geri Dön</span>
           </button>
+        ) : step === 4 ? (
+          <Link href="/dashboard/student" className="flex items-center gap-2 text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition-colors mr-6">
+            <ArrowLeft className="h-5 w-5" />
+            <span className="hidden sm:inline">Panele Dön</span>
+          </Link>
         ) : (
           <Link href="/login" className="flex items-center gap-2 text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition-colors mr-6">
             <ArrowLeft className="h-5 w-5" />
@@ -388,6 +388,7 @@ export default function StudentReportPage() {
                         <SelectItem value="Online">Online / İnternet</SelectItem>
                         <SelectItem value="Okul Bahçesi">Okul Bahçesi</SelectItem>
                         <SelectItem value="Kantin">Kantin</SelectItem>
+                        <SelectItem value="Tuvalet">Tuvalet</SelectItem>
                         <SelectItem value="Okul Dışı">Okul Dışı / Dışarıda</SelectItem>
                       </SelectContent>
                     </Select>
@@ -549,33 +550,12 @@ export default function StudentReportPage() {
                   </div>
                 </div>
 
-                {/* KVKK Bilgilendirme Kutusu */}
-                <div className="bg-slate-100/60 dark:bg-slate-950 p-4 rounded-xl border border-slate-250 dark:border-slate-800 text-[10px] text-slate-600 dark:text-slate-400 space-y-2 leading-relaxed">
-                  <h4 className="font-bold text-slate-800 dark:text-slate-200 flex items-center gap-1.5"><FileText className="w-3.5 h-3.5" /> KVKK Aydınlatma Metni</h4>
-                  <p>
-                    Zorbaya Dur platformu üzerinden gönderdiğiniz veriler, 6698 sayılı Kişisel Verilerin Korunması Kanunu uyarınca, okulunuzun PDR birimi tarafından vakaların takibi ve önlenmesi amacıyla işlenmektedir. Kimliğinizi gizli tutma hakkınız saklı olup, girdiğiniz ad ve sınıf bilgileri AES-256 protokolü ile şifrelenmektedir. Bilgilerinizin rızanız dışı veya yasal dayanak olmaksızın üçüncü taraflarla paylaşılması kesinlikle söz konusu değildir.
-                  </p>
-                </div>
-
-                <div className="flex items-center space-x-2 p-1">
-                  <input 
-                    type="checkbox" 
-                    id="approve-chk" 
-                    checked={isApproved} 
-                    onChange={(e) => setIsApproved(e.target.checked)}
-                    className="w-4 h-4 rounded border-slate-300 text-rose-600 focus:ring-rose-500 cursor-pointer"
-                  />
-                  <Label htmlFor="approve-chk" className="text-xs text-slate-700 dark:text-slate-300 select-none cursor-pointer">
-                    Yukarıdaki aydınlatma metnini okudum ve bildirim göndermeyi onaylıyorum. <span className="text-rose-500">*</span>
-                  </Label>
-                </div>
-
                 <div className="flex gap-4">
                   <Button type="button" variant="outline" onClick={() => setStep(2)} className="w-1/3 h-12">
                     Geri
                   </Button>
                   <Button 
-                    disabled={isSubmitting || !isApproved} 
+                    disabled={isSubmitting} 
                     onClick={handleFormSubmit}
                     className="flex-1 h-12 bg-rose-600 hover:bg-rose-700 text-white rounded-xl shadow-md transition-all flex items-center justify-center gap-2"
                   >
