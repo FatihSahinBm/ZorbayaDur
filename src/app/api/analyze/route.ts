@@ -3,6 +3,7 @@ import { createClient } from "@supabase/supabase-js";
 import { analyzeUrgency } from "@/lib/ai/urgencyAnalysis";
 import { classifyBullying } from "@/lib/ai/bullyingClassifier";
 import { generateSupportMessage } from "@/lib/ai/supportMessage";
+import { triggerEscalationIfApplicable } from "@/lib/ai/escalation";
 import { Database } from "@/types/database.types";
 
 const supabaseAdmin = createClient<Database>(
@@ -38,6 +39,9 @@ export async function POST(request: NextRequest) {
       .from("reports")
       .update({ ai_analysis: aiAnalysis })
       .eq("id", reportId);
+
+    // Eskalasyon kontrolü tetikle
+    await triggerEscalationIfApplicable(reportId, supabaseAdmin);
 
     return NextResponse.json({
       success: true,

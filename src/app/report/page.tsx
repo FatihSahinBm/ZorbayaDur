@@ -62,6 +62,8 @@ export default function StudentReportPage() {
   const [sessionToken, setSessionToken] = useState("");
   const [supportMessage, setSupportMessage] = useState<string | null>(null);
   const [insertedReportId, setInsertedReportId] = useState<string | null>(null);
+  const [urgencyScore, setUrgencyScore] = useState<number | null>(null);
+  const [urgencyLabel, setUrgencyLabel] = useState<string | null>(null);
 
   // Dialog & Temp Risk
   const [showAssigneeDialog, setShowAssigneeDialog] = useState(false);
@@ -244,6 +246,8 @@ export default function StudentReportPage() {
           .then(res => res.json())
           .then(data => {
             if (data.support_message) setSupportMessage(data.support_message);
+            if (data.urgency_score) setUrgencyScore(data.urgency_score);
+            if (data.urgency_label) setUrgencyLabel(data.urgency_label);
           })
           .catch(() => {/* sessizce geç */});
       }
@@ -595,6 +599,18 @@ export default function StudentReportPage() {
                     Konu ilgili birimlere güvenli şekilde aktarıldı.
                   </p>
                 </div>
+
+                {/* Static Critical Warning Block */}
+                {(urgencyLabel === "Kritik" || urgencyLabel === "Acil" || (urgencyScore !== null && urgencyScore >= 80)) && (
+                  <div className="p-4 bg-red-500/10 border border-red-500/20 rounded-xl text-left text-xs space-y-2 border-l-4 border-l-red-600">
+                    <h4 className="font-bold text-red-600 dark:text-red-400 flex items-center gap-1.5">
+                      🚨 ACİL YARDIM VE DESTEK HATTI (ALO 183)
+                    </h4>
+                    <p className="text-slate-600 dark:text-slate-400 leading-relaxed text-[11px]">
+                      Paylaştığın bildirim yüksek öncelikli/kritik seviyede değerlendirilmiştir. Kendine zarar verme, yoğun kriz veya acil psikososyal yardıma ihtiyaç duyduğun durumlarda lütfen anında <strong>ALO 183 Sosyal Destek Hattı</strong> veya <strong>ALO 191 / 112</strong> numaralarını arayarak profesyonel ekiplere ulaş. Okul rehberlik (PDR) servisimiz de en kısa sürede seninle olacaktır. Yalnız değilsin.
+                    </p>
+                  </div>
+                )}
 
                 {/* YZ Destek Mesajı */}
                 <div className="p-4 bg-gradient-to-br from-rose-50 to-pink-50 dark:from-rose-950/20 dark:to-pink-950/20 border border-rose-100 dark:border-rose-800/40 rounded-xl text-left shadow-sm">

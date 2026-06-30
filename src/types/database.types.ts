@@ -88,6 +88,126 @@ export type Database = {
           }
         ]
       }
+      pdr_working_hours: {
+        Row: {
+          id: string
+          day_of_week: number
+          start_time: string
+          end_time: string
+          max_hours_limit: number | null
+          created_at: string | null
+        }
+        Insert: {
+          id?: string
+          day_of_week: number
+          start_time: string
+          end_time: string
+          max_hours_limit?: number | null
+          created_at?: string | null
+        }
+        Update: {
+          id?: string
+          day_of_week?: number
+          start_time?: string
+          end_time?: string
+          max_hours_limit?: number | null
+          created_at?: string | null
+        }
+        Relationships: []
+      }
+      on_call_roster: {
+        Row: {
+          id: string
+          day_of_week: number
+          start_time: string
+          end_time: string
+          assigned_name: string
+          contact_channel: string
+          contact_address: string
+          is_active: boolean | null
+          escalation_target_name: string | null
+          escalation_contact_address: string | null
+          created_at: string | null
+        }
+        Insert: {
+          id?: string
+          day_of_week: number
+          start_time: string
+          end_time: string
+          assigned_name: string
+          contact_channel: string
+          contact_address: string
+          is_active?: boolean | null
+          escalation_target_name?: string | null
+          escalation_contact_address?: string | null
+          created_at?: string | null
+        }
+        Update: {
+          id?: string
+          day_of_week?: number
+          start_time?: string
+          end_time?: string
+          assigned_name?: string
+          contact_channel?: string
+          contact_address?: string
+          is_active?: boolean | null
+          escalation_target_name?: string | null
+          escalation_contact_address?: string | null
+          created_at?: string | null
+        }
+        Relationships: []
+      }
+      escalations: {
+        Row: {
+          id: string
+          report_id: string | null
+          roster_id: string | null
+          sent_at: string | null
+          is_acknowledged: boolean | null
+          acknowledged_at: string | null
+          escalated_to_backup: boolean | null
+          backup_escalated_at: string | null
+          created_at: string | null
+        }
+        Insert: {
+          id?: string
+          report_id?: string | null
+          roster_id?: string | null
+          sent_at?: string | null
+          is_acknowledged?: boolean | null
+          acknowledged_at?: string | null
+          escalated_to_backup?: boolean | null
+          backup_escalated_at?: string | null
+          created_at?: string | null
+        }
+        Update: {
+          id?: string
+          report_id?: string | null
+          roster_id?: string | null
+          sent_at?: string | null
+          is_acknowledged?: boolean | null
+          acknowledged_at?: string | null
+          escalated_to_backup?: boolean | null
+          backup_escalated_at?: string | null
+          created_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "escalations_report_id_fkey"
+            columns: ["report_id"]
+            isOneToOne: false
+            referencedRelation: "reports"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "escalations_roster_id_fkey"
+            columns: ["roster_id"]
+            isOneToOne: false
+            referencedRelation: "on_call_roster"
+            referencedColumns: ["id"]
+          }
+        ]
+      }
       reports: {
         Row: {
           id: string

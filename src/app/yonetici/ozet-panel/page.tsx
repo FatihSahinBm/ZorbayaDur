@@ -11,6 +11,7 @@ import { supabase } from "@/lib/supabase";
 import { toast } from "sonner";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { PasswordPolicyGuard } from "@/components/PasswordPolicyGuard";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {
   ResponsiveContainer, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Cell, AreaChart, Area
 } from "recharts";
@@ -31,10 +32,166 @@ export default function ManagerSummaryPanel() {
   const [reports, setReports] = useState<SummaryReport[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
+  // Subtab State
+  const [activeSubTab, setActiveSubTab] = useState<"summary" | "escalation">("summary");
+  
+  // Working Hours States
+  const [workingHours, setWorkingHours] = useState<any[]>([]);
+  const [isHoursLoading, setIsHoursLoading] = useState(false);
+  
+  // Roster States
+  const [roster, setRoster] = useState<any[]>([]);
+  const [isRosterLoading, setIsRosterLoading] = useState(false);
+
+  // Form inputs for roster/working hours editing
+  const [editingHours, setEditingHours] = useState<any | null>(null);
+  const [hoursStartTime, setHoursStartTime] = useState("09:00:00");
+  const [hoursEndTime, setHoursEndTime] = useState("15:00:00");
+
+  const [editingRoster, setEditingRoster] = useState<any | null>(null);
+  const [rosterDay, setRosterDay] = useState(1);
+  const [rosterStart, setRosterStart] = useState("00:00:00");
+  const [rosterEnd, setRosterEnd] = useState("23:59:59");
+  const [rosterName, setRosterName] = useState("");
+  const [rosterChannel, setRosterChannel] = useState("email");
+  const [rosterAddress, setRosterAddress] = useState("");
+  const [rosterBackupName, setRosterBackupName] = useState("");
+  const [rosterBackupAddress, setRosterBackupAddress] = useState("");
+
   // Vaka sorgulama state
   const [searchCode, setSearchCode] = useState("");
   const [searchResult, setSearchResult] = useState<any>(null);
   const [isSearching, setIsSearching] = useState(false);
+
+  const fetchWorkingHoursAndRoster = async () => {
+    if (!supabase) return;
+    setIsHoursLoading(true);
+    setIsRosterLoading(true);
+    try {
+      const { data: wh, error: whErr } = await supabase.from("pdr_working_hours").select("*").order("day_of_week", { ascending: true });
+      if (whErr) throw whErr;
+      setWorkingHours(wh || []);
+
+      const { data: ros, error: rosErr } = await supabase.from("on_call_roster").select("*").order("day_of_week", { ascending: true });
+      if (rosErr) throw rosErr;
+      setRoster(ros || []);
+    } catch (e: any) {
+      toast.error("Ayarlar yüklenemedi: " + e.message);
+    } finally {
+      setIsHoursLoading(false);
+      setIsRosterLoading(false);
+    }
+  };
+
+  // Calculate total weekly working hours
+  const totalWeeklyHours = useMemo(() => {
+    let total = 0;
+    workingHours.forEach(wh => {
+      const [sh, sm] = wh.start_time.split(":").map(Number);
+      const [eh, em] = wh.end_time.split(":").map(Number);
+      const diffHours = (eh + em/60) - (sh + sm/60);
+      if (diffHours > 0) total += diffHours;
+    });
+    return total;
+  }, [workingHours]);
+
+  const handleSaveWorkingHours = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!supabase || !editingHours) return;
+
+    let total = 0;
+    workingHours.forEach(wh => {
+      if (wh.id === editingHours.id) {
+        const [sh, sm] = hoursStartTime.split(":").map(Number);
+        const [eh, em] = hoursEndTime.split(":").map(Number);
+        total += (eh + em/60) - (sh + sm/60);
+      } else {
+        const [sh, sm] = wh.start_time.split(":").map(Number);
+        const [eh, em] = wh.end_time.split(":").map(Number);
+        total += (eh + em/60) - (sh + sm/60);
+      }
+    });
+
+    if (total > 30) {
+      toast.error(`Hatalı işlem: Haftalık toplam çalışma süresi ${total} saat oluyor ve 30 saati aşamaz! (Md.25 Sınırı)`);
+      return;
+    }
+
+    try {
+      const { error } = await supabase
+        .from("pdr_working_hours")
+        .update({
+          start_time: hoursStartTime,
+          end_time: hoursEndTime
+        })
+        .eq("id", editingHours.id);
+
+      if (error) throw error;
+      toast.success("Çalışma saatleri güncellendi.");
+      setEditingHours(null);
+      fetchWorkingHoursAndRoster();
+    } catch (e: any) {
+      toast.error("Güncelleme hatası: " + e.message);
+    }
+  };
+
+  const handleSaveRoster = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!supabase) return;
+    if (!rosterName.trim() || !rosterAddress.trim()) {
+      toast.error("Nöbetçi ismi ve iletişim adresi zorunludur!");
+      return;
+    }
+
+    const payload = {
+      day_of_week: rosterDay,
+      start_time: rosterStart,
+      end_time: rosterEnd,
+      assigned_name: rosterName.trim(),
+      contact_channel: rosterChannel,
+      contact_address: rosterAddress.trim(),
+      escalation_target_name: rosterBackupName.trim() || null,
+      escalation_contact_address: rosterBackupAddress.trim() || null
+    };
+
+    try {
+      if (editingRoster) {
+        const { error } = await supabase
+          .from("on_call_roster")
+          .update(payload)
+          .eq("id", editingRoster.id);
+        if (error) throw error;
+        toast.success("Nöbet kaydı güncellendi.");
+      } else {
+        const { error } = await supabase
+          .from("on_call_roster")
+          .insert([payload]);
+        if (error) throw error;
+        toast.success("Yeni nöbet kaydı eklendi.");
+      }
+      setEditingRoster(null);
+      setRosterName("");
+      setRosterAddress("");
+      setRosterBackupName("");
+      setRosterBackupAddress("");
+      fetchWorkingHoursAndRoster();
+    } catch (e: any) {
+      toast.error("Nöbet kaydetme hatası: " + e.message);
+    }
+  };
+
+  const handleDeleteRoster = async (id: string) => {
+    if (!supabase) return;
+    if (!confirm("Nöbet kaydını silmek istediğinize emin misiniz?")) return;
+    try {
+      const { error } = await supabase.from("on_call_roster").delete().eq("id", id);
+      if (error) throw error;
+      toast.success("Nöbet kaydı silindi.");
+      fetchWorkingHoursAndRoster();
+    } catch (e: any) {
+      toast.error("Silme hatası: " + e.message);
+    }
+  };
 
   const fetchSummaryData = async () => {
     if (!supabase) return;
@@ -185,7 +342,36 @@ export default function ManagerSummaryPanel() {
         {/* Content */}
         <main className="flex-1 p-6 space-y-6 max-w-7xl mx-auto w-full">
           
-          {/* Banner */}
+          {/* Subtabs sub-navigation */}
+          <div className="flex gap-2 border-b border-slate-200 dark:border-slate-800 pb-px">
+            <button 
+              onClick={() => setActiveSubTab("summary")}
+              className={`px-4 py-2 text-sm font-semibold border-b-2 transition-all ${
+                activeSubTab === "summary"
+                  ? "border-amber-500 text-amber-500"
+                  : "border-transparent text-slate-500 hover:text-slate-900 dark:hover:text-white"
+              }`}
+            >
+              İstatistikler & Durum Sorgu
+            </button>
+            <button 
+              onClick={() => {
+                setActiveSubTab("escalation");
+                fetchWorkingHoursAndRoster();
+              }}
+              className={`px-4 py-2 text-sm font-semibold border-b-2 transition-all ${
+                activeSubTab === "escalation"
+                  ? "border-amber-500 text-amber-500"
+                  : "border-transparent text-slate-500 hover:text-slate-900 dark:hover:text-white"
+              }`}
+            >
+              Nöbet Çizelgesi & PDR Mesai (Md.25)
+            </button>
+          </div>
+
+          {activeSubTab === "summary" ? (
+            <>
+              {/* Banner */}
           <div className="bg-gradient-to-r from-amber-500/10 via-orange-500/5 to-transparent border border-amber-500/20 rounded-2xl p-6 flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
             <div className="space-y-1">
               <h2 className="text-xl font-bold tracking-tight text-slate-900 dark:text-white">Hoş Geldiniz, Okul Müdürü</h2>
@@ -450,6 +636,233 @@ export default function ManagerSummaryPanel() {
               )}
             </CardContent>
           </Card>
+          </>
+          ) : (
+            <div className="space-y-6">
+              
+              {/* PDR Çalışma Saatleri (Md.25) */}
+              <Card className="bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 shadow-sm">
+                <CardHeader>
+                  <CardTitle className="text-base font-bold flex items-center justify-between">
+                    <span>PDR Haftalık Çalışma Saatleri (Md.25 Uyumlu)</span>
+                    <Badge className={totalWeeklyHours > 30 ? "bg-red-500 text-white" : "bg-green-500 text-white"}>
+                      Toplam: {totalWeeklyHours} Saat / 30 Saat Limit
+                    </Badge>
+                  </CardTitle>
+                  <CardDescription className="text-xs">
+                    Rehber öğretmenlerin (PDR) haftalık çalışma süresi 30 saati aşamaz. Bu saatlerin dışındaki ihbarlar otomatik olarak eskalasyona yönlendirilir.
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  {isHoursLoading ? (
+                    <div className="flex justify-center py-4"><Loader2 className="w-5 h-5 animate-spin text-slate-400" /></div>
+                  ) : (
+                    <div className="space-y-4">
+                      {/* Hours Editing Form */}
+                      {editingHours && (
+                        <form onSubmit={handleSaveWorkingHours} className="p-4 border border-slate-200 dark:border-slate-800 rounded-xl bg-slate-50/50 dark:bg-slate-950/20 space-y-4 max-w-md">
+                          <h4 className="text-xs font-bold uppercase text-slate-400">Çalışma Saatlerini Güncelle: Gün {editingHours.day_of_week}</h4>
+                          <div className="grid grid-cols-2 gap-4">
+                            <div className="space-y-1">
+                              <label className="text-[10px] uppercase font-bold text-slate-500">Giriş Saati</label>
+                              <Input type="text" placeholder="09:00:00" value={hoursStartTime} onChange={e => setHoursStartTime(e.target.value)} />
+                            </div>
+                            <div className="space-y-1">
+                              <label className="text-[10px] uppercase font-bold text-slate-500">Çıkış Saati</label>
+                              <Input type="text" placeholder="15:00:00" value={hoursEndTime} onChange={e => setHoursEndTime(e.target.value)} />
+                            </div>
+                          </div>
+                          <div className="flex gap-2 justify-end">
+                            <Button type="button" variant="outline" size="sm" onClick={() => setEditingHours(null)}>Vazgeç</Button>
+                            <Button type="submit" size="sm" className="bg-amber-500 hover:bg-amber-600 text-white">Kaydet</Button>
+                          </div>
+                        </form>
+                      )}
+
+                      <div className="grid grid-cols-1 md:grid-cols-5 gap-3">
+                        {[1, 2, 3, 4, 5, 6, 7].map(day => {
+                          const daysName = ["Pazartesi", "Salı", "Çarşamba", "Perşembe", "Cuma", "Cumartesi", "Pazar"];
+                          const match = workingHours.find(w => w.day_of_week === day);
+                          return (
+                            <div key={day} className="border border-slate-200 dark:border-slate-800 rounded-xl p-3 bg-slate-50/20 dark:bg-slate-950/10 flex flex-col justify-between h-28">
+                              <div>
+                                <span className="text-[10px] font-bold text-slate-400">{daysName[day - 1]}</span>
+                                <p className="text-sm font-semibold mt-1 text-slate-800 dark:text-slate-200">
+                                  {match ? `${match.start_time.substring(0, 5)} - ${match.end_time.substring(0, 5)}` : "Mesai Dışı"}
+                                </p>
+                              </div>
+                              {match && (
+                                <Button size="xs" variant="outline" className="h-7 text-xs self-start" onClick={() => {
+                                  setEditingHours(match);
+                                  setHoursStartTime(match.start_time);
+                                  setHoursEndTime(match.end_time);
+                                }}>
+                                  Düzenle
+                                </Button>
+                              )}
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+
+              {/* Nöbet Çizelgesi (on_call_roster) */}
+              <Card className="bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 shadow-sm">
+                <CardHeader>
+                  <CardTitle className="text-base font-bold flex items-center justify-between">
+                    <span>Nöbetçi İdareci Çizelgesi (Mesai Dışı Bildirim)</span>
+                    <Button size="sm" className="bg-amber-500 hover:bg-amber-600 text-white" onClick={() => {
+                      setEditingRoster(null);
+                      setRosterDay(1);
+                      setRosterStart("00:00:00");
+                      setRosterEnd("23:59:59");
+                      setRosterName("");
+                      setRosterChannel("email");
+                      setRosterAddress("");
+                      setRosterBackupName("");
+                      setRosterBackupAddress("");
+                    }}>
+                      Nöbetçi Ekle
+                    </Button>
+                  </CardTitle>
+                  <CardDescription className="text-xs">
+                    PDR çalışma saatleri dışında oluşan Kritik riskli vakalar için anlık eskalasyon bildiriminin yönlendirileceği idari kadroyu ve nöbet günlerini yönetin.
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-6">
+                  {/* Roster Edit/Create Form */}
+                  {(editingRoster !== null || rosterName !== "") && (
+                    <form onSubmit={handleSaveRoster} className="p-4 border border-slate-200 dark:border-slate-800 rounded-xl bg-slate-50/50 dark:bg-slate-950/20 space-y-4 max-w-2xl animate-fade-in">
+                      <h4 className="text-xs font-bold uppercase text-slate-400">
+                        {editingRoster ? "Nöbet Kaydını Düzenle" : "Yeni Nöbet Kaydı Ekle"}
+                      </h4>
+                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                        <div className="space-y-1">
+                          <label className="text-[10px] uppercase font-bold text-slate-500">Nöbet Günü</label>
+                          <Select value={String(rosterDay)} onValueChange={v => setRosterDay(Number(v))}>
+                            <SelectTrigger className="h-10 bg-white dark:bg-slate-900">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="1">Pazartesi</SelectItem>
+                              <SelectItem value="2">Salı</SelectItem>
+                              <SelectItem value="3">Çarşamba</SelectItem>
+                              <SelectItem value="4">Perşembe</SelectItem>
+                              <SelectItem value="5">Cuma</SelectItem>
+                              <SelectItem value="6">Cumartesi</SelectItem>
+                              <SelectItem value="7">Pazar</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        <div className="space-y-1">
+                          <label className="text-[10px] uppercase font-bold text-slate-500">Başlangıç Saati</label>
+                          <Input type="text" placeholder="00:00:00" value={rosterStart} onChange={e => setRosterStart(e.target.value)} />
+                        </div>
+                        <div className="space-y-1">
+                          <label className="text-[10px] uppercase font-bold text-slate-500">Bitiş Saati</label>
+                          <Input type="text" placeholder="23:59:59" value={rosterEnd} onChange={e => setRosterEnd(e.target.value)} />
+                        </div>
+                      </div>
+
+                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                        <div className="space-y-1">
+                          <label className="text-[10px] uppercase font-bold text-slate-500">Nöbetçi Ad-Soyad</label>
+                          <Input type="text" placeholder="Müdür Yrd. Mehmet Gök" value={rosterName} onChange={e => setRosterName(e.target.value)} />
+                        </div>
+                        <div className="space-y-1">
+                          <label className="text-[10px] uppercase font-bold text-slate-500">Kanal</label>
+                          <Select value={rosterChannel} onValueChange={(val) => val && setRosterChannel(val)}>
+                            <SelectTrigger className="h-10 bg-white dark:bg-slate-900">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="email">E-posta</SelectItem>
+                              <SelectItem value="sms">SMS</SelectItem>
+                              <SelectItem value="push">Push Notification</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        <div className="space-y-1">
+                          <label className="text-[10px] uppercase font-bold text-slate-500">İletişim Adresi</label>
+                          <Input type="text" placeholder="mehmet.gok@school.edu.tr" value={rosterAddress} onChange={e => setRosterAddress(e.target.value)} />
+                        </div>
+                      </div>
+
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 border-t border-slate-200/50 dark:border-slate-800/50 pt-3">
+                        <div className="space-y-1">
+                          <label className="text-[10px] uppercase font-bold text-slate-500">Yedek Yetkili (İkinci Eskalasyon)</label>
+                          <Input type="text" placeholder="Okul Müdürü Ahmet Yıldız" value={rosterBackupName} onChange={e => setRosterBackupName(e.target.value)} />
+                        </div>
+                        <div className="space-y-1">
+                          <label className="text-[10px] uppercase font-bold text-slate-500">Yedek İletişim Adresi</label>
+                          <Input type="text" placeholder="ahmet.yildiz@school.edu.tr" value={rosterBackupAddress} onChange={e => setRosterBackupAddress(e.target.value)} />
+                        </div>
+                      </div>
+
+                      <div className="flex gap-2 justify-end">
+                        <Button type="button" variant="outline" size="sm" onClick={() => {
+                          setEditingRoster(null);
+                          setRosterName("");
+                        }}>İptal</Button>
+                        <Button type="submit" size="sm" className="bg-amber-500 hover:bg-amber-600 text-white">Nöbetçiyi Kaydet</Button>
+                      </div>
+                    </form>
+                  )}
+
+                  {isRosterLoading ? (
+                    <div className="flex justify-center py-4"><Loader2 className="w-5 h-5 animate-spin text-slate-400" /></div>
+                  ) : roster.length === 0 ? (
+                    <p className="text-xs text-slate-500 py-4 text-center">Tanımlı nöbetçi bulunmamaktadır.</p>
+                  ) : (
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                      {roster.map(r => {
+                        const daysName = ["Pazartesi", "Salı", "Çarşamba", "Perşembe", "Cuma", "Cumartesi", "Pazar"];
+                        return (
+                          <div key={r.id} className="border border-slate-200 dark:border-slate-800 rounded-xl p-4 bg-slate-50/20 dark:bg-slate-950/10 space-y-3">
+                            <div className="flex justify-between items-center">
+                              <span className="text-xs font-bold text-slate-800 dark:text-slate-200">{daysName[r.day_of_week - 1]}</span>
+                              <Badge className="bg-indigo-500/10 text-indigo-700 dark:text-indigo-300 border-indigo-500/20 text-xs">
+                                {r.start_time.substring(0, 5)} - {r.end_time.substring(0, 5)}
+                              </Badge>
+                            </div>
+                            <div className="space-y-1 text-xs">
+                              <p>Adı: <strong>{r.assigned_name}</strong></p>
+                              <p>İletişim: <strong>{r.contact_address}</strong> ({r.contact_channel.toUpperCase()})</p>
+                              {r.escalation_target_name && (
+                                <p className="text-[10px] text-slate-500">Yedek: {r.escalation_target_name} ({r.escalation_contact_address})</p>
+                              )}
+                            </div>
+                            <div className="flex gap-2 justify-end pt-2 border-t border-slate-200/50 dark:border-slate-800/50">
+                              <Button size="xs" variant="outline" className="h-7 text-xs" onClick={() => {
+                                setEditingRoster(r);
+                                setRosterDay(r.day_of_week);
+                                setRosterStart(r.start_time);
+                                setRosterEnd(r.end_time);
+                                setRosterName(r.assigned_name);
+                                setRosterChannel(r.contact_channel);
+                                setRosterAddress(r.contact_address);
+                                setRosterBackupName(r.escalation_target_name || "");
+                                setRosterBackupAddress(r.escalation_contact_address || "");
+                              }}>
+                                Düzenle
+                              </Button>
+                              <Button size="xs" variant="outline" className="text-red-500 border-red-200 hover:bg-red-50 h-7 text-xs" onClick={() => handleDeleteRoster(r.id)}>
+                                Sil
+                              </Button>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+
+            </div>
+          )}
 
         </main>
       </div>
