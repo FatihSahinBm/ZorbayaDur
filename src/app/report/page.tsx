@@ -274,15 +274,10 @@ export default function StudentReportPage() {
             <ArrowLeft className="h-5 w-5" />
             <span className="hidden sm:inline">Geri Dön</span>
           </button>
-        ) : step === 4 ? (
+        ) : (
           <Link href="/dashboard/student" className="flex items-center gap-2 text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition-colors mr-6">
             <ArrowLeft className="h-5 w-5" />
-            <span className="hidden sm:inline">Panele Dön</span>
-          </Link>
-        ) : (
-          <Link href="/login" className="flex items-center gap-2 text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition-colors mr-6">
-            <ArrowLeft className="h-5 w-5" />
-            <span className="hidden sm:inline">Çıkış Yap</span>
+            <span className="hidden sm:inline">İhbarlarıma Dön</span>
           </Link>
         )}
         <div className="flex items-center gap-2 mx-auto">
