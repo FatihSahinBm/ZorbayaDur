@@ -144,6 +144,15 @@ export default function PDRDashboard() {
   const [filterDate, setFilterDate] = useState("Tümü");
   const [filterStatus, setFilterStatus] = useState("Tümü");
   const [searchQuery, setSearchQuery] = useState("");
+  const [sortBy, setSortBy] = useState<"tarih" | "risk">("risk");
+
+  const [confirmAction, setConfirmAction] = useState<{
+    type: "status";
+    id: string;
+    status: string;
+    title: string;
+    message: string;
+  } | null>(null);
 
   // Dialog state
   const [selectedReport, setSelectedReport] = useState<Report | null>(null);
@@ -336,11 +345,29 @@ export default function PDRDashboard() {
 
 
 
-  const handleStatusChange = async (id: string, newStatus: string) => {
+  const handleStatusChange = async (id: string, newStatus: string, bypassConfirm = false) => {
+    if (!bypassConfirm) {
+      setConfirmAction({
+        type: "status",
+        id,
+        status: newStatus,
+        title: newStatus === "İnceleniyor" ? "İnceleme Başlatılsın mı?" : "Vaka Çözüldü Olarak İşaretlensin mi?",
+        message: newStatus === "İnceleniyor"
+          ? "Bu vakayı incelemeye almak istediğinize emin misiniz?"
+          : "Bu vakanın çözüldüğünü onaylıyor musunuz? Bu işlem vaka durumunu güncelleyecektir."
+      });
+      return;
+    }
     if (!supabase) return;
     const { error } = await supabase.from("reports").update({ status: newStatus }).eq("id", id);
     if (error) toast.error("Durum güncellenemedi.");
-    else { toast.success("Durum güncellendi."); fetchReports(); }
+    else {
+      toast.success("Durum güncellendi.");
+      fetchReports();
+      if (selectedReport?.id === id) {
+        setSelectedReport(prev => prev ? { ...prev, status: newStatus } : null);
+      }
+    }
   };
 
   const handlePatternAnalysis = async () => {
@@ -370,7 +397,7 @@ export default function PDRDashboard() {
 
   // ─── Filtering ────────────────────────────────────────────────────────────
   const filtered = useMemo(() => {
-    return reports.filter(r => {
+    const list = reports.filter(r => {
       if (searchQuery && !r.content.toLowerCase().includes(searchQuery.toLowerCase()) &&
           !r.tracking_code.toLowerCase().includes(searchQuery.toLowerCase())) return false;
       if (filterUrgency !== "Tümü" && r.ai_analysis?.urgency?.urgency_label !== filterUrgency) return false;
@@ -392,7 +419,20 @@ export default function PDRDashboard() {
       }
       return true;
     });
-  }, [reports, searchQuery, filterUrgency, filterType, filterLevel, filterDate, filterStatus]);
+
+    if (sortBy === "risk") {
+      return [...list].sort((a, b) => {
+        const scoreA = a.ai_analysis?.urgency?.urgency_score ?? 0;
+        const scoreB = b.ai_analysis?.urgency?.urgency_score ?? 0;
+        if (scoreB !== scoreA) {
+          return scoreB - scoreA;
+        }
+        return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
+      });
+    } else {
+      return [...list].sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+    }
+  }, [reports, searchQuery, filterUrgency, filterType, filterLevel, filterDate, filterStatus, sortBy]);
 
   // ─── Chart Data ───────────────────────────────────────────────────────────
   const weeklyChartData = useMemo(() => {
@@ -530,11 +570,21 @@ export default function PDRDashboard() {
                         <SelectTrigger className="h-9 w-[100px] bg-slate-50 dark:bg-slate-950 border-slate-200 dark:border-slate-800 text-xs">
                           <SelectValue placeholder={f.ph} />
                         </SelectTrigger>
-                        <SelectContent>
+                        <SelectContent className="bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 text-slate-900 dark:text-white">
                           {f.opts.map(o => <SelectItem key={o} value={o} className="text-xs">{o}</SelectItem>)}
                         </SelectContent>
                       </Select>
                     ))}
+
+                    <Select value={sortBy} onValueChange={(v) => v && setSortBy(v as any)}>
+                      <SelectTrigger className="h-9 w-[110px] bg-slate-50 dark:bg-slate-950 border-slate-200 dark:border-slate-800 text-xs font-medium text-blue-600 dark:text-blue-400">
+                        <SelectValue placeholder="Sıralama" />
+                      </SelectTrigger>
+                      <SelectContent className="bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 text-slate-900 dark:text-white">
+                        <SelectItem value="risk" className="text-xs">Risk Puanı</SelectItem>
+                        <SelectItem value="tarih" className="text-xs">En Yeni</SelectItem>
+                      </SelectContent>
+                    </Select>
                   </div>
                 </div>
               </CardContent>
@@ -1141,6 +1191,33 @@ export default function PDRDashboard() {
           )}
         </DialogContent>
       </Dialog>
+
+      {/* ── CONFIRMATION DIALOG ── */}
+      {confirmAction && (
+        <Dialog open={!!confirmAction} onOpenChange={open => { if (!open) setConfirmAction(null); }}>
+          <DialogContent className="bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 text-slate-900 dark:text-white max-w-sm animate-in fade-in zoom-in-95 duration-200">
+            <DialogHeader>
+              <DialogTitle className="text-base font-semibold text-slate-900 dark:text-white">{confirmAction.title}</DialogTitle>
+              <DialogDescription className="text-xs text-slate-500 dark:text-slate-400 mt-2">
+                {confirmAction.message}
+              </DialogDescription>
+            </DialogHeader>
+            <div className="flex gap-2 justify-end mt-4">
+              <Button variant="outline" size="sm" onClick={() => setConfirmAction(null)} className="h-8 text-xs border-slate-200 dark:border-slate-800">
+                Vazgeç
+              </Button>
+              <Button size="sm" className="h-8 text-xs bg-blue-600 hover:bg-blue-700 text-white" onClick={() => {
+                if (confirmAction.status) {
+                  handleStatusChange(confirmAction.id, confirmAction.status, true);
+                }
+                setConfirmAction(null);
+              }}>
+                Onayla
+              </Button>
+            </div>
+          </DialogContent>
+        </Dialog>
+      )}
       </div>
     </PasswordPolicyGuard>
   );

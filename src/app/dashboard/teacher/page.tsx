@@ -148,10 +148,18 @@ export default function TeacherDashboard() {
   const [filterDate, setFilterDate] = useState("Tümü");
   const [filterStatus, setFilterStatus] = useState("Tümü");
   const [searchQuery, setSearchQuery] = useState("");
+  const [sortBy, setSortBy] = useState<"tarih" | "risk">("risk");
 
   // Dialog state
   const [selectedReport, setSelectedReport] = useState<Report | null>(null);
   const [activeTab, setActiveTab] = useState<"ai" | "message">("ai");
+  const [confirmAction, setConfirmAction] = useState<{
+    type: "escalate" | "status";
+    id: string;
+    status?: string;
+    title: string;
+    message: string;
+  } | null>(null);
 
   // Messages state
   const [messages, setMessages] = useState<any[]>([]);
@@ -241,7 +249,19 @@ export default function TeacherDashboard() {
     }
   };
 
-  const handleStatusChange = async (id: string, newStatus: string) => {
+  const handleStatusChange = async (id: string, newStatus: string, bypassConfirm = false) => {
+    if (!bypassConfirm) {
+      setConfirmAction({
+        type: "status",
+        id,
+        status: newStatus,
+        title: newStatus === "İnceleniyor" ? "İnceleme Başlatılsın mı?" : "Vaka Çözüldü Olarak İşaretlensin mi?",
+        message: newStatus === "İnceleniyor"
+          ? "Bu vakayı incelemeye almak istediğinize emin misiniz?"
+          : "Bu vakanın çözüldüğünü onaylıyor musunuz? Bu işlem vaka durumunu güncelleyecektir."
+      });
+      return;
+    }
     if (!supabase) return;
     const { error } = await supabase.from("reports").update({ status: newStatus }).eq("id", id);
     if (error) toast.error("Durum güncellenemedi.");
@@ -254,7 +274,16 @@ export default function TeacherDashboard() {
     }
   };
 
-  const handleEscalateToPDR = async (id: string) => {
+  const handleEscalateToPDR = async (id: string, bypassConfirm = false) => {
+    if (!bypassConfirm) {
+      setConfirmAction({
+        type: "escalate",
+        id,
+        title: "PDR Uzmanına Sevk Et",
+        message: "Bu vakayı PDR uzmanına sevk etmek istediğinize emin misiniz?"
+      });
+      return;
+    }
     if (!supabase) return;
     const { error } = await supabase
       .from("reports")
@@ -285,7 +314,7 @@ export default function TeacherDashboard() {
 
   // ─── Filtering ────────────────────────────────────────────────────────────
   const filtered = useMemo(() => {
-    return reports.filter(r => {
+    const list = reports.filter(r => {
       if (searchQuery && !r.content.toLowerCase().includes(searchQuery.toLowerCase()) &&
           !r.tracking_code.toLowerCase().includes(searchQuery.toLowerCase())) return false;
       
@@ -312,7 +341,20 @@ export default function TeacherDashboard() {
       }
       return true;
     });
-  }, [reports, searchQuery, filterUrgency, filterType, filterLevel, filterDate, filterStatus]);
+
+    if (sortBy === "risk") {
+      return [...list].sort((a, b) => {
+        const scoreA = getDisplayScore(a);
+        const scoreB = getDisplayScore(b);
+        if (scoreB !== scoreA) {
+          return scoreB - scoreA;
+        }
+        return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
+      });
+    } else {
+      return [...list].sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+    }
+  }, [reports, searchQuery, filterUrgency, filterType, filterLevel, filterDate, filterStatus, sortBy]);
 
   // ─── JSX ──────────────────────────────────────────────────────────────────
   return (
@@ -387,6 +429,16 @@ export default function TeacherDashboard() {
                     </SelectContent>
                   </Select>
                 ))}
+
+                <Select value={sortBy} onValueChange={(v) => v && setSortBy(v as any)}>
+                  <SelectTrigger className="h-9 w-[110px] bg-slate-50 dark:bg-slate-950 border-slate-200 dark:border-slate-800 text-xs font-medium text-purple-600 dark:text-purple-400">
+                    <SelectValue placeholder="Sıralama" />
+                  </SelectTrigger>
+                  <SelectContent className="bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 text-slate-900 dark:text-white">
+                    <SelectItem value="risk" className="text-xs">Risk Puanı</SelectItem>
+                    <SelectItem value="tarih" className="text-xs">En Yeni</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
             </div>
           </CardContent>
@@ -733,6 +785,35 @@ export default function TeacherDashboard() {
                   </form>
                 </div>
               )}
+            </div>
+          </DialogContent>
+        </Dialog>
+      )}
+
+      {/* ── CONFIRMATION DIALOG ── */}
+      {confirmAction && (
+        <Dialog open={!!confirmAction} onOpenChange={open => { if (!open) setConfirmAction(null); }}>
+          <DialogContent className="bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 text-slate-900 dark:text-white max-w-sm animate-in fade-in zoom-in-95 duration-200">
+            <DialogHeader>
+              <DialogTitle className="text-base font-semibold text-slate-900 dark:text-white">{confirmAction.title}</DialogTitle>
+              <DialogDescription className="text-xs text-slate-500 dark:text-slate-400 mt-2">
+                {confirmAction.message}
+              </DialogDescription>
+            </DialogHeader>
+            <div className="flex gap-2 justify-end mt-4">
+              <Button variant="outline" size="sm" onClick={() => setConfirmAction(null)} className="h-8 text-xs border-slate-200 dark:border-slate-800">
+                Vazgeç
+              </Button>
+              <Button size="sm" className="h-8 text-xs bg-purple-600 hover:bg-purple-700 text-white" onClick={() => {
+                if (confirmAction.type === 'escalate') {
+                  handleEscalateToPDR(confirmAction.id, true);
+                } else if (confirmAction.type === 'status' && confirmAction.status) {
+                  handleStatusChange(confirmAction.id, confirmAction.status, true);
+                }
+                setConfirmAction(null);
+              }}>
+                Onayla
+              </Button>
             </div>
           </DialogContent>
         </Dialog>
