@@ -192,9 +192,27 @@ export type Database = {
         }
         Relationships: []
       }
+      reports_summary_view: {
+        Row: {
+          id: string
+          category: string
+          risk_level: string
+          status: string
+          assigned_role: string
+          created_at: string
+          deadline_at: string | null
+          resolution_time_hours: number | null
+        }
+        Relationships: []
+      }
     }
     Functions: {
-      [_ in never]: never
+      get_case_status_by_code: {
+        Args: {
+          target_code: string
+        }
+        Returns: Json
+      }
     }
     Enums: {
       [_ in never]: never
