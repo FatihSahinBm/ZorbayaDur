@@ -7,7 +7,7 @@ import { Loader2, MessageSquare, Send, ShieldCheck } from "lucide-react";
 
 interface Message {
   id: string;
-  sender_role: "student" | "pdr";
+  sender_role: "student" | "pdr" | "teacher";
   content: string;
   is_read: boolean;
   created_at: string;
@@ -15,7 +15,7 @@ interface Message {
 
 interface MessageThreadProps {
   reportId: string;
-  viewerRole: "student" | "pdr";
+  viewerRole: "student" | "pdr" | "teacher";
   sessionToken?: string; // öğrenci için zorunlu
   compact?: boolean;
 }
@@ -111,7 +111,9 @@ export function MessageThread({ reportId, viewerRole, sessionToken, compact = fa
               <span className="text-[10px] text-slate-400 mb-0.5 px-1">
                 {msg.sender_role === "pdr"
                   ? "PDR Uzmanı"
-                  : isStudent ? "Sen" : "Öğrenci (Anonim)"}
+                  : msg.sender_role === "teacher"
+                    ? "Öğretmen"
+                    : isStudent ? "Sen" : "Öğrenci (Anonim)"}
               </span>
               <div className={`px-3 py-2 rounded-2xl max-w-[82%] text-xs leading-relaxed ${
                 isSelf
@@ -122,7 +124,7 @@ export function MessageThread({ reportId, viewerRole, sessionToken, compact = fa
               </div>
               <span className="text-[9px] text-slate-400 mt-0.5 px-1">
                 {new Date(msg.created_at).toLocaleTimeString("tr-TR", { hour: "2-digit", minute: "2-digit" })}
-                {msg.sender_role === "pdr" && !msg.is_read && isStudent && (
+                {(msg.sender_role === "pdr" || msg.sender_role === "teacher") && !msg.is_read && isStudent && (
                   <span className="ml-1 w-1.5 h-1.5 rounded-full bg-blue-500 inline-block" />
                 )}
               </span>

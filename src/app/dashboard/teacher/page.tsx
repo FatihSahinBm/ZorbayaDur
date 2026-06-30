@@ -29,10 +29,10 @@ interface Report {
   status: string;
   assigned_role: string;
   created_at: string;
-  deadline_at?: string;
-  evidence_url?: string;
-  identity_level?: number;
-  encrypted_identity?: string;
+  deadline_at?: string | null;
+  evidence_url?: string | null;
+  identity_level?: number | null;
+  encrypted_identity?: string | null;
   ai_analysis?: {
     urgency?: {
       urgency_score: number;
@@ -98,7 +98,7 @@ function timeAgo(dateStr: string) {
   return `${Math.floor(h / 24)}g önce`;
 }
 
-function calculateTimeLeft(deadlineAt?: string, createdAt?: string) {
+function calculateTimeLeft(deadlineAt?: string | null, createdAt?: string | null) {
   if (!createdAt) return "-";
   let deadline;
   if (deadlineAt) {
@@ -165,7 +165,7 @@ export default function TeacherDashboard() {
       .eq("assigned_role", "teacher")
       .order("created_at", { ascending: false });
     if (error) toast.error("Veriler çekilemedi: " + error.message);
-    else setReports(data || []);
+    else setReports((data as any) || []);
     setIsLoading(false);
   };
 
@@ -179,7 +179,7 @@ export default function TeacherDashboard() {
     if (!supabase) return;
     if (showLoading) setIsMessagesLoading(true);
     const { data, error } = await supabase
-      .from("messages")
+      .from("anonymous_messages")
       .select("*")
       .eq("report_id", reportId)
       .order("created_at", { ascending: true });
@@ -212,9 +212,10 @@ export default function TeacherDashboard() {
     const msgContent = newMessage.trim();
     setNewMessage(""); 
     
-    const { error } = await supabase.from('messages').insert([
+    const { error } = await supabase.from('anonymous_messages').insert([
       {
         report_id: selectedReport.id,
+        session_token: 'teacher-system',
         sender_role: 'teacher',
         content: msgContent
       }

@@ -34,11 +34,11 @@ interface Report {
   status: string;
   assigned_role: string;
   created_at: string;
-  deadline_at?: string;
-  evidence_url?: string;
-  identity_level?: number;
-  encrypted_identity?: string;
-  identity_sharing_approved?: boolean;
+  deadline_at?: string | null;
+  evidence_url?: string | null;
+  identity_level?: number | null;
+  encrypted_identity?: string | null;
+  identity_sharing_approved?: boolean | null;
   ai_analysis?: {
     urgency?: {
       urgency_score: number;
@@ -106,7 +106,7 @@ function timeAgo(dateStr: string) {
   return `${Math.floor(h / 24)}g önce`;
 }
 
-function calculateTimeLeft(deadlineAt?: string, createdAt?: string) {
+function calculateTimeLeft(deadlineAt?: string | null, createdAt?: string | null) {
   if (!createdAt) return "-";
   let deadline;
   if (deadlineAt) {
@@ -159,7 +159,7 @@ export default function PDRDashboard() {
       .eq("assigned_role", "pdr")
       .order("created_at", { ascending: false });
     if (error) toast.error("Veriler çekilemedi: " + error.message);
-    else setReports(data || []);
+    else setReports((data as any) || []);
     setIsLoading(false);
   };
 

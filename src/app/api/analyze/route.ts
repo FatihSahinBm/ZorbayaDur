@@ -3,8 +3,9 @@ import { createClient } from "@supabase/supabase-js";
 import { analyzeUrgency } from "@/lib/ai/urgencyAnalysis";
 import { classifyBullying } from "@/lib/ai/bullyingClassifier";
 import { generateSupportMessage } from "@/lib/ai/supportMessage";
+import { Database } from "@/types/database.types";
 
-const supabaseAdmin = createClient(
+const supabaseAdmin = createClient<Database>(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
   process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
 );
@@ -28,7 +29,7 @@ export async function POST(request: NextRequest) {
       urgency,
       classification,
       analyzed_at: new Date().toISOString(),
-    };
+    } as any;
 
     // Sonuçları Supabase'e yaz
     await supabaseAdmin

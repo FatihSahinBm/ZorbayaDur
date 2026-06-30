@@ -9,7 +9,7 @@ CREATE TABLE IF NOT EXISTS public.anonymous_messages (
   id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
   report_id UUID REFERENCES public.reports(id) ON DELETE CASCADE,
   session_token TEXT NOT NULL, -- öğrencinin anonim tokeni
-  sender_role TEXT CHECK (sender_role IN ('student', 'pdr')),
+  sender_role TEXT CHECK (sender_role IN ('student', 'pdr', 'teacher')),
   content TEXT NOT NULL,
   is_read BOOLEAN DEFAULT false,
   created_at TIMESTAMPTZ DEFAULT now()

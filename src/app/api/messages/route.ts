@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
+import { Database } from "@/types/database.types";
 
-const sb = createClient(
+const sb = createClient<Database>(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
   process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
 );
@@ -17,8 +18,8 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: "reportId gerekli" }, { status: 400 });
   }
 
-  // PDR: token gerekmez, rapor mevcutsa tüm mesajları getir
-  if (role === "pdr") {
+  // PDR veya Öğretmen: token gerekmez, rapor mevcutsa tüm mesajları getir
+  if (role === "pdr" || role === "teacher") {
     const { data, error } = await sb
       .from("anonymous_messages")
       .select("id, sender_role, content, is_read, created_at")
@@ -57,12 +58,12 @@ export async function GET(request: NextRequest) {
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
 
-  // Öğrenciye gelen PDR mesajlarını okundu işaretle
+  // Öğrenciye gelen PDR ve Öğretmen mesajlarını okundu işaretle
   await sb
     .from("anonymous_messages")
     .update({ is_read: true })
     .eq("report_id", reportId)
-    .eq("sender_role", "pdr")
+    .in("sender_role", ["pdr", "teacher"])
     .eq("is_read", false);
 
   return NextResponse.json({ messages: data });
@@ -98,7 +99,7 @@ export async function POST(request: NextRequest) {
   const { data, error } = await sb.from("anonymous_messages").insert([
     {
       report_id: reportId,
-      session_token: token ?? "pdr-system",
+      session_token: token ?? `${role}-system`,
       sender_role: role,
       content,
     },
