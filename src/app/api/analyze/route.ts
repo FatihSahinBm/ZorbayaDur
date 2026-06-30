@@ -18,11 +18,13 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "content ve reportId gerekli" }, { status: 400 });
     }
 
-    // 3 analizi paralel çalıştır
-    const [urgency, classification, supportMsg] = await Promise.all([
-      analyzeUrgency(content, category ?? "Bilinmiyor", location ?? "Bilinmiyor", frequency ?? "Bilinmiyor"),
-      classifyBullying(content),
-      generateSupportMessage(category ?? "Bilinmiyor", content),
+    // 1. Sınıflandırmayı çalıştır (Zorbalık türü ve şiddeti belirlemek için)
+    const classification = await classifyBullying(content);
+
+    // 2. Aciliyet ve destek mesajı analizlerini paralel çalıştır
+    const [urgency, supportMsg] = await Promise.all([
+      analyzeUrgency(content, classification.primary_type, location ?? "Bilinmiyor", frequency ?? "Bilinmiyor"),
+      generateSupportMessage(classification.primary_type, classification.severity, content),
     ]);
 
     const aiAnalysis = {

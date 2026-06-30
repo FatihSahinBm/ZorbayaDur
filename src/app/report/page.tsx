@@ -8,7 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { Shield, ShieldAlert, ShieldCheck, Send, EyeOff, Info, CheckCircle2, Loader2, ArrowLeft, ArrowRight, Paperclip, User, GraduationCap, Check, X, FileText, CheckCircle, AlertTriangle } from "lucide-react";
+import { Shield, ShieldAlert, ShieldCheck, Send, EyeOff, Info, CheckCircle2, Loader2, ArrowLeft, ArrowRight, Paperclip, User, GraduationCap, Check, X, FileText, CheckCircle, AlertTriangle, MessageSquare } from "lucide-react";
 import Link from "next/link";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { toast } from "sonner";
@@ -598,11 +598,33 @@ export default function StudentReportPage() {
 
                 {/* YZ Destek Mesajı */}
                 <div className="p-4 bg-gradient-to-br from-rose-50 to-pink-50 dark:from-rose-950/20 dark:to-pink-950/20 border border-rose-100 dark:border-rose-800/40 rounded-xl text-left shadow-sm">
-                  <span className="text-[10px] font-bold text-rose-500 dark:text-rose-400 uppercase tracking-wider block mb-1">🤖 YZ Psikolojik Destek Asistanı</span>
+                  <span className="text-[10px] font-bold text-rose-500 dark:text-rose-455 uppercase tracking-wider block mb-1">🤖 YZ Psikolojik Destek Asistanı</span>
                   {supportMessage ? (
-                    <p className="text-xs text-slate-700 dark:text-slate-300 leading-relaxed italic">
-                      &ldquo;{supportMessage}&rdquo;
-                    </p>
+                    <div className="space-y-3">
+                      <p className="text-xs text-slate-700 dark:text-slate-300 leading-relaxed italic">
+                        &ldquo;{supportMessage}&rdquo;
+                      </p>
+                      
+                      {/* Safety Disclaimer */}
+                      <p className="text-[10px] font-semibold text-amber-600 dark:text-amber-450 border-t border-rose-100 dark:border-rose-900/45 pt-2 leading-relaxed">
+                        ⚠️ Bu mesaj ilk duygusal destek amaçlıdır, profesyonel psikolojik danışmanlık yerine geçmez.
+                      </p>
+
+                      {/* Call-to-action Button */}
+                      <div className="pt-1">
+                        <Button 
+                          onClick={() => {
+                            if (typeof window !== 'undefined') {
+                              localStorage.setItem('student_id', localStorage.getItem('student_id') || '1234');
+                            }
+                            router.push('/dashboard/student');
+                          }}
+                          className="w-full bg-rose-600 hover:bg-rose-700 text-white font-semibold text-xs py-2 rounded-lg flex items-center justify-center gap-1.5 shadow-sm"
+                        >
+                          <MessageSquare className="w-3.5 h-3.5" /> PDR ile Görüşme Talep Et (Mesajlaşma Paneli)
+                        </Button>
+                      </div>
+                    </div>
                   ) : (
                     <div className="flex items-center gap-2 text-xs text-slate-500 dark:text-slate-400">
                       <Loader2 className="h-3.5 w-3.5 animate-spin" />

@@ -41,6 +41,53 @@ export type Database = {
           }
         ]
       }
+      support_message_templates: {
+        Row: {
+          id: string
+          bullying_type: string
+          severity: string
+          template_text: string
+          status: string | null
+          approved_by: string | null
+          approved_at: string | null
+          version: number | null
+          created_at: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          id?: string
+          bullying_type: string
+          severity: string
+          template_text: string
+          status?: string | null
+          approved_by?: string | null
+          approved_at?: string | null
+          version?: number | null
+          created_at?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          id?: string
+          bullying_type?: string
+          severity?: string
+          template_text?: string
+          status?: string | null
+          approved_by?: string | null
+          approved_at?: string | null
+          version?: number | null
+          created_at?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "support_message_templates_approved_by_fkey"
+            columns: ["approved_by"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          }
+        ]
+      }
       reports: {
         Row: {
           id: string

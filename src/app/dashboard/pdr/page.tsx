@@ -7,7 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import {
   Shield, AlertTriangle, Activity, LogOut, Loader2, MessageSquare,
   Paperclip, Download, Brain, TrendingUp, Zap, MapPin, RefreshCw,
-  Search, Filter, Clock, CheckCircle2, XCircle, ChevronDown, Send
+  Search, Filter, Clock, CheckCircle2, XCircle, ChevronDown, Send, FileText
 } from "lucide-react";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import Link from "next/link";
@@ -152,6 +152,126 @@ export default function PDRDashboard() {
   const [patternResult, setPatternResult] = useState<any>(null);
   const [isPatternLoading, setIsPatternLoading] = useState(false);
 
+  // Template CRUD states
+  const [showTemplatesModal, setShowTemplatesModal] = useState(false);
+  const [templates, setTemplates] = useState<any[]>([]);
+  const [isTemplatesLoading, setIsTemplatesLoading] = useState(false);
+  const [selectedTemplate, setSelectedTemplate] = useState<any | null>(null);
+  const [isEditingTemplate, setIsEditingTemplate] = useState(false);
+  const [formBullyingType, setFormBullyingType] = useState("Fiziksel Zorbalık");
+  const [formSeverity, setFormSeverity] = useState("Hafif");
+  const [formText, setFormText] = useState("");
+  const [formStatus, setFormStatus] = useState<"taslak" | "onaylı">("taslak");
+
+  const fetchTemplates = async () => {
+    if (!supabase) return;
+    setIsTemplatesLoading(true);
+    try {
+      const { data, error } = await supabase
+        .from("support_message_templates")
+        .select("*")
+        .order("created_at", { ascending: false });
+      if (error) throw error;
+      setTemplates(data || []);
+    } catch (e: any) {
+      toast.error("Şablonlar yüklenemedi: " + e.message);
+    } finally {
+      setIsTemplatesLoading(false);
+    }
+  };
+
+  const handleSaveTemplate = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!supabase) return;
+    if (!formText.trim()) {
+      toast.error("Şablon metni boş olamaz!");
+      return;
+    }
+
+    try {
+      const userRes = await supabase.auth.getUser();
+      const userId = userRes.data.user?.id || null;
+
+      const payload: any = {
+        bullying_type: formBullyingType,
+        severity: formSeverity,
+        template_text: formText.trim(),
+        status: formStatus,
+        version: selectedTemplate ? (selectedTemplate.version || 1) + 1 : 1,
+        updated_at: new Date().toISOString()
+      };
+
+      if (formStatus === "onaylı") {
+        payload.approved_by = userId;
+        payload.approved_at = new Date().toISOString();
+      } else {
+        payload.approved_by = null;
+        payload.approved_at = null;
+      }
+
+      if (selectedTemplate) {
+        const { error } = await supabase
+          .from("support_message_templates")
+          .update(payload)
+          .eq("id", selectedTemplate.id);
+        if (error) throw error;
+        toast.success("Şablon başarıyla güncellendi.");
+      } else {
+        const { error } = await supabase
+          .from("support_message_templates")
+          .insert([payload]);
+        if (error) throw error;
+        toast.success("Yeni şablon başarıyla oluşturuldu.");
+      }
+
+      setIsEditingTemplate(false);
+      setSelectedTemplate(null);
+      fetchTemplates();
+    } catch (e: any) {
+      toast.error("İşlem başarısız: " + e.message);
+    }
+  };
+
+  const handleApproveTemplate = async (template: any) => {
+    if (!supabase) return;
+    try {
+      const userRes = await supabase.auth.getUser();
+      const userId = userRes.data.user?.id || null;
+
+      const { error } = await supabase
+        .from("support_message_templates")
+        .update({
+          status: "onaylı",
+          approved_by: userId,
+          approved_at: new Date().toISOString(),
+          updated_at: new Date().toISOString()
+        })
+        .eq("id", template.id);
+
+      if (error) throw error;
+      toast.success("Şablon başarıyla onaylandı ve canlı sisteme alındı.");
+      fetchTemplates();
+    } catch (e: any) {
+      toast.error("Onaylama başarısız: " + e.message);
+    }
+  };
+
+  const handleDeleteTemplate = async (id: string) => {
+    if (!supabase) return;
+    if (!confirm("Bu şablonu silmek istediğinize emin misiniz?")) return;
+    try {
+      const { error } = await supabase
+        .from("support_message_templates")
+        .delete()
+        .eq("id", id);
+      if (error) throw error;
+      toast.success("Şablon silindi.");
+      fetchTemplates();
+    } catch (e: any) {
+      toast.error("Silme işlemi başarısız: " + e.message);
+    }
+  };
+
   const fetchReports = async () => {
     if (!supabase) return;
     const { data, error } = await supabase
@@ -290,6 +410,14 @@ export default function PDRDashboard() {
             className="border-blue-500/30 bg-blue-500/5 text-blue-600 dark:text-blue-400 hover:bg-blue-500/10 hidden sm:flex items-center gap-1.5"
             onClick={handlePatternAnalysis}>
             <Brain className="h-3.5 w-3.5" /> Örüntü Analizi
+          </Button>
+          <Button size="sm" variant="outline"
+            className="border-amber-500/30 bg-amber-500/5 text-amber-600 dark:text-amber-450 hover:bg-amber-500/10 hidden sm:flex items-center gap-1.5"
+            onClick={() => {
+              setShowTemplatesModal(true);
+              fetchTemplates();
+            }}>
+            <FileText className="h-3.5 w-3.5" /> Şablon Yönetimi
           </Button>
           <ThemeToggle />
           <Link href="/login">
@@ -786,6 +914,160 @@ export default function PDRDashboard() {
             </div>
           ) : (
             <p className="text-sm text-slate-500 py-4 text-center">Sonuç alınamadı.</p>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      {/* ── TEMPLATES MODAL ── */}
+      <Dialog open={showTemplatesModal} onOpenChange={setShowTemplatesModal}>
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 text-slate-900 dark:text-white">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <FileText className="h-5 w-5 text-amber-500" /> Psikolojik Destek Şablon Yönetimi
+            </DialogTitle>
+            <DialogDescription className="text-xs text-slate-500 dark:text-slate-400">
+              Canlı sistemde kullanılacak olan PDR-onaylı destek mesajı şablonlarını yönetin. Şablonlar onaylı duruma getirilmeden canlı sistemde kullanılmaz.
+            </DialogDescription>
+          </DialogHeader>
+
+          {isEditingTemplate ? (
+            <form onSubmit={handleSaveTemplate} className="space-y-4 pt-2 border-t border-slate-100 dark:border-slate-800">
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <label className="text-xs font-bold text-slate-500">Zorbalık Türü</label>
+                  <Select value={formBullyingType} onValueChange={(val) => val && setFormBullyingType(val)}>
+                    <SelectTrigger className="h-10 bg-slate-50 dark:bg-slate-950 border-slate-200 dark:border-slate-800">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="Fiziksel Zorbalık">Fiziksel Zorbalık</SelectItem>
+                      <SelectItem value="Sözel Zorbalık">Sözel Zorbalık</SelectItem>
+                      <SelectItem value="Siber Zorbalık">Siber Zorbalık</SelectItem>
+                      <SelectItem value="Sosyal Zorbalık">Sosyal Zorbalık</SelectItem>
+                      <SelectItem value="Diğer">Diğer</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-2">
+                  <label className="text-xs font-bold text-slate-500">Şiddet Seviyesi</label>
+                  <Select value={formSeverity} onValueChange={(val) => val && setFormSeverity(val)}>
+                    <SelectTrigger className="h-10 bg-slate-50 dark:bg-slate-950 border-slate-200 dark:border-slate-800">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="Hafif">Hafif</SelectItem>
+                      <SelectItem value="Orta">Orta</SelectItem>
+                      <SelectItem value="Ağır">Ağır</SelectItem>
+                      <SelectItem value="Çok Ağır">Çok Ağır</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <div className="flex justify-between items-center">
+                  <label className="text-xs font-bold text-slate-500">Şablon Metni</label>
+                  <span className="text-[10px] text-slate-400">Şiddet ve kategoriye özel empati ve destek ifadesini yazın.</span>
+                </div>
+                <Textarea
+                  value={formText}
+                  onChange={(e) => setFormText(e.target.value)}
+                  placeholder="Yaşadığın bu durumu paylaştığın için teşekkürler..."
+                  className="h-32 bg-slate-50 dark:bg-slate-950 border-slate-200 dark:border-slate-800 text-xs"
+                />
+              </div>
+
+              <div className="flex items-center gap-4 pt-2 border-t border-slate-100 dark:border-slate-800">
+                <div className="flex items-center gap-2">
+                  <input
+                    type="checkbox"
+                    id="approve-template-chk"
+                    checked={formStatus === "onaylı"}
+                    onChange={(e) => setFormStatus(e.target.checked ? "onaylı" : "taslak")}
+                    className="w-4 h-4 rounded border-slate-350"
+                  />
+                  <label htmlFor="approve-template-chk" className="text-xs font-semibold text-slate-700 dark:text-slate-300 select-none cursor-pointer">
+                    Şablonu Canlı Sistem İçin Şimdi Onayla
+                  </label>
+                </div>
+                <div className="ml-auto flex gap-2">
+                  <Button type="button" variant="outline" size="sm" onClick={() => {
+                    setIsEditingTemplate(false);
+                    setSelectedTemplate(null);
+                  }}>
+                    İptal
+                  </Button>
+                  <Button type="submit" size="sm" className="bg-blue-600 hover:bg-blue-700 text-white font-medium">
+                    Kaydet
+                  </Button>
+                </div>
+              </div>
+            </form>
+          ) : (
+            <div className="space-y-4 pt-2 border-t border-slate-100 dark:border-slate-800">
+              <div className="flex justify-between items-center">
+                <span className="text-xs text-slate-500 dark:text-slate-400">Canlı Sistem Şablon Sayısı: {templates.length}</span>
+                <Button size="sm" className="bg-amber-500 hover:bg-amber-600 text-white" onClick={() => {
+                  setSelectedTemplate(null);
+                  setFormBullyingType("Fiziksel Zorbalık");
+                  setFormSeverity("Hafif");
+                  setFormText("");
+                  setFormStatus("taslak");
+                  setIsEditingTemplate(true);
+                }}>
+                  Yeni Şablon Ekle
+                </Button>
+              </div>
+
+              {isTemplatesLoading ? (
+                <div className="flex justify-center py-8"><Loader2 className="w-6 h-6 animate-spin text-slate-400" /></div>
+              ) : templates.length === 0 ? (
+                <p className="text-sm text-slate-500 text-center py-8">Kayıtlı şablon bulunamadı.</p>
+              ) : (
+                <div className="space-y-3">
+                  {templates.map((tpl) => (
+                    <div key={tpl.id} className="border border-slate-200 dark:border-slate-800 rounded-xl p-4 bg-slate-50/50 dark:bg-slate-950/20 space-y-3">
+                      <div className="flex justify-between items-center flex-wrap gap-2">
+                        <div className="flex gap-2">
+                          <Badge className="bg-indigo-500/10 text-indigo-700 dark:text-indigo-300 border-indigo-500/20 text-xs">
+                            {tpl.bullying_type}
+                          </Badge>
+                          <Badge className="bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border text-xs">
+                            Şiddet: {tpl.severity}
+                          </Badge>
+                          <Badge className={tpl.status === "onaylı" ? "bg-green-500/10 text-green-600 border-green-500/20 text-xs" : "bg-yellow-500/10 text-yellow-600 border-yellow-500/20 text-xs"}>
+                            {tpl.status === "onaylı" ? "Onaylı" : "Taslak"}
+                          </Badge>
+                        </div>
+                        <div className="flex gap-1.5">
+                          {tpl.status === "taslak" && (
+                            <Button size="sm" variant="outline" className="text-green-600 border-green-200 hover:bg-green-50 h-7 px-2" onClick={() => handleApproveTemplate(tpl)}>
+                              Onayla
+                            </Button>
+                          )}
+                          <Button size="sm" variant="outline" className="h-7 text-xs px-2" onClick={() => {
+                            setSelectedTemplate(tpl);
+                            setFormBullyingType(tpl.bullying_type);
+                            setFormSeverity(tpl.severity);
+                            setFormText(tpl.template_text);
+                            setFormStatus(tpl.status);
+                            setIsEditingTemplate(true);
+                          }}>
+                            Düzenle
+                          </Button>
+                          <Button size="sm" variant="outline" className="text-red-500 border-red-200 hover:bg-red-50 h-7 text-xs px-2" onClick={() => handleDeleteTemplate(tpl.id)}>
+                            Sil
+                          </Button>
+                        </div>
+                      </div>
+                      <p className="text-xs text-slate-700 dark:text-slate-300 leading-normal italic bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-850 p-2.5 rounded-lg">
+                        &ldquo;{tpl.template_text}&rdquo;
+                      </p>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
           )}
         </DialogContent>
       </Dialog>
