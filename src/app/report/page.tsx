@@ -386,6 +386,8 @@ export default function StudentReportPage() {
                         <SelectItem value="Sınıf">Sınıf</SelectItem>
                         <SelectItem value="Koridor">Koridor</SelectItem>
                         <SelectItem value="Online">Online / İnternet</SelectItem>
+                        <SelectItem value="Okul Bahçesi">Okul Bahçesi</SelectItem>
+                        <SelectItem value="Kantin">Kantin</SelectItem>
                         <SelectItem value="Okul Dışı">Okul Dışı / Dışarıda</SelectItem>
                       </SelectContent>
                     </Select>

@@ -35,6 +35,7 @@ interface Report {
   risk_level: string;
   status: string;
   assigned_role: string;
+  location?: string | null;
   created_at: string;
   deadline_at?: string | null;
   evidence_url?: string | null;
@@ -424,7 +425,7 @@ export default function PDRDashboard() {
   const locationData = useMemo(() => {
     const counts: Record<string, number> = {};
     reports.forEach(r => {
-      const loc = r.ai_analysis?.classification?.location_type ?? "Bilinmiyor";
+      const loc = r.location ?? "Bilinmiyor";
       counts[loc] = (counts[loc] || 0) + 1;
     });
     return Object.entries(counts).sort((a, b) => b[1] - a[1]).slice(0, 6);
@@ -432,6 +433,7 @@ export default function PDRDashboard() {
 
   const LOCATION_EMOJIS: Record<string, string> = {
     Sınıf: "📚", Koridor: "🚪", Teneffüs: "⛹️", "Okul Dışı": "🏙️",
+    "Okul Bahçesi": "🌳", Kantin: "🍔",
     Online: "💻", Karma: "🔀", Bilinmiyor: "❓"
   };
 
