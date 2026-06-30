@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { sanitizeForLLM } from "../../lib/ai/sanitizer";
+import { sanitizeForLLM, restorePII } from "../../lib/ai/sanitizer";
 import { classifyBullying } from "../../lib/ai/bullyingClassifier";
 import * as fs from "fs";
 import * as path from "path";
@@ -48,6 +48,16 @@ describe("PII Sanitizer & AI Consistency tests", () => {
       const matches = sanitizedText.match(/\[İSİM_1\]/g);
       expect(matches).toHaveLength(2);
       expect(Object.keys(redactionMap)).toHaveLength(1);
+    });
+
+    it("should restore original names and classes from placeholders", () => {
+      const original = "8-A sınıfından Kaan Demir kütüphane arkasında bana vurdu.";
+      const aiOutput = "[SINIF_1] sınıfından olan [İSİM_1] mağdura karşı fiziksel zorbalık uygulamaktadır.";
+      
+      const restored = restorePII(aiOutput, original);
+      expect(restored).toContain("8-A sınıfından olan Kaan Demir mağdura karşı fiziksel zorbalık uygulamaktadır.");
+      expect(restored).not.toContain("[SINIF_1]");
+      expect(restored).not.toContain("[İSİM_1]");
     });
   });
 

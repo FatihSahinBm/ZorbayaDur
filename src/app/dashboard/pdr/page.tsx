@@ -20,6 +20,7 @@ import { ThemeToggle } from "@/components/theme-toggle";
 import { DecryptedIdentityView } from "@/components/DecryptedIdentityView";
 import { MessageThread } from "@/components/MessageThread";
 import { PasswordPolicyGuard } from "@/components/PasswordPolicyGuard";
+import { restorePII } from "@/lib/ai/sanitizer";
 import {
   LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
   PieChart, Pie, Cell, Legend
@@ -162,6 +163,7 @@ export default function PDRDashboard() {
   const [formSeverity, setFormSeverity] = useState("Hafif");
   const [formText, setFormText] = useState("");
   const [formStatus, setFormStatus] = useState<"taslak" | "onaylı">("taslak");
+  const [isReanalyzing, setIsReanalyzing] = useState(false);
 
   const fetchTemplates = async () => {
     if (!supabase) return;
@@ -282,6 +284,47 @@ export default function PDRDashboard() {
     if (error) toast.error("Veriler çekilemedi: " + error.message);
     else setReports((data as any) || []);
     setIsLoading(false);
+  };
+
+  const handleReanalyze = async (report: Report) => {
+    if (!supabase) return;
+    setIsReanalyzing(true);
+    try {
+      const response = await fetch("/api/analyze", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          content: report.content,
+          category: report.category,
+          reportId: report.id,
+          location: "Okul",
+          frequency: "Belirtilmemiş"
+        })
+      });
+
+      if (!response.ok) {
+        throw new Error("Yeniden analiz API çağrısı başarısız oldu.");
+      }
+
+      const result = await response.json();
+      toast.success("Yeniden analiz başarıyla tamamlandı!");
+      
+      // Update selectedReport state
+      const { data: updatedReport } = await supabase
+        .from("reports")
+        .select("*")
+        .eq("id", report.id)
+        .single();
+      
+      if (updatedReport) {
+        setSelectedReport(updatedReport as any);
+      }
+      fetchReports();
+    } catch (e: any) {
+      toast.error("Yeniden analiz hatası: " + e.message);
+    } finally {
+      setIsReanalyzing(false);
+    }
   };
 
   useEffect(() => {
@@ -743,11 +786,18 @@ export default function PDRDashboard() {
                   <div className="space-y-3">
                     {/* Urgency Score */}
                     <div className="rounded-xl border border-blue-500/20 bg-blue-50 dark:bg-blue-950/30 p-4 space-y-3">
-                      <div className="flex items-center gap-2 font-semibold text-sm text-blue-700 dark:text-blue-300">
+                      <div className="flex items-center gap-2 font-semibold text-sm text-blue-700 dark:text-blue-300 w-full">
                         <Brain className="h-4 w-4" /> YZ Analizi
-                        <span className="ml-auto text-xs text-slate-500 font-normal">
-                          {selectedReport.ai_analysis.analyzed_at ? new Date(selectedReport.ai_analysis.analyzed_at).toLocaleString("tr-TR") : ""}
-                        </span>
+                        <Button 
+                          size="xs" 
+                          variant="outline" 
+                          className="ml-auto text-blue-600 border-blue-200 hover:bg-blue-50 dark:hover:bg-blue-900/30 text-[10px] h-6 flex items-center gap-1"
+                          disabled={isReanalyzing}
+                          onClick={() => handleReanalyze(selectedReport)}
+                        >
+                          {isReanalyzing ? <Loader2 className="h-3 w-3 animate-spin" /> : <RefreshCw className="h-3 w-3" />}
+                          Yeniden Analiz Et
+                        </Button>
                       </div>
 
                       <div className="space-y-1">
@@ -782,14 +832,14 @@ export default function PDRDashboard() {
                       {selectedReport.ai_analysis.urgency?.recommended_action && (
                         <div className="bg-white/60 dark:bg-slate-900/60 rounded-lg p-3 text-xs text-slate-700 dark:text-slate-300">
                           <p className="font-semibold text-blue-700 dark:text-blue-300 mb-1">🎯 Önerilen Aksiyon</p>
-                          <p>{selectedReport.ai_analysis.urgency.recommended_action}</p>
+                          <p>{restorePII(selectedReport.ai_analysis.urgency.recommended_action, selectedReport.content)}</p>
                         </div>
                       )}
 
                       {selectedReport.ai_analysis.urgency?.emotional_state && (
                         <div className="text-xs text-slate-600 dark:text-slate-400">
                           <span className="font-medium">Duygusal Durum: </span>
-                          {selectedReport.ai_analysis.urgency.emotional_state}
+                          {restorePII(selectedReport.ai_analysis.urgency.emotional_state, selectedReport.content)}
                         </div>
                       )}
 
@@ -803,14 +853,14 @@ export default function PDRDashboard() {
                       {(selectedReport.ai_analysis?.urgency?.risk_factors?.length ?? 0) > 0 && (
                         <div className="text-xs">
                           <span className="font-medium text-slate-600 dark:text-slate-400">Risk Faktörleri: </span>
-                          {selectedReport.ai_analysis?.urgency?.risk_factors?.join(" · ")}
+                          {selectedReport.ai_analysis.urgency?.risk_factors?.map((f: string) => restorePII(f, selectedReport.content)).join(" · ")}
                         </div>
                       )}
 
                       {(selectedReport.ai_analysis?.urgency?.keywords_detected?.length ?? 0) > 0 && (
                         <div className="text-xs text-slate-500">
                           <span className="font-medium">Tespit Edilen: </span>
-                          {selectedReport.ai_analysis?.urgency?.keywords_detected?.join(", ")}
+                          {selectedReport.ai_analysis.urgency?.keywords_detected?.map((k: string) => restorePII(k, selectedReport.content)).join(", ")}
                         </div>
                       )}
                     </div>
@@ -827,10 +877,19 @@ export default function PDRDashboard() {
                     </div>
                   </div>
                 ) : (
-                  <div className="rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/50 p-6 flex flex-col items-center gap-3 text-sm text-slate-500">
+                  <div className="rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/50 p-6 flex flex-col items-center gap-3 text-sm text-slate-500 text-center">
                     <Brain className="h-8 w-8 animate-pulse text-blue-400" />
                     <p>YZ analizi henüz tamamlanmadı.</p>
-                    <p className="text-xs text-slate-400">Yeni raporlar otomatik analiz edilir. Eski raporlar için analiz mevcut değil.</p>
+                    <p className="text-xs text-slate-400">Yeni raporlar otomatik analiz edilir. Eski veya yarıda kalmış raporlar için analizi başlatabilirsiniz.</p>
+                    <Button 
+                      size="sm" 
+                      className="bg-blue-600 hover:bg-blue-700 text-white mt-2 flex items-center gap-1.5"
+                      disabled={isReanalyzing}
+                      onClick={() => handleReanalyze(selectedReport)}
+                    >
+                      {isReanalyzing ? <Loader2 className="h-4 w-4 animate-spin" /> : <Brain className="h-4 w-4" />}
+                      YZ Analizi Başlat
+                    </Button>
                   </div>
                 )
               )}

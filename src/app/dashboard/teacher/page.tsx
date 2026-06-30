@@ -19,6 +19,7 @@ import { toast } from "sonner";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { DecryptedIdentityView } from "@/components/DecryptedIdentityView";
 import { PasswordPolicyGuard } from "@/components/PasswordPolicyGuard";
+import { restorePII } from "@/lib/ai/sanitizer";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 interface Report {
@@ -594,14 +595,14 @@ export default function TeacherDashboard() {
                       {selectedReport.ai_analysis.urgency?.recommended_action && (
                         <div className="bg-white/60 dark:bg-slate-900/60 rounded-lg p-3 text-xs text-slate-700 dark:text-slate-300">
                           <p className="font-semibold text-purple-700 dark:text-purple-300 mb-1">🎯 Önerilen Aksiyon</p>
-                          <p>{selectedReport.ai_analysis.urgency.recommended_action}</p>
+                          <p>{restorePII(selectedReport.ai_analysis.urgency.recommended_action, selectedReport.content)}</p>
                         </div>
                       )}
 
                       {selectedReport.ai_analysis.urgency?.emotional_state && (
                         <div className="text-xs text-slate-600 dark:text-slate-400">
                           <span className="font-medium">Duygusal Durum: </span>
-                          {selectedReport.ai_analysis.urgency.emotional_state}
+                          {restorePII(selectedReport.ai_analysis.urgency.emotional_state, selectedReport.content)}
                         </div>
                       )}
 
@@ -615,14 +616,14 @@ export default function TeacherDashboard() {
                       {(selectedReport.ai_analysis?.urgency?.risk_factors?.length ?? 0) > 0 && (
                         <div className="text-xs">
                           <span className="font-medium text-slate-600 dark:text-slate-400">Risk Faktörleri: </span>
-                          {selectedReport.ai_analysis?.urgency?.risk_factors?.join(" · ")}
+                          {selectedReport.ai_analysis.urgency?.risk_factors?.map((f: string) => restorePII(f, selectedReport.content)).join(" · ")}
                         </div>
                       )}
 
                       {(selectedReport.ai_analysis?.urgency?.keywords_detected?.length ?? 0) > 0 && (
                         <div className="text-xs text-slate-500">
                           <span className="font-medium">Tespit Edilen: </span>
-                          {selectedReport.ai_analysis?.urgency?.keywords_detected?.join(", ")}
+                          {selectedReport.ai_analysis.urgency?.keywords_detected?.map((k: string) => restorePII(k, selectedReport.content)).join(", ")}
                         </div>
                       )}
                     </div>

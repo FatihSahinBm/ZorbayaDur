@@ -99,3 +99,16 @@ export function sanitizeForLLM(rawText: string): SanitizedOutput {
     redactionMap
   };
 }
+
+export function restorePII(sanitizedText: string, originalContent: string): string {
+  if (!sanitizedText || !originalContent) return sanitizedText;
+
+  const { redactionMap } = sanitizeForLLM(originalContent);
+  let restored = sanitizedText;
+
+  Object.entries(redactionMap).forEach(([placeholder, original]) => {
+    restored = restored.split(placeholder).join(original);
+  });
+
+  return restored;
+}
