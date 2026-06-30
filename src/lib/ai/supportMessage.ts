@@ -98,6 +98,15 @@ export function getFallbackMessage(bullyingType: string, severity: string = "Ort
   return categoryTemplates[sevKey] || categoryTemplates["Orta"];
 }
 
+function getDatabaseBullyingType(aiType: string): string {
+  const type = (aiType || "").toLowerCase();
+  if (type.includes("fiziksel")) return "Fiziksel Zorbalık";
+  if (type.includes("sözel") || type.includes("sözlü")) return "Sözel Zorbalık";
+  if (type.includes("siber")) return "Siber Zorbalık";
+  if (type.includes("sosyal") || type.includes("ilişkisel")) return "Sosyal Zorbalık";
+  return "Diğer";
+}
+
 export async function generateSupportMessage(
   bullyingType: string,
   severity: string,
@@ -106,11 +115,13 @@ export async function generateSupportMessage(
   let templateText = "";
   
   try {
+    const dbBullyingType = getDatabaseBullyingType(bullyingType);
+    
     // 1. Fetch approved templates from database
     const { data: templates, error } = await sbAdmin
       .from("support_message_templates")
       .select("template_text")
-      .eq("bullying_type", bullyingType)
+      .eq("bullying_type", dbBullyingType)
       .eq("severity", severity)
       .eq("status", "onaylı");
 
@@ -126,7 +137,7 @@ export async function generateSupportMessage(
       if (backupTemplates && backupTemplates.length > 0) {
         templateText = backupTemplates[0].template_text;
       } else {
-        templateText = getFallbackMessage(bullyingType, severity);
+        templateText = getFallbackMessage(dbBullyingType, severity);
       }
     } else {
       templateText = templates[0].template_text;

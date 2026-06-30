@@ -13,19 +13,28 @@ export interface ClassificationResult {
 }
 
 const CLASSIFICATION_PROMPT = `
-Aşağıdaki bildirimi analiz et. SADECE JSON döndür, başka hiçbir şey yazma.
+Aşağıdaki akran zorbalığı bildirimini analiz et ve uygun kategoriye sınıflandır. SADECE geçerli bir JSON objesi döndür, başka hiçbir açıklama veya metin ekleme.
 
 METİN: {REPORT_TEXT}
 
+Kategoriler ve Kurallar:
+- "Fiziksel": Vurma, itme, tekme atma, dövme, haraç kesme (zorla para veya eşya alma), tuvalette/köşede sıkıştırma, fiziksel zarar veya aletle/silahla yaralama/tehdit gibi fiziksel temas veya doğrudan fiziksel tehdit içeren vakalar.
+- "Sözlü": Lakap takma, alay etme, hakaret, küfür, rencide edici sözler söyleme gibi sözlü tacizler (Fiziksel temas ve dijital ortamda yapılmamış olması gerekir).
+- "Sosyal/İlişkisel": Gruptan dışlama, yalnız bırakma, arkadan dedikodu yayma, görmezden gelme, organize akran baskısı kurma gibi ilişkisel zararlar (Dijital ortamda yapılmamış olması gerekir).
+- "Siber": Dijital ortamda (WhatsApp, Instagram, TikTok, Discord, oyun sohbetleri, SMS vb.) gerçekleşen her türlü zorbalık. İnternette dedikodu yapılması veya gruptan atılma gibi ilişkisel durumlar da dahil olmak üzere, eğer olay dijital bir platformda geçiyorsa birincil tür MUTLAKA "Siber" olmalıdır.
+- "Cinsel": Cinsel içerikli hakaret, taciz edici cinsel sözler söyleme, cinsel şantaj veya cinsel amaçlı istenmeyen davranışlar.
+- "Karma": Yukarıdaki zorbalık türlerinden birden fazlasının (örneğin hem siber grupta başlayıp hem okulda fiziksel darba dönüşen durumlar gibi) eşit derecede ağırlıklı olarak yaşanması.
+
+SADECE aşağıdaki JSON şemasına uygun yanıt ver:
 {
-  "primary_type": "Fiziksel" veya "Sözlü" veya "Sosyal/İlişkisel" veya "Siber" veya "Cinsel" veya "Karma",
-  "secondary_types": [],
-  "severity": "Hafif" veya "Orta" veya "Ağır" veya "Çok Ağır",
-  "is_recurring": true veya false,
-  "involves_group": true veya false,
-  "platform_if_cyber": null veya "WhatsApp" veya "Instagram" veya "TikTok" veya "Oyun" veya "Diğer",
-  "location_type": "Sınıf" veya "Koridor" veya "Teneffüs" veya "Okul Dışı" veya "Online" veya "Karma",
-  "confidence_score": 0-100 arası tam sayı
+  "primary_type": "Fiziksel" | "Sözlü" | "Sosyal/İlişkisel" | "Siber" | "Cinsel" | "Karma",
+  "secondary_types": ("Fiziksel" | "Sözlü" | "Sosyal/İlişkisel" | "Siber" | "Cinsel" | "Karma")[],
+  "severity": "Hafif" | "Orta" | "Ağır" | "Çok Ağır",
+  "is_recurring": true | false,
+  "involves_group": true | false,
+  "platform_if_cyber": null | "WhatsApp" | "Instagram" | "TikTok" | "Oyun" | "Diğer",
+  "location_type": "Sınıf" | "Koridor" | "Teneffüs" | "Okul Dışı" | "Online" | "Karma",
+  "confidence_score": 0-100 arası sayı
 }
 `;
 
@@ -45,7 +54,38 @@ export async function classifyBullying(reportText: string): Promise<Classificati
     const { sanitizedText } = sanitizeForLLM(reportText);
     const prompt = CLASSIFICATION_PROMPT.replace("{REPORT_TEXT}", sanitizedText);
     const raw = await callGroq(prompt, { jsonMode: true });
-    return safeParseJSON<ClassificationResult>(raw, FALLBACK);
+    const parsed = safeParseJSON<ClassificationResult>(raw, FALLBACK);
+    
+    // Post-processing: normalize primary type values
+    let primary = parsed.primary_type as string;
+    
+    // Enforce "Siber" if digital indicators are present
+    if (parsed.platform_if_cyber || parsed.location_type === "Online") {
+      primary = "Siber";
+    }
+    
+    // Normalize spelling/variations of verbal bullying
+    if (primary === "Sözel") {
+      primary = "Sözlü";
+    }
+    
+    parsed.primary_type = primary as ClassificationResult["primary_type"];
+    
+    // Clean up secondary_types to ensure only valid categories
+    const validCategories = ["Fiziksel", "Sözlü", "Sosyal/İlişkisel", "Siber", "Cinsel", "Karma"];
+    if (parsed.secondary_types && Array.isArray(parsed.secondary_types)) {
+      parsed.secondary_types = parsed.secondary_types
+        .map(t => {
+          let s = String(t).trim();
+          if (s === "Sözel") return "Sözlü";
+          return s;
+        })
+        .filter(t => validCategories.includes(t));
+    } else {
+      parsed.secondary_types = [];
+    }
+
+    return parsed;
   } catch (err) {
     console.error("classifyBullying failed, using fallback:", err);
     return FALLBACK;
