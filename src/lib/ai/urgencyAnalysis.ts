@@ -1,4 +1,5 @@
 import { callGroq, safeParseJSON } from "./groqClient";
+import { sanitizeForLLM } from "./sanitizer";
 
 export interface UrgencyResult {
   urgency_score: number;
@@ -63,10 +64,12 @@ export async function analyzeUrgency(
   frequency: string = "Bilinmiyor"
 ): Promise<UrgencyResult> {
   try {
+    const { sanitizedText: sanitizedReportText } = sanitizeForLLM(reportText);
+    const { sanitizedText: sanitizedLocation } = sanitizeForLLM(location);
     const prompt = URGENCY_PROMPT
-      .replace("{REPORT_TEXT}", reportText)
+      .replace("{REPORT_TEXT}", sanitizedReportText)
       .replace("{BULLYING_TYPE}", bullyingType)
-      .replace("{LOCATION}", location)
+      .replace("{LOCATION}", sanitizedLocation)
       .replace("{FREQUENCY}", frequency);
 
     const raw = await callGroq(prompt, { jsonMode: true });

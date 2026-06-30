@@ -1,4 +1,5 @@
 import { callGroq } from "./groqClient";
+import { sanitizeForLLM } from "./sanitizer";
 
 const SUPPORT_PROMPT = `
 Sen "Zorbaya Dur" platformunun duyarlı, şefkatli ve profesyonel Yapay Zeka Psikolojik Destek Asistanısın.
@@ -47,11 +48,12 @@ export async function generateSupportMessage(
   bullyingType: string,
   reportSummary: string
 ): Promise<string> {
-  const prompt = SUPPORT_PROMPT
-    .replace("{BULLYING_TYPE}", bullyingType)
-    .replace("{REPORT_SUMMARY}", reportSummary.slice(0, 300));
-
   try {
+    const { sanitizedText } = sanitizeForLLM(reportSummary);
+    const prompt = SUPPORT_PROMPT
+      .replace("{BULLYING_TYPE}", bullyingType)
+      .replace("{REPORT_SUMMARY}", sanitizedText.slice(0, 300));
+
     const text = await callGroq(prompt, { temperature: 0.7 });
     return text.trim();
   } catch (err) {

@@ -16,7 +16,7 @@ export async function GET() {
 
     const { data: reports, error } = await supabaseAdmin
       .from("reports")
-      .select("content, category, risk_level, status, created_at, ai_analysis")
+      .select("content, category, risk_level, status, created_at, ai_analysis, location")
       .gte("created_at", thirtyDaysAgo.toISOString())
       .order("created_at", { ascending: false })
       .limit(50);
@@ -40,29 +40,7 @@ export async function GET() {
       });
     }
 
-    // Rapor özetlerini oluştur (kimlik bilgisi yok, YZ analiz verileri ve tam metin var)
-    const summary = reports
-      .map((r, i) => {
-        const ai = r.ai_analysis as any;
-        const primaryType = ai?.classification?.primary_type;
-        const locationType = ai?.classification?.location_type;
-        const urgencyLabel = ai?.urgency?.urgency_label;
-        const riskFactors = ai?.urgency?.risk_factors;
-
-        const detailParts = [
-          `Kategori: ${r.category}`,
-          primaryType ? `Tespit Edilen Zorbalık Türü: ${primaryType}` : null,
-          locationType ? `Konum Türü: ${locationType}` : null,
-          urgencyLabel ? `Aciliyet Seviyesi: ${urgencyLabel}` : null,
-          riskFactors && riskFactors.length > 0 ? `Risk Faktörleri: ${riskFactors.join(", ")}` : null,
-          `İhbar Metni: ${r.content.trim()}`
-        ].filter(Boolean);
-
-        return `[İhbar ${i + 1}] ${detailParts.join(" | ")}`;
-      })
-      .join("\n");
-
-    const result = await detectPatterns(summary);
+    const result = await detectPatterns(reports);
 
     return NextResponse.json({
       success: true,

@@ -1,4 +1,5 @@
 import { callGroq, safeParseJSON } from "./groqClient";
+import { sanitizeForLLM } from "./sanitizer";
 
 export interface ClassificationResult {
   primary_type: "Fiziksel" | "Sözlü" | "Sosyal/İlişkisel" | "Siber" | "Cinsel" | "Karma";
@@ -41,7 +42,8 @@ const FALLBACK: ClassificationResult = {
 
 export async function classifyBullying(reportText: string): Promise<ClassificationResult> {
   try {
-    const prompt = CLASSIFICATION_PROMPT.replace("{REPORT_TEXT}", reportText);
+    const { sanitizedText } = sanitizeForLLM(reportText);
+    const prompt = CLASSIFICATION_PROMPT.replace("{REPORT_TEXT}", sanitizedText);
     const raw = await callGroq(prompt, { jsonMode: true });
     return safeParseJSON<ClassificationResult>(raw, FALLBACK);
   } catch (err) {
