@@ -9,6 +9,38 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
+      profiles: {
+        Row: {
+          id: string
+          email: string | null
+          role: string | null
+          password_changed_at: string | null
+          last_password_hash: string | null
+        }
+        Insert: {
+          id: string
+          email?: string | null
+          role?: string | null
+          password_changed_at?: string | null
+          last_password_hash?: string | null
+        }
+        Update: {
+          id?: string
+          email?: string | null
+          role?: string | null
+          password_changed_at?: string | null
+          last_password_hash?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "profiles_id_fkey"
+            columns: ["id"]
+            isOneToOne: true
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          }
+        ]
+      }
       reports: {
         Row: {
           id: string
@@ -86,6 +118,7 @@ export type Database = {
           actor: string
           status: string
           created_at: string
+          actor_id: string | null
         }
         Insert: {
           id?: string
@@ -94,6 +127,7 @@ export type Database = {
           actor: string
           status: string
           created_at?: string
+          actor_id?: string | null
         }
         Update: {
           id?: string
@@ -102,6 +136,7 @@ export type Database = {
           actor?: string
           status?: string
           created_at?: string
+          actor_id?: string | null
         }
         Relationships: []
       }
@@ -145,7 +180,18 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      audit_logs_readable: {
+        Row: {
+          id: string
+          log_id: string | null
+          action: string | null
+          actor_id: string | null
+          actor: string | null
+          status: string | null
+          created_at: string | null
+        }
+        Relationships: []
+      }
     }
     Functions: {
       [_ in never]: never

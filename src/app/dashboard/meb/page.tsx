@@ -27,7 +27,7 @@ export default function MebDashboard() {
     
     // Logları getir
     const { data: logData, error: logError } = await supabase
-      .from("audit_logs")
+      .from("audit_logs_readable")
       .select("*")
       .order("created_at", { ascending: false });
 

@@ -19,6 +19,7 @@ import { toast } from "sonner";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { DecryptedIdentityView } from "@/components/DecryptedIdentityView";
 import { MessageThread } from "@/components/MessageThread";
+import { PasswordPolicyGuard } from "@/components/PasswordPolicyGuard";
 import {
   LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
   PieChart, Pie, Cell, Legend
@@ -273,7 +274,8 @@ export default function PDRDashboard() {
 
   // ─── JSX ──────────────────────────────────────────────────────────────────
   return (
-    <div className="flex flex-col min-h-[100dvh] bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-50">
+    <PasswordPolicyGuard role="pdr">
+      <div className="flex flex-col min-h-[100dvh] bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-50">
       {/* HEADER */}
       <header className="px-6 h-16 flex items-center border-b border-slate-200 dark:border-slate-800/50 bg-white/80 dark:bg-slate-900/80 backdrop-blur-md sticky top-0 z-50">
         <div className="flex items-center gap-2">
@@ -787,6 +789,7 @@ export default function PDRDashboard() {
           )}
         </DialogContent>
       </Dialog>
-    </div>
+      </div>
+    </PasswordPolicyGuard>
   );
 }

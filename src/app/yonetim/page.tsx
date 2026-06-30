@@ -12,6 +12,7 @@ import { toast } from "sonner";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { DecryptedIdentityView } from "@/components/DecryptedIdentityView";
+import { PasswordPolicyGuard } from "@/components/PasswordPolicyGuard";
 import {
   ResponsiveContainer, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Cell
 } from "recharts";
@@ -109,7 +110,8 @@ export default function SchoolManagementPage() {
   };
 
   return (
-    <div className="flex flex-col min-h-[100dvh] bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-50">
+    <PasswordPolicyGuard role="meb">
+      <div className="flex flex-col min-h-[100dvh] bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-50">
       
       {/* Header - Print hide class added */}
       <header className="px-6 h-16 flex items-center border-b border-slate-200 dark:border-slate-800/50 bg-white/80 dark:bg-slate-900/80 backdrop-blur-md sticky top-0 z-50 print:hidden">
@@ -428,6 +430,7 @@ export default function SchoolManagementPage() {
           }
         }
       `}</style>
-    </div>
+      </div>
+    </PasswordPolicyGuard>
   );
 }
