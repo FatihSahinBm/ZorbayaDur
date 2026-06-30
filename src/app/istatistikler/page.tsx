@@ -41,7 +41,15 @@ export default function PublicStatsPage() {
     const counts: Record<string, number> = {};
     reports.forEach((r) => {
       const cat = r.category || "Diğer";
-      counts[cat] = (counts[cat] || 0) + 1;
+      let stdCat = "Diğer";
+      if (cat.toLowerCase().includes("fiziksel")) stdCat = "Fiziksel Zorbalık";
+      else if (cat.toLowerCase().includes("sözel") || cat.toLowerCase().includes("sözlü")) stdCat = "Sözel Zorbalık";
+      else if (cat.toLowerCase().includes("siber")) stdCat = "Siber Zorbalık";
+      else if (cat.toLowerCase().includes("sosyal") || cat.toLowerCase().includes("ilişkisel")) stdCat = "Sosyal Zorbalık";
+      else if (cat.toLowerCase().includes("cinsel")) stdCat = "Cinsel Zorbalık";
+      else stdCat = cat;
+
+      counts[stdCat] = (counts[stdCat] || 0) + 1;
     });
     return Object.entries(counts).map(([name, value]) => ({ name, value }));
   }, [reports]);

@@ -116,7 +116,17 @@ export async function POST(request: NextRequest) {
     } as any;
 
     const updatePayload: any = { ai_analysis: aiAnalysis };
-    if (isSpam) {
+
+    // "ve Tespit Edilenlerde intihar varsa direkt en yüksek risk grubunda sınıflandırılmalı"
+    const hasSuicideKeyword = 
+      content.toLowerCase().includes("intihar") || 
+      (urgency.keywords_detected && urgency.keywords_detected.some((k: string) => k.toLowerCase().includes("intihar")));
+
+    if (hasSuicideKeyword) {
+      updatePayload.risk_level = "Bordo"; // En yüksek risk
+      urgency.urgency_score = 100;
+      urgency.urgency_label = "Acil";
+    } else if (isSpam) {
       updatePayload.risk_level = "Sarı"; // Low risk
     } else if (isRecurring) {
       if (urgency.urgency_score >= 80) {
@@ -125,6 +135,17 @@ export async function POST(request: NextRequest) {
         updatePayload.risk_level = "Kırmızı"; // High risk
       } else {
         updatePayload.risk_level = "Turuncu"; // Medium risk
+      }
+    } else {
+      // Normal/non-recurring vaka risk düzeyi güncellemesi
+      if (urgency.urgency_score >= 80) {
+        updatePayload.risk_level = "Bordo";
+      } else if (urgency.urgency_score >= 60) {
+        updatePayload.risk_level = "Kırmızı";
+      } else if (urgency.urgency_score >= 40) {
+        updatePayload.risk_level = "Turuncu";
+      } else {
+        updatePayload.risk_level = "Sarı";
       }
     }
 

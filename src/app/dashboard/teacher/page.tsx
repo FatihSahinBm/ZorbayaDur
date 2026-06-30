@@ -166,8 +166,19 @@ export default function TeacherDashboard() {
       .select("*")
       .eq("assigned_role", "teacher")
       .order("created_at", { ascending: false });
-    if (error) toast.error("Veriler çekilemedi: " + error.message);
-    else setReports((data as any) || []);
+    if (error) {
+      toast.error("Veriler çekilemedi: " + error.message);
+    } else {
+      // En fazla orta risk gözükmeli: Yüksek risklileri (Kırmızı, Bordo, Yüksek, Kritik, Acil) gizle
+      const allowedReports = (data || []).filter((r: any) => 
+        r.risk_level !== "Kırmızı" && 
+        r.risk_level !== "Bordo" && 
+        r.risk_level !== "Yüksek" && 
+        r.risk_level !== "Kritik" && 
+        r.risk_level !== "Acil"
+      );
+      setReports(allowedReports as any);
+    }
     setIsLoading(false);
   };
 
@@ -395,7 +406,7 @@ export default function TeacherDashboard() {
             const urgencyLabel = report.ai_analysis?.urgency?.urgency_label ?? report.risk_level;
             const primaryType = report.ai_analysis?.classification?.primary_type ?? report.category;
             return (
-              <Card key={report.id} className="bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 shadow-sm hover:shadow-md transition-shadow">
+              <Card key={report.id} onClick={() => { setSelectedReport(report); setActiveTab("ai"); }} className="bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 shadow-sm hover:shadow-md transition-shadow cursor-pointer">
                 <CardContent className="p-4">
                   <div className="flex items-start gap-3">
                     {/* Score Circle */}
@@ -444,33 +455,33 @@ export default function TeacherDashboard() {
                   <div className="flex flex-wrap gap-2 mt-3 pt-3 border-t border-slate-100 dark:border-slate-800">
                     <Button size="sm" variant="outline"
                       className="h-8 text-xs border-blue-500/30 text-blue-600 dark:text-blue-400 hover:bg-blue-500/10 flex-1"
-                      onClick={() => { setSelectedReport(report); setActiveTab("ai"); }}>
+                      onClick={(e) => { e.stopPropagation(); setSelectedReport(report); setActiveTab("ai"); }}>
                       <Brain className="h-3.5 w-3.5 mr-1" /> YZ Analizi
                     </Button>
                     <Button size="sm" variant="outline"
                       className="h-8 text-xs border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800 flex-1"
-                      onClick={() => { setSelectedReport(report); setActiveTab("message"); }}>
+                      onClick={(e) => { e.stopPropagation(); setSelectedReport(report); setActiveTab("message"); }}>
                       <MessageSquare className="h-3.5 w-3.5 mr-1" /> Yanıtla
                     </Button>
                     
                     {report.status === "Yeni" && (
                       <Button size="sm" variant="outline"
                         className="h-8 text-xs border-amber-500/30 text-amber-600 hover:bg-amber-500/10"
-                        onClick={() => handleStatusChange(report.id, "İnceleniyor")}>
+                        onClick={(e) => { e.stopPropagation(); handleStatusChange(report.id, "İnceleniyor"); }}>
                         <Activity className="h-3.5 w-3.5 mr-1" /> İncele
                       </Button>
                     )}
                     {report.status === "İnceleniyor" && (
                       <Button size="sm" variant="outline"
                         className="h-8 text-xs border-green-500/30 text-green-600 hover:bg-green-500/10"
-                        onClick={() => handleStatusChange(report.id, "Çözüldü")}>
+                        onClick={(e) => { e.stopPropagation(); handleStatusChange(report.id, "Çözüldü"); }}>
                         <CheckCircle2 className="h-3.5 w-3.5 mr-1" /> Çözüldü
                       </Button>
                     )}
 
                     <Button size="sm" variant="outline"
                       className="h-8 text-xs border-rose-500/30 text-rose-600 dark:text-rose-400 hover:bg-rose-500/10"
-                      onClick={() => handleEscalateToPDR(report.id)}>
+                      onClick={(e) => { e.stopPropagation(); handleEscalateToPDR(report.id); }}>
                       <ShieldAlert className="h-3.5 w-3.5 mr-1" /> PDR'ye Sevk Et
                     </Button>
                   </div>

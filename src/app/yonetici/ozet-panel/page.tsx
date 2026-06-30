@@ -231,16 +231,28 @@ export default function ManagerSummaryPanel() {
 
     reports.forEach(r => {
       // Risk
-      const rLevel = r.risk_level as keyof typeof riskCounts;
-      if (riskCounts[rLevel] !== undefined) riskCounts[rLevel]++;
-      else riskCounts["Orta"]++;
+      let mappedLevel: "Düşük" | "Orta" | "Yüksek" | "Kritik" = "Orta";
+      if (r.risk_level === "Sarı" || r.risk_level === "Düşük") mappedLevel = "Düşük";
+      else if (r.risk_level === "Turuncu" || r.risk_level === "Orta") mappedLevel = "Orta";
+      else if (r.risk_level === "Kırmızı" || r.risk_level === "Yüksek") mappedLevel = "Yüksek";
+      else if (r.risk_level === "Bordo" || r.risk_level === "Kritik" || r.risk_level === "Acil") mappedLevel = "Kritik";
+      riskCounts[mappedLevel]++;
 
       // Status
       const rStatus = r.status as keyof typeof statusCounts;
       if (statusCounts[rStatus] !== undefined) statusCounts[rStatus]++;
       
       // Category
-      categoryCounts[r.category] = (categoryCounts[r.category] || 0) + 1;
+      const rawCat = r.category || "Diğer";
+      let stdCat = "Diğer";
+      if (rawCat.toLowerCase().includes("fiziksel")) stdCat = "Fiziksel Zorbalık";
+      else if (rawCat.toLowerCase().includes("sözel") || rawCat.toLowerCase().includes("sözlü")) stdCat = "Sözel Zorbalık";
+      else if (rawCat.toLowerCase().includes("siber")) stdCat = "Siber Zorbalık";
+      else if (rawCat.toLowerCase().includes("sosyal") || rawCat.toLowerCase().includes("ilişkisel")) stdCat = "Sosyal Zorbalık";
+      else if (rawCat.toLowerCase().includes("cinsel")) stdCat = "Cinsel Zorbalık";
+      else stdCat = rawCat;
+      
+      categoryCounts[stdCat] = (categoryCounts[stdCat] || 0) + 1;
 
       // Resolution duration
       if (r.resolution_time_hours !== null && r.resolution_time_hours !== undefined) {

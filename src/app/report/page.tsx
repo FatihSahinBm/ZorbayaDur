@@ -68,6 +68,38 @@ export default function StudentReportPage() {
   // Dialog & Temp Risk
   const [showAssigneeDialog, setShowAssigneeDialog] = useState(false);
   const [tempRisk, setTempRisk] = useState("");
+  const [pdrPendingCount, setPdrPendingCount] = useState(0);
+  const [teacherPendingCount, setTeacherPendingCount] = useState(0);
+
+  useEffect(() => {
+    async function fetchPendingCounts() {
+      if (!supabase || !showAssigneeDialog) return;
+      try {
+        const [pdrRes, teacherRes] = await Promise.all([
+          supabase.from("reports").select("*", { count: "exact", head: true }).eq("assigned_role", "pdr").in("status", ["Yeni", "İnceleniyor"]),
+          supabase.from("reports").select("*", { count: "exact", head: true }).eq("assigned_role", "teacher").in("status", ["Yeni", "İnceleniyor"])
+        ]);
+        setPdrPendingCount(pdrRes.count || 0);
+        setTeacherPendingCount(teacherRes.count || 0);
+      } catch (err) {
+        console.error("Vaka yoğunluğu sayılamadı:", err);
+      }
+    }
+    fetchPendingCounts();
+  }, [showAssigneeDialog]);
+
+  const getEstimatedTimeText = (role: "pdr" | "teacher", pendingCount: number) => {
+    const baseHours = role === "pdr" ? 1 : 2;
+    const factor = role === "pdr" ? 2 : 3;
+    const totalHours = baseHours + pendingCount * factor;
+    if (totalHours < 24) {
+      return `~${totalHours} saat (${pendingCount} bekleyen vaka)`;
+    } else {
+      const days = Math.floor(totalHours / 24);
+      const remainingHours = totalHours % 24;
+      return `~${days} gün ${remainingHours} saat (${pendingCount} bekleyen vaka)`;
+    }
+  };
 
   const analyzeRiskLevel = (text: string) => {
     const lowerText = text.toLowerCase();
@@ -697,24 +729,34 @@ export default function StudentReportPage() {
               </DialogDescription>
             </DialogHeader>
             <div className="grid grid-cols-2 gap-4 mt-4">
-              <Button
-                type="button"
-                variant="outline"
-                className="h-24 flex flex-col items-center justify-center gap-2 border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950 hover:bg-slate-100 dark:hover:bg-slate-800"
-                onClick={() => proceedWithSubmit("teacher", tempRisk)}
-              >
-                <User className="h-6 w-6 text-blue-500" />
-                <span className="font-semibold text-xs">Sınıf Öğretmeni</span>
-              </Button>
-              <Button
-                type="button"
-                variant="outline"
-                className="h-24 flex flex-col items-center justify-center gap-2 border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950 hover:bg-slate-100 dark:hover:bg-slate-800"
-                onClick={() => proceedWithSubmit("pdr", tempRisk)}
-              >
-                <GraduationCap className="h-6 w-6 text-rose-500" />
-                <span className="font-semibold text-xs">PDR Uzmanı</span>
-              </Button>
+              <div className="flex flex-col items-center">
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="h-24 w-full flex flex-col items-center justify-center gap-2 border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950 hover:bg-slate-100 dark:hover:bg-slate-800"
+                  onClick={() => proceedWithSubmit("teacher", tempRisk)}
+                >
+                  <User className="h-6 w-6 text-blue-500" />
+                  <span className="font-semibold text-xs">Sınıf Öğretmeni</span>
+                </Button>
+                <span className="text-[10px] text-slate-500 mt-2 text-center leading-normal">
+                  {getEstimatedTimeText("teacher", teacherPendingCount)}
+                </span>
+              </div>
+              <div className="flex flex-col items-center">
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="h-24 w-full flex flex-col items-center justify-center gap-2 border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950 hover:bg-slate-100 dark:hover:bg-slate-800"
+                  onClick={() => proceedWithSubmit("pdr", tempRisk)}
+                >
+                  <GraduationCap className="h-6 w-6 text-rose-500" />
+                  <span className="font-semibold text-xs">PDR Uzmanı</span>
+                </Button>
+                <span className="text-[10px] text-slate-500 mt-2 text-center leading-normal">
+                  {getEstimatedTimeText("pdr", pdrPendingCount)}
+                </span>
+              </div>
             </div>
           </DialogContent>
         </Dialog>
