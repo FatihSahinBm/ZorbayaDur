@@ -49,6 +49,7 @@ export default function ManagerSummaryPanel() {
   const [hoursEndTime, setHoursEndTime] = useState("15:00:00");
 
   const [editingRoster, setEditingRoster] = useState<any | null>(null);
+  const [isAddingRoster, setIsAddingRoster] = useState(false);
   const [rosterDay, setRosterDay] = useState(1);
   const [rosterStart, setRosterStart] = useState("00:00:00");
   const [rosterEnd, setRosterEnd] = useState("23:59:59");
@@ -170,6 +171,7 @@ export default function ManagerSummaryPanel() {
         toast.success("Yeni nöbet kaydı eklendi.");
       }
       setEditingRoster(null);
+      setIsAddingRoster(false);
       setRosterName("");
       setRosterAddress("");
       setRosterBackupName("");
@@ -716,6 +718,7 @@ export default function ManagerSummaryPanel() {
                     <span>Nöbetçi İdareci Çizelgesi (Mesai Dışı Bildirim)</span>
                     <Button size="sm" className="bg-amber-500 hover:bg-amber-600 text-white" onClick={() => {
                       setEditingRoster(null);
+                      setIsAddingRoster(true);
                       setRosterDay(1);
                       setRosterStart("00:00:00");
                       setRosterEnd("23:59:59");
@@ -734,7 +737,7 @@ export default function ManagerSummaryPanel() {
                 </CardHeader>
                 <CardContent className="space-y-6">
                   {/* Roster Edit/Create Form */}
-                  {(editingRoster !== null || rosterName !== "") && (
+                  {(editingRoster !== null || isAddingRoster) && (
                     <form onSubmit={handleSaveRoster} className="p-4 border border-slate-200 dark:border-slate-800 rounded-xl bg-slate-50/50 dark:bg-slate-950/20 space-y-4 max-w-2xl animate-fade-in">
                       <h4 className="text-xs font-bold uppercase text-slate-400">
                         {editingRoster ? "Nöbet Kaydını Düzenle" : "Yeni Nöbet Kaydı Ekle"}
@@ -805,6 +808,7 @@ export default function ManagerSummaryPanel() {
                       <div className="flex gap-2 justify-end">
                         <Button type="button" variant="outline" size="sm" onClick={() => {
                           setEditingRoster(null);
+                          setIsAddingRoster(false);
                           setRosterName("");
                         }}>İptal</Button>
                         <Button type="submit" size="sm" className="bg-amber-500 hover:bg-amber-600 text-white">Nöbetçiyi Kaydet</Button>
