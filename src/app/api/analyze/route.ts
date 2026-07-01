@@ -118,14 +118,24 @@ export async function POST(request: NextRequest) {
     const updatePayload: any = { ai_analysis: aiAnalysis };
 
     // "ve Tespit Edilenlerde intihar varsa direkt en yüksek risk grubunda sınıflandırılmalı"
-    const hasSuicideKeyword = 
-      content.toLowerCase().includes("intihar") || 
-      (urgency.keywords_detected && urgency.keywords_detected.some((k: string) => k.toLowerCase().includes("intihar")));
+    const suicideKeywords = ["intihar", "kendimi öldür", "canıma kıy", "her şeyi bitir", "yaşamak istemi", "ölmek isti"];
+    const hasSuicideKeyword = suicideKeywords.some(keyword => content.toLowerCase().includes(keyword));
 
     if (hasSuicideKeyword) {
       updatePayload.risk_level = "Bordo"; // En yüksek risk
       urgency.urgency_score = 100;
       urgency.urgency_label = "Acil";
+      if (!urgency.keywords_detected) urgency.keywords_detected = [];
+      if (!urgency.keywords_detected.some((k: string) => k.toLowerCase().includes("intihar"))) {
+        urgency.keywords_detected.push("intihar");
+      }
+    } else {
+      // Clean up hallucinated 'intihar' keyword if no actual suicide intent is found in content
+      if (urgency.keywords_detected) {
+        urgency.keywords_detected = urgency.keywords_detected.filter(
+          (k: string) => !k.toLowerCase().includes("intihar")
+        );
+      }
     } else if (isSpam) {
       updatePayload.risk_level = "Sarı"; // Low risk
     } else if (isRecurring) {

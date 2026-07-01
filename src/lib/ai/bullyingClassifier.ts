@@ -59,9 +59,19 @@ export async function classifyBullying(reportText: string): Promise<Classificati
     // Post-processing: normalize primary type values
     let primary = parsed.primary_type as string;
     
-    // Enforce "Siber" if digital indicators are present
-    if (parsed.platform_if_cyber || parsed.location_type === "Online") {
+    // Enforce "Siber" if digital indicators are present in parsed JSON or text
+    const digitalKeywords = ["whatsapp", "instagram", "tiktok", "discord", "telegram", "sms", "internet", "sosyal medya", "itiraf", "online", "web", "mesaj", "şifre", "e-okul"];
+    const lowerText = reportText.toLowerCase();
+    
+    if (parsed.platform_if_cyber || parsed.location_type === "Online" || digitalKeywords.some(kw => lowerText.includes(kw))) {
       primary = "Siber";
+      parsed.location_type = "Online";
+      if (!parsed.platform_if_cyber) {
+        if (lowerText.includes("whatsapp")) parsed.platform_if_cyber = "WhatsApp";
+        else if (lowerText.includes("instagram")) parsed.platform_if_cyber = "Instagram";
+        else if (lowerText.includes("tiktok")) parsed.platform_if_cyber = "TikTok";
+        else parsed.platform_if_cyber = "Diğer";
+      }
     }
     
     // Normalize spelling/variations of verbal bullying

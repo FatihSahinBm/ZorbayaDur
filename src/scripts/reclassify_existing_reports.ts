@@ -50,16 +50,26 @@ async function reclassifyAll() {
       );
 
       // 3. Risk Level calculation
-      const hasSuicideKeyword = 
-        r.content.toLowerCase().includes("intihar") || 
-        (urgency.keywords_detected && urgency.keywords_detected.some((k: string) => k.toLowerCase().includes("intihar")));
+      const suicideKeywords = ["intihar", "kendimi öldür", "canıma kıy", "her şeyi bitir", "yaşamak istemi", "ölmek isti"];
+      const hasSuicideKeyword = suicideKeywords.some(keyword => r.content.toLowerCase().includes(keyword));
 
       let finalRiskLevel = r.risk_level;
       if (hasSuicideKeyword) {
         finalRiskLevel = "Bordo";
         urgency.urgency_score = 100;
         urgency.urgency_label = "Acil";
+        if (!urgency.keywords_detected) urgency.keywords_detected = [];
+        if (!urgency.keywords_detected.some((k: string) => k.toLowerCase().includes("intihar"))) {
+          urgency.keywords_detected.push("intihar");
+        }
       } else {
+        // Clean up hallucinated 'intihar' keyword if no actual suicide intent is found in content
+        if (urgency.keywords_detected) {
+          urgency.keywords_detected = urgency.keywords_detected.filter(
+            (k: string) => !k.toLowerCase().includes("intihar")
+          );
+        }
+
         if (urgency.urgency_score >= 80) {
           finalRiskLevel = "Bordo";
         } else if (urgency.urgency_score >= 60) {
