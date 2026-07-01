@@ -75,6 +75,6 @@ export function safeParseJSON<T>(text: string, fallback: T): T {
     const cleaned = text.replace(/^```(?:json)?\n?/i, "").replace(/\n?```$/i, "").trim();
     return JSON.parse(cleaned) as T;
   } catch {
-    return fallback;
+    return JSON.parse(JSON.stringify(fallback)) as T;
   }
 }

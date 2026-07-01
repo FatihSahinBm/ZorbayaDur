@@ -136,26 +136,28 @@ export async function POST(request: NextRequest) {
           (k: string) => !k.toLowerCase().includes("intihar")
         );
       }
-    } else if (isSpam) {
-      updatePayload.risk_level = "Sarı"; // Low risk
-    } else if (isRecurring) {
-      if (urgency.urgency_score >= 80) {
-        updatePayload.risk_level = "Bordo"; // Critical risk
-      } else if (urgency.urgency_score >= 60) {
-        updatePayload.risk_level = "Kırmızı"; // High risk
+
+      if (isSpam) {
+        updatePayload.risk_level = "Sarı"; // Low risk
+      } else if (isRecurring) {
+        if (urgency.urgency_score >= 80) {
+          updatePayload.risk_level = "Bordo"; // Critical risk
+        } else if (urgency.urgency_score >= 60) {
+          updatePayload.risk_level = "Kırmızı"; // High risk
+        } else {
+          updatePayload.risk_level = "Turuncu"; // Medium risk
+        }
       } else {
-        updatePayload.risk_level = "Turuncu"; // Medium risk
-      }
-    } else {
-      // Normal/non-recurring vaka risk düzeyi güncellemesi
-      if (urgency.urgency_score >= 80) {
-        updatePayload.risk_level = "Bordo";
-      } else if (urgency.urgency_score >= 60) {
-        updatePayload.risk_level = "Kırmızı";
-      } else if (urgency.urgency_score >= 40) {
-        updatePayload.risk_level = "Turuncu";
-      } else {
-        updatePayload.risk_level = "Sarı";
+        // Normal/non-recurring vaka risk düzeyi güncellemesi
+        if (urgency.urgency_score >= 80) {
+          updatePayload.risk_level = "Bordo";
+        } else if (urgency.urgency_score >= 60) {
+          updatePayload.risk_level = "Kırmızı";
+        } else if (urgency.urgency_score >= 40) {
+          updatePayload.risk_level = "Turuncu";
+        } else {
+          updatePayload.risk_level = "Sarı";
+        }
       }
     }
 

@@ -81,6 +81,6 @@ export async function analyzeUrgency(
     return safeParseJSON<UrgencyResult>(raw, FALLBACK);
   } catch (err) {
     console.error("analyzeUrgency failed, using fallback:", err);
-    return FALLBACK;
+    return JSON.parse(JSON.stringify(FALLBACK));
   }
 }

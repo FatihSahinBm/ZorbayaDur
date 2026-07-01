@@ -98,6 +98,6 @@ export async function classifyBullying(reportText: string): Promise<Classificati
     return parsed;
   } catch (err) {
     console.error("classifyBullying failed, using fallback:", err);
-    return FALLBACK;
+    return JSON.parse(JSON.stringify(FALLBACK));
   }
 }

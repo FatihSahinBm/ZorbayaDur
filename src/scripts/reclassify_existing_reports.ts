@@ -41,6 +41,9 @@ async function reclassifyAll() {
       const classification = await classifyBullying(r.content);
       console.log(`New AI Primary Type: ${classification.primary_type} (Confidence: ${classification.confidence_score}%)`);
 
+      // Delay before next AI call (6 seconds) to prevent rate limits
+      await new Promise(res => setTimeout(res, 6000));
+
       // 2. Run Urgency Analysis
       const urgency = await analyzeUrgency(
         r.content,
