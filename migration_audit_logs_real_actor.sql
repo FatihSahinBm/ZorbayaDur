@@ -50,25 +50,16 @@ END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
 -- 3. Create readable view for Denetim (Audit Logs) Screen
-CREATE OR REPLACE VIEW public.audit_logs_readable AS
+CREATE OR REPLACE VIEW public.audit_logs_readable WITH (security_invoker = true) AS
 SELECT 
     l.id,
     l.log_id,
     l.action,
     l.actor_id,
-    CASE 
-        WHEN l.actor_id IS NULL THEN l.actor
-        ELSE COALESCE(
-            (u.raw_user_meta_data->>'name') || ' (' || COALESCE(u.raw_user_meta_data->>'role', 'Kullanıcı') || ')',
-            u.email,
-            l.actor,
-            'Bilinmeyen Kullanıcı'
-        )
-    END AS actor,
+    l.actor,
     l.status,
     l.created_at
-FROM public.audit_logs l
-LEFT JOIN auth.users u ON l.actor_id = u.id;
+FROM public.audit_logs l;
 
 -- 4. Set up append-only RLS policies for audit_logs
 ALTER TABLE public.audit_logs ENABLE ROW LEVEL SECURITY;
