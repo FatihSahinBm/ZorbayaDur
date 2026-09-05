@@ -470,7 +470,7 @@ export default function ManagerSummaryPanel() {
                 <CardDescription className="text-xs">Raporların risk seviyesi ağırlığı</CardDescription>
               </CardHeader>
               <CardContent className="h-[240px]">
-                <ResponsiveContainer width="100%" height="100%">
+                <ResponsiveContainer width="100%" height="100%" minWidth={1} minHeight={1}>
                   <BarChart data={[
                     { name: "Düşük", value: metrics.riskCounts.Düşük, fill: RISK_COLORS.Düşük },
                     { name: "Orta", value: metrics.riskCounts.Orta, fill: RISK_COLORS.Orta },
@@ -503,7 +503,7 @@ export default function ManagerSummaryPanel() {
               </CardHeader>
               <CardContent className="h-[240px]">
                 {metrics.categoryData.length > 0 ? (
-                  <ResponsiveContainer width="100%" height="100%">
+                  <ResponsiveContainer width="100%" height="100%" minWidth={1} minHeight={1}>
                     <BarChart layout="vertical" data={metrics.categoryData}>
                       <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="#E2E8F0" />
                       <XAxis type="number" stroke="#888888" fontSize={11} tickLine={false} axisLine={false} />
@@ -527,7 +527,7 @@ export default function ManagerSummaryPanel() {
                 <CardDescription className="text-xs">Haftalık ihbar sıklığı gelişimi</CardDescription>
               </CardHeader>
               <CardContent className="h-[240px]">
-                <ResponsiveContainer width="100%" height="100%">
+                <ResponsiveContainer width="100%" height="100%" minWidth={1} minHeight={1}>
                   <AreaChart data={metrics.trendData}>
                     <defs>
                       <linearGradient id="colorCount" x1="0" y1="0" x2="0" y2="1">
