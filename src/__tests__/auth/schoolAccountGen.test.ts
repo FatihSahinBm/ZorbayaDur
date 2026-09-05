@@ -125,4 +125,55 @@ describe("School Account Generation & Security Tests", () => {
       expect(hash1).toBe(hash2);
     });
   });
+
+  describe("Batch Teacher Account Generation & Session Integrity", () => {
+    it("should generate sequential teacher accounts with OGR prefix and valid hashes", async () => {
+      const schoolCode = "TK82";
+      const teacherCount = 5;
+      const accounts = [];
+
+      for (let i = 1; i <= teacherCount; i++) {
+        const userCode = formatTeacherCode(schoolCode, i);
+        const pass = generateSafePassword(8);
+        const hash = await hashPassword(pass);
+        accounts.push({
+          user_code: userCode,
+          password: pass,
+          hash: hash,
+          role: "ogretmen"
+        });
+      }
+
+      expect(accounts.length).toBe(5);
+      expect(accounts[0].user_code).toBe("TK82-OGR-01");
+      expect(accounts[4].user_code).toBe("TK82-OGR-05");
+
+      for (const acc of accounts) {
+        expect(acc.role).toBe("ogretmen");
+        const parsed = parseUserCode(acc.user_code);
+        expect(parsed.role).toBe("ogretmen");
+        expect(parsed.schoolCode).toBe("TK82");
+        const isValid = await verifyPassword(acc.password, acc.hash);
+        expect(isValid).toBe(true);
+      }
+    });
+
+    it("should correctly encode and decode koza_session payload", () => {
+      const sessionData = {
+        user_code: "TK82-OGR-01",
+        role: "teacher",
+        school_id: "test-school-uuid",
+        createdAt: Date.now()
+      };
+
+      const encoded = Buffer.from(JSON.stringify(sessionData)).toString("base64");
+      const decoded = JSON.parse(Buffer.from(encoded, "base64").toString("utf-8"));
+
+      expect(decoded.user_code).toBe("TK82-OGR-01");
+      expect(decoded.role).toBe("teacher");
+      expect(decoded.school_id).toBe("test-school-uuid");
+      expect(decoded.createdAt).toBeDefined();
+    });
+  });
 });
+

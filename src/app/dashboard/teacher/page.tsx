@@ -137,6 +137,12 @@ const getDisplayScore = (report: Report) => {
   }
 };
 
+function getCookie(name: string): string | null {
+  if (typeof document === "undefined") return null;
+  const match = document.cookie.match(new RegExp("(^|;\\s*)" + name + "=([^;]*)"));
+  return match ? decodeURIComponent(match[2]) : null;
+}
+
 // ─── Main Component ───────────────────────────────────────────────────────────
 export default function TeacherDashboard() {
   const [reports, setReports] = useState<Report[]>([]);
@@ -170,11 +176,20 @@ export default function TeacherDashboard() {
 
   const fetchReports = async () => {
     if (!supabase) return;
-    const { data, error } = await supabase
+    const schoolId = typeof window !== 'undefined'
+      ? (getCookie("koza_school_id") || localStorage.getItem("school_id"))
+      : null;
+
+    let query = supabase
       .from("reports")
       .select("*")
-      .eq("assigned_role", "teacher")
-      .order("created_at", { ascending: false });
+      .eq("assigned_role", "teacher");
+
+    if (schoolId) {
+      query = query.eq("school_id", schoolId);
+    }
+
+    const { data, error } = await query.order("created_at", { ascending: false });
     if (error) {
       toast.error("Veriler çekilemedi: " + error.message);
     } else {

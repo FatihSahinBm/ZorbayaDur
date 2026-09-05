@@ -18,14 +18,31 @@ import { ThemeToggle } from "@/components/theme-toggle";
 import { encryptIdentity } from "@/lib/crypto";
 import { Input } from "@/components/ui/input";
 
+function getCookie(name: string): string | null {
+  if (typeof document === "undefined") return null;
+  const match = document.cookie.match(new RegExp("(^|;\\s*)" + name + "=([^;]*)"));
+  return match ? decodeURIComponent(match[2]) : null;
+}
+
 export default function StudentReportPage() {
   const router = useRouter();
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
-    const studentId = localStorage.getItem('student_id');
+    const cookieUserCode = getCookie("koza_user_code");
+    const cookieSchoolId = getCookie("koza_school_id");
+
+    if (cookieUserCode && !localStorage.getItem("student_id")) {
+      localStorage.setItem("student_id", cookieUserCode);
+      localStorage.setItem("user_code", cookieUserCode);
+    }
+    if (cookieSchoolId && !localStorage.getItem("school_id")) {
+      localStorage.setItem("school_id", cookieSchoolId);
+    }
+
+    const studentId = localStorage.getItem("student_id") || cookieUserCode;
     if (!studentId) {
-      router.push('/login');
+      router.push("/login");
       return;
     }
     
@@ -173,7 +190,9 @@ export default function StudentReportPage() {
       const newTrackingCode = `ZRB-${Math.floor(100000 + Math.random() * 900000)}`;
       const generatedToken = crypto.randomUUID();
 
-      const studentId = typeof window !== 'undefined' ? localStorage.getItem('student_id') || 'anonim' : 'anonim';
+      const studentId = typeof window !== 'undefined'
+        ? (getCookie("koza_user_code") || localStorage.getItem('student_id') || 'anonim')
+        : 'anonim';
 
       let evidenceUrl = null;
       if (file) {
@@ -217,25 +236,58 @@ export default function StudentReportPage() {
         return;
       }
 
-      const { data: inserted, error } = await client.from('reports').insert([
-        {
-          tracking_code: newTrackingCode,
-          student_id: studentId,
-          category: category,
-          content: content,
-          risk_level: calculatedRisk,
-          status: "Yeni",
-          assigned_role: assigneeRole,
-          evidence_url: evidenceUrl,
-          deadline_at: deadlineDate.toISOString(),
-          identity_level: identityLevel,
-          encrypted_identity: encryptedIdData,
-          identity_updated_at: new Date().toISOString(),
-          session_token: generatedToken,
-          location: location,
-          frequency: frequency,
-          identity_sharing_approved: false
+      // Read koza_school_id cookie first, fallback to localStorage
+      let schoolId = typeof window !== 'undefined' 
+        ? (getCookie("koza_school_id") || localStorage.getItem("school_id") || undefined) 
+        : undefined;
+
+      // Fail-safe: if schoolId missing but studentId has prefix format (e.g. XRXF-001)
+      if (!schoolId && studentId && studentId.includes("-")) {
+        try {
+          const schoolCode = studentId.split("-")[0].toUpperCase();
+          const { data: schoolRow } = await client
+            .from("schools")
+            .select("id")
+            .eq("code", schoolCode)
+            .maybeSingle();
+
+          if (schoolRow?.id) {
+            schoolId = schoolRow.id;
+            if (typeof window !== "undefined") {
+              localStorage.setItem("school_id", schoolId);
+              document.cookie = `koza_school_id=${schoolId}; path=/; max-age=604800`;
+            }
+          }
+        } catch (prefixErr) {
+          console.warn("Could not lookup school by prefix:", prefixErr);
         }
+      }
+
+      const reportPayload: any = {
+        tracking_code: newTrackingCode,
+        student_id: studentId,
+        category: category,
+        content: content,
+        risk_level: calculatedRisk,
+        status: "Yeni",
+        assigned_role: assigneeRole,
+        evidence_url: evidenceUrl,
+        deadline_at: deadlineDate.toISOString(),
+        identity_level: identityLevel,
+        encrypted_identity: encryptedIdData,
+        identity_updated_at: new Date().toISOString(),
+        session_token: generatedToken,
+        location: location,
+        frequency: frequency,
+        identity_sharing_approved: false
+      };
+
+      if (schoolId) {
+        reportPayload.school_id = schoolId;
+      }
+
+      const { data: inserted, error } = await client.from('reports').insert([
+        reportPayload
       ]).select('id').single();
 
       if (error) throw error;

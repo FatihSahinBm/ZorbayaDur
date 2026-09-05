@@ -13,6 +13,51 @@ function getServerSupabase() {
   return null;
 }
 
+function setKozaCookies(
+  response: NextResponse, 
+  user: { role: string; user_code: string; school_id?: string | null }
+) {
+  // 1. Client-readable convenience cookies
+  response.cookies.set("koza_role", user.role, { path: "/", httpOnly: false });
+  if (user.school_id) {
+    response.cookies.set("koza_school_id", user.school_id, { path: "/", httpOnly: false });
+  }
+  response.cookies.set("koza_user_code", user.user_code, { path: "/", httpOnly: false });
+
+  // 2. Secure HttpOnly session cookie (persists across F5 reloads)
+  const sessionPayload = JSON.stringify({
+    user_code: user.user_code,
+    role: user.role,
+    school_id: user.school_id || null,
+    createdAt: Date.now()
+  });
+
+  response.cookies.set("koza_session", Buffer.from(sessionPayload).toString("base64"), {
+    path: "/",
+    httpOnly: true,
+    secure: process.env.NODE_ENV === "production",
+    sameSite: "lax",
+    maxAge: 60 * 60 * 24 * 7 // 7 days
+  });
+}
+
+export async function GET(request: NextRequest) {
+  try {
+    const sessionCookie = request.cookies.get("koza_session")?.value;
+    if (!sessionCookie) {
+      return NextResponse.json({ authenticated: false }, { status: 401 });
+    }
+
+    const payload = JSON.parse(Buffer.from(sessionCookie, "base64").toString("utf-8"));
+    return NextResponse.json({
+      authenticated: true,
+      user: payload
+    });
+  } catch (e: any) {
+    return NextResponse.json({ authenticated: false, error: e.message }, { status: 401 });
+  }
+}
+
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
@@ -35,7 +80,7 @@ export async function POST(request: NextRequest) {
         redirectUrl: "/admin/dashboard"
       });
 
-      response.cookies.set("koza_role", "superadmin", { path: "/", httpOnly: false });
+      setKozaCookies(response, { role: "superadmin", user_code: "superadmin" });
       return response;
     }
 
@@ -46,7 +91,7 @@ export async function POST(request: NextRequest) {
         user: { role: "student", user_code: "1234" },
         redirectUrl: "/dashboard/student"
       });
-      response.cookies.set("koza_role", "student", { path: "/", httpOnly: false });
+      setKozaCookies(response, { role: "student", user_code: "1234" });
       return response;
     }
 
@@ -56,7 +101,7 @@ export async function POST(request: NextRequest) {
         user: { role: "teacher", user_code: "ogretmen@okul.k12.tr" },
         redirectUrl: "/dashboard/teacher"
       });
-      response.cookies.set("koza_role", "teacher", { path: "/", httpOnly: false });
+      setKozaCookies(response, { role: "teacher", user_code: "ogretmen@okul.k12.tr" });
       return response;
     }
 
@@ -66,7 +111,7 @@ export async function POST(request: NextRequest) {
         user: { role: "pdr", user_code: "pdr@okul.k12.tr" },
         redirectUrl: "/dashboard/pdr"
       });
-      response.cookies.set("koza_role", "pdr", { path: "/", httpOnly: false });
+      setKozaCookies(response, { role: "pdr", user_code: "pdr@okul.k12.tr" });
       return response;
     }
 
@@ -76,7 +121,7 @@ export async function POST(request: NextRequest) {
         user: { role: "meb", user_code: "admin@meb.gov.tr" },
         redirectUrl: "/yonetici/ozet-panel"
       });
-      response.cookies.set("koza_role", "meb", { path: "/", httpOnly: false });
+      setKozaCookies(response, { role: "meb", user_code: "admin@meb.gov.tr" });
       return response;
     }
 
@@ -90,18 +135,27 @@ export async function POST(request: NextRequest) {
     }
 
     // Query school_accounts on server (Hashes NEVER exposed to client)
-    const { data: account, error: accErr } = await sb
+    let account: any = null;
+    const { data: directAccount, error: accErr } = await sb
       .from("school_accounts")
       .select("id, school_id, user_code, password_hash, role")
       .eq("user_code", userCode.toUpperCase())
       .maybeSingle();
 
-    if (accErr) {
-      console.error("Auth DB Error:", accErr);
-      return NextResponse.json(
-        { success: false, error: "Giriş işlemi sırasında sunucu hatası oluştu." },
-        { status: 500 }
-      );
+    if (directAccount) {
+      account = directAccount;
+    } else {
+      // If direct SELECT is restricted by RLS on anon and service role key is absent, use secure RPC function
+      try {
+        const { data: rpcData } = await (sb as any).rpc("get_school_account_for_auth", {
+          p_user_code: userCode.toUpperCase()
+        });
+        if (rpcData && rpcData.length > 0) {
+          account = rpcData[0];
+        }
+      } catch (rpcErr) {
+        console.warn("RPC fallback check:", rpcErr);
+      }
     }
 
     if (account) {
@@ -150,9 +204,11 @@ export async function POST(request: NextRequest) {
         redirectUrl
       });
 
-      response.cookies.set("koza_role", requestedRole, { path: "/", httpOnly: false });
-      response.cookies.set("koza_school_id", account.school_id, { path: "/", httpOnly: false });
-      response.cookies.set("koza_user_code", account.user_code, { path: "/", httpOnly: false });
+      setKozaCookies(response, {
+        role: requestedRole,
+        user_code: account.user_code,
+        school_id: account.school_id
+      });
 
       return response;
     }
@@ -187,8 +243,12 @@ export async function POST(request: NextRequest) {
         redirectUrl
       });
 
-      response.cookies.set("koza_role", requestedRole, { path: "/", httpOnly: false });
-      response.cookies.set("koza_school_id", legacyUser.school_id, { path: "/", httpOnly: false });
+      setKozaCookies(response, {
+        role: requestedRole,
+        user_code: legacyUser.username,
+        school_id: legacyUser.school_id
+      });
+
       return response;
     }
 

@@ -28,7 +28,8 @@ import {
   generateSchoolCode, 
   formatStudentCode, 
   formatPdrCode, 
-  formatAdminCode 
+  formatAdminCode,
+  formatTeacherCode 
 } from "@/lib/auth/codeGenerator";
 import { generateSafePassword } from "@/lib/auth/passwordGenerator";
 import { hashPassword } from "@/lib/auth/hash";
@@ -46,6 +47,7 @@ interface School {
   name: string;
   code: string;
   student_count: number | null;
+  teacher_count: number | null;
   pdr_count: number | null;
   admin_count: number | null;
   created_at: string;
@@ -66,6 +68,7 @@ export default function AdminDashboard() {
   // Form States
   const [schoolName, setSchoolName] = useState("");
   const [studentCount, setStudentCount] = useState<number>(50);
+  const [teacherCount, setTeacherCount] = useState<number>(10);
   const [pdrCount, setPdrCount] = useState<number>(2);
   const [adminCount, setAdminCount] = useState<number>(2);
 
@@ -107,6 +110,7 @@ export default function AdminDashboard() {
         name: s.name,
         code: s.code || s.school_code || "KODSUZ",
         student_count: s.student_count ?? 0,
+        teacher_count: s.teacher_count ?? 0,
         pdr_count: s.pdr_count ?? 0,
         admin_count: s.admin_count ?? s.principal_count ?? 0,
         created_at: s.created_at
@@ -163,8 +167,8 @@ export default function AdminDashboard() {
       toast.error("Lütfen bir okul adı girin.");
       return;
     }
-    if (studentCount <= 0 && pdrCount <= 0 && adminCount <= 0) {
-      toast.error("En az bir kişi (öğrenci, PDR veya idare) oluşturmalısınız.");
+    if (studentCount <= 0 && teacherCount <= 0 && pdrCount <= 0 && adminCount <= 0) {
+      toast.error("En az bir kişi (öğrenci, öğretmen, PDR veya idare) oluşturmalısınız.");
       return;
     }
 
@@ -200,6 +204,7 @@ export default function AdminDashboard() {
             name: schoolName.trim(),
             code: schoolCode,
             student_count: studentCount,
+            teacher_count: teacherCount,
             pdr_count: pdrCount,
             admin_count: adminCount
           }])
@@ -232,6 +237,20 @@ export default function AdminDashboard() {
           role: "mudur"
         });
         plainExportList.push({ role: "Müdür / Müdür Yrd.", user_code: userCode, password_plain: pass });
+      }
+
+      // Generate Teachers
+      for (let i = 1; i <= teacherCount; i++) {
+        const userCode = formatTeacherCode(schoolCode, i);
+        const pass = generateSafePassword(8);
+        const hash = await hashPassword(pass);
+        accountsToInsert.push({
+          school_id: schoolId,
+          user_code: userCode,
+          password_hash: hash,
+          role: "ogretmen"
+        });
+        plainExportList.push({ role: "Öğretmen", user_code: userCode, password_plain: pass });
       }
 
       // Generate PDRs
@@ -282,6 +301,7 @@ export default function AdminDashboard() {
       setCreatedBannerInfo({ name: schoolName.trim(), code: schoolCode });
       setSchoolName("");
       setStudentCount(50);
+      setTeacherCount(10);
       setPdrCount(2);
       setAdminCount(2);
 
@@ -321,6 +341,7 @@ export default function AdminDashboard() {
       // If no accounts exist yet in school_accounts, generate fresh ones according to counts
       if (existingAccounts.length === 0) {
         const adminC = schoolToReset.admin_count || 2;
+        const teacherC = schoolToReset.teacher_count || 0;
         const pdrC = schoolToReset.pdr_count || 2;
         const studentC = schoolToReset.student_count || 50;
 
@@ -333,6 +354,13 @@ export default function AdminDashboard() {
           const hash = await hashPassword(pass);
           newAccountsToInsert.push({ school_id: schoolToReset.id, user_code: userCode, password_hash: hash, role: "mudur" });
           plainExportList.push({ role: "Müdür / Müdür Yrd.", user_code: userCode, password_plain: pass });
+        }
+        for (let i = 1; i <= teacherC; i++) {
+          const userCode = formatTeacherCode(schoolToReset.code, i);
+          const pass = generateSafePassword(8);
+          const hash = await hashPassword(pass);
+          newAccountsToInsert.push({ school_id: schoolToReset.id, user_code: userCode, password_hash: hash, role: "ogretmen" });
+          plainExportList.push({ role: "Öğretmen", user_code: userCode, password_plain: pass });
         }
         for (let i = 1; i <= pdrC; i++) {
           const userCode = formatPdrCode(schoolToReset.code, i);
@@ -511,7 +539,7 @@ export default function AdminDashboard() {
                   />
                 </div>
 
-                <div className="grid grid-cols-3 gap-3">
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
                   <div className="space-y-1.5">
                     <Label htmlFor="studentCount" className="text-[11px] font-bold text-slate-600 dark:text-slate-400 uppercase tracking-wider">Öğrenci</Label>
                     <Input 
@@ -522,6 +550,20 @@ export default function AdminDashboard() {
                       value={studentCount} 
                       onChange={e => setStudentCount(parseInt(e.target.value) || 0)} 
                       placeholder="50"
+                      required
+                      className="h-11 bg-slate-50 dark:bg-[#070D18] border-slate-200 dark:border-slate-800 text-center font-semibold text-sm"
+                    />
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label htmlFor="teacherCount" className="text-[11px] font-bold text-slate-600 dark:text-slate-400 uppercase tracking-wider">Öğretmen</Label>
+                    <Input 
+                      id="teacherCount" 
+                      type="number" 
+                      min="0"
+                      max="200"
+                      value={teacherCount} 
+                      onChange={e => setTeacherCount(parseInt(e.target.value) || 0)} 
+                      placeholder="10"
                       required
                       className="h-11 bg-slate-50 dark:bg-[#070D18] border-slate-200 dark:border-slate-800 text-center font-semibold text-sm"
                     />
@@ -641,6 +683,9 @@ export default function AdminDashboard() {
                           </span>
                           <span className="px-2 py-0.5 rounded bg-slate-200/60 dark:bg-slate-800 text-slate-700 dark:text-slate-300 font-medium">
                             Öğrenci: {school.student_count || 0}
+                          </span>
+                          <span className="px-2 py-0.5 rounded bg-slate-200/60 dark:bg-slate-800 text-slate-700 dark:text-slate-300 font-medium">
+                            Öğretmen: {school.teacher_count || 0}
                           </span>
                           <span className="px-2 py-0.5 rounded bg-slate-200/60 dark:bg-slate-800 text-slate-700 dark:text-slate-300 font-medium">
                             PDR: {school.pdr_count || 0}

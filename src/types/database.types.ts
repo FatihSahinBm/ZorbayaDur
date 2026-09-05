@@ -400,6 +400,7 @@ export type Database = {
           code: string
           school_code?: string
           student_count: number | null
+          teacher_count?: number | null
           pdr_count: number | null
           admin_count: number | null
           principal_count?: number | null
@@ -411,6 +412,7 @@ export type Database = {
           code: string
           school_code?: string
           student_count?: number | null
+          teacher_count?: number | null
           pdr_count?: number | null
           admin_count?: number | null
           principal_count?: number | null
@@ -422,6 +424,7 @@ export type Database = {
           code?: string
           school_code?: string
           student_count?: number | null
+          teacher_count?: number | null
           pdr_count?: number | null
           admin_count?: number | null
           principal_count?: number | null
