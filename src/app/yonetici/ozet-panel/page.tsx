@@ -69,11 +69,17 @@ export default function ManagerSummaryPanel() {
     setIsHoursLoading(true);
     setIsRosterLoading(true);
     try {
-      const { data: wh, error: whErr } = await supabase.from("pdr_working_hours").select("*").order("day_of_week", { ascending: true });
+      const schoolId = localStorage.getItem("school_id");
+
+      let whQuery = supabase.from("pdr_working_hours").select("*").order("day_of_week", { ascending: true });
+      if (schoolId) whQuery = whQuery.eq("school_id", schoolId);
+      const { data: wh, error: whErr } = await whQuery;
       if (whErr) throw whErr;
       setWorkingHours(wh || []);
 
-      const { data: ros, error: rosErr } = await supabase.from("on_call_roster").select("*").order("day_of_week", { ascending: true });
+      let rosQuery = supabase.from("on_call_roster").select("*").order("day_of_week", { ascending: true });
+      if (schoolId) rosQuery = rosQuery.eq("school_id", schoolId);
+      const { data: ros, error: rosErr } = await rosQuery;
       if (rosErr) throw rosErr;
       setRoster(ros || []);
     } catch (e: any) {
@@ -145,6 +151,7 @@ export default function ManagerSummaryPanel() {
     }
 
     const payload = {
+      school_id: localStorage.getItem("school_id") || null,
       day_of_week: rosterDay,
       start_time: rosterStart,
       end_time: rosterEnd,
@@ -198,9 +205,14 @@ export default function ManagerSummaryPanel() {
   const fetchSummaryData = async () => {
     if (!supabase) return;
     try {
-      const { data, error } = await supabase
-        .from("reports_summary_view")
-        .select("*");
+      const schoolId = localStorage.getItem("school_id");
+      let query = supabase.from("reports_summary_view").select("*");
+      
+      if (schoolId) {
+        query = query.eq("school_id", schoolId);
+      }
+      
+      const { data, error } = await query;
       
       if (error) throw error;
       setReports((data as any) || []);

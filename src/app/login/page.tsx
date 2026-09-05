@@ -12,35 +12,97 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { toast } from "sonner";
 import { ThemeToggle } from "@/components/theme-toggle";
+import { supabase } from "@/lib/supabase";
+import { ThemeToggle } from "@/components/theme-toggle";
 
 export default function LoginPage() {
   const [isLoading, setIsLoading] = useState(false);
   const router = useRouter();
 
-  const handleLogin = (e: React.FormEvent, role: string) => {
+  const handleLogin = async (e: React.FormEvent, role: string) => {
     e.preventDefault();
     setIsLoading(true);
-    setTimeout(() => {
-      if (role === "student") {
+
+    try {
+      if (role === "meb") {
+        const mebEmail = (document.getElementById('meb-email') as HTMLInputElement)?.value;
+        const mebPass = (document.getElementById('meb-pass') as HTMLInputElement)?.value;
+
+        // Super Admin Hardcoded Bypass
+        if (mebEmail === "superadmin" && mebPass === "super123") {
+          localStorage.setItem('role', 'superadmin');
+          router.push("/admin/dashboard");
+          return;
+        }
+
+        // Real Principal Login
+        const { data, error } = await supabase
+          .from("school_users")
+          .select("*")
+          .eq("username", mebEmail)
+          .eq("password_plain", mebPass)
+          .eq("role", "principal")
+          .single();
+
+        if (data) {
+          localStorage.setItem('role', 'meb');
+          localStorage.setItem('school_id', data.school_id);
+          localStorage.setItem('username', data.username);
+          router.push("/yonetici/ozet-panel");
+        } else {
+          // Fallback to legacy hardcoded login for demo purposes
+          if (mebEmail === "admin@meb.gov.tr" && mebPass === "123") {
+            localStorage.setItem('role', 'meb');
+            router.push("/yonetici/ozet-panel");
+          } else {
+            toast.error("Hatalı kullanıcı adı veya şifre!");
+          }
+        }
+      } else if (role === "student") {
         const studentId = (document.getElementById('student-id') as HTMLInputElement)?.value;
         const studentPass = (document.getElementById('student-pass') as HTMLInputElement)?.value;
         
-        if (studentId === "1234" && studentPass === "1234") {
+        const { data, error } = await supabase
+          .from("school_users")
+          .select("*")
+          .eq("username", studentId)
+          .eq("password_plain", studentPass)
+          .eq("role", "student")
+          .single();
+
+        if (data) {
           localStorage.setItem('student_id', studentId);
+          localStorage.setItem('school_id', data.school_id);
           router.push("/dashboard/student");
         } else {
-          toast.error("Hatalı kullanıcı adı veya şifre!");
-          setIsLoading(false);
+          if (studentId === "1234" && studentPass === "1234") {
+            localStorage.setItem('student_id', studentId);
+            router.push("/dashboard/student");
+          } else {
+            toast.error("Hatalı kullanıcı adı veya şifre!");
+          }
         }
       } else if (role === "pdr") {
         const pdrEmail = (document.getElementById('pdr-email') as HTMLInputElement)?.value;
         const pdrPass = (document.getElementById('pdr-pass') as HTMLInputElement)?.value;
 
-        if (pdrEmail === "pdr@okul.k12.tr" && pdrPass === "123") {
+        const { data, error } = await supabase
+          .from("school_users")
+          .select("*")
+          .eq("username", pdrEmail)
+          .eq("password_plain", pdrPass)
+          .eq("role", "pdr")
+          .single();
+
+        if (data) {
+          localStorage.setItem('school_id', data.school_id);
           router.push("/dashboard/pdr");
         } else {
-          toast.error("Hatalı e-posta veya şifre!");
-          setIsLoading(false);
+          if (pdrEmail === "pdr@okul.k12.tr" && pdrPass === "123") {
+            router.push("/dashboard/pdr");
+          } else {
+            toast.error("Hatalı e-posta veya şifre!");
+          }
         }
       } else if (role === "teacher") {
         const teacherEmail = (document.getElementById('teacher-email') as HTMLInputElement)?.value;
@@ -50,20 +112,13 @@ export default function LoginPage() {
           router.push("/dashboard/teacher");
         } else {
           toast.error("Hatalı e-posta veya şifre!");
-          setIsLoading(false);
-        }
-      } else {
-        const mebEmail = (document.getElementById('meb-email') as HTMLInputElement)?.value;
-        const mebPass = (document.getElementById('meb-pass') as HTMLInputElement)?.value;
-
-        if (mebEmail === "admin@meb.gov.tr" && mebPass === "123") {
-          router.push("/yonetici/ozet-panel");
-        } else {
-          toast.error("Hatalı e-posta veya şifre!");
-          setIsLoading(false);
         }
       }
-    }, 800);
+    } catch (err: any) {
+      toast.error("Giriş yapılırken bir hata oluştu: " + err.message);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
