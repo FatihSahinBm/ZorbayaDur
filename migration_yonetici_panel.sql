@@ -32,9 +32,10 @@ SELECT
     END AS resolution_time_hours
 FROM public.reports;
 
--- Grant access to the view only to authenticated users
+-- Grant access to the view
 GRANT SELECT ON public.reports_summary_view TO authenticated;
-REVOKE SELECT ON public.reports_summary_view FROM anon;
+GRANT SELECT ON public.reports_summary_view TO anon;
+GRANT SELECT ON public.reports_summary_view TO service_role;
 
 -- 3. Create RPC function for Case Status Inquiry with masked PII
 CREATE OR REPLACE FUNCTION public.get_case_status_by_code(target_code text)
