@@ -13,7 +13,6 @@ import Link from "next/link";
 import { toast } from "sonner";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { supabase } from "@/lib/supabase";
-import { ThemeToggle } from "@/components/theme-toggle";
 
 export default function LoginPage() {
   const [isLoading, setIsLoading] = useState(false);
@@ -25,8 +24,8 @@ export default function LoginPage() {
 
     try {
       if (role === "meb") {
-        const mebEmail = (document.getElementById('meb-email') as HTMLInputElement)?.value;
-        const mebPass = (document.getElementById('meb-pass') as HTMLInputElement)?.value;
+        const mebEmail = (document.getElementById('meb-email') as HTMLInputElement)?.value?.trim();
+        const mebPass = (document.getElementById('meb-pass') as HTMLInputElement)?.value?.trim();
 
         // Super Admin Hardcoded Bypass
         if (mebEmail === "superadmin" && mebPass === "super123") {
@@ -36,77 +35,86 @@ export default function LoginPage() {
         }
 
         // Real Principal Login
-        const { data, error } = await supabase
-          .from("school_users")
-          .select("*")
-          .eq("username", mebEmail)
-          .eq("password_plain", mebPass)
-          .eq("role", "principal")
-          .single();
+        if (supabase) {
+          const { data, error } = await supabase
+            .from("school_users")
+            .select("*")
+            .eq("username", mebEmail)
+            .eq("password_plain", mebPass)
+            .eq("role", "principal")
+            .single();
 
-        if (data) {
+          if (data) {
+            localStorage.setItem('role', 'meb');
+            localStorage.setItem('school_id', data.school_id);
+            localStorage.setItem('username', data.username);
+            router.push("/yonetici/ozet-panel");
+            return;
+          }
+        }
+
+        // Fallback to legacy hardcoded login for demo purposes
+        if (mebEmail === "admin@meb.gov.tr" && mebPass === "123") {
           localStorage.setItem('role', 'meb');
-          localStorage.setItem('school_id', data.school_id);
-          localStorage.setItem('username', data.username);
           router.push("/yonetici/ozet-panel");
         } else {
-          // Fallback to legacy hardcoded login for demo purposes
-          if (mebEmail === "admin@meb.gov.tr" && mebPass === "123") {
-            localStorage.setItem('role', 'meb');
-            router.push("/yonetici/ozet-panel");
-          } else {
-            toast.error("Hatalı kullanıcı adı veya şifre!");
-          }
+          toast.error("Hatalı kullanıcı adı veya şifre!");
         }
       } else if (role === "student") {
-        const studentId = (document.getElementById('student-id') as HTMLInputElement)?.value;
-        const studentPass = (document.getElementById('student-pass') as HTMLInputElement)?.value;
+        const studentId = (document.getElementById('student-id') as HTMLInputElement)?.value?.trim();
+        const studentPass = (document.getElementById('student-pass') as HTMLInputElement)?.value?.trim();
         
-        const { data, error } = await supabase
-          .from("school_users")
-          .select("*")
-          .eq("username", studentId)
-          .eq("password_plain", studentPass)
-          .eq("role", "student")
-          .single();
+        if (supabase) {
+          const { data, error } = await supabase
+            .from("school_users")
+            .select("*")
+            .eq("username", studentId)
+            .eq("password_plain", studentPass)
+            .eq("role", "student")
+            .single();
 
-        if (data) {
+          if (data) {
+            localStorage.setItem('student_id', studentId);
+            localStorage.setItem('school_id', data.school_id);
+            router.push("/dashboard/student");
+            return;
+          }
+        }
+
+        if (studentId === "1234" && studentPass === "1234") {
           localStorage.setItem('student_id', studentId);
-          localStorage.setItem('school_id', data.school_id);
           router.push("/dashboard/student");
         } else {
-          if (studentId === "1234" && studentPass === "1234") {
-            localStorage.setItem('student_id', studentId);
-            router.push("/dashboard/student");
-          } else {
-            toast.error("Hatalı kullanıcı adı veya şifre!");
-          }
+          toast.error("Hatalı kullanıcı adı veya şifre!");
         }
       } else if (role === "pdr") {
-        const pdrEmail = (document.getElementById('pdr-email') as HTMLInputElement)?.value;
-        const pdrPass = (document.getElementById('pdr-pass') as HTMLInputElement)?.value;
+        const pdrEmail = (document.getElementById('pdr-email') as HTMLInputElement)?.value?.trim();
+        const pdrPass = (document.getElementById('pdr-pass') as HTMLInputElement)?.value?.trim();
 
-        const { data, error } = await supabase
-          .from("school_users")
-          .select("*")
-          .eq("username", pdrEmail)
-          .eq("password_plain", pdrPass)
-          .eq("role", "pdr")
-          .single();
+        if (supabase) {
+          const { data, error } = await supabase
+            .from("school_users")
+            .select("*")
+            .eq("username", pdrEmail)
+            .eq("password_plain", pdrPass)
+            .eq("role", "pdr")
+            .single();
 
-        if (data) {
-          localStorage.setItem('school_id', data.school_id);
-          router.push("/dashboard/pdr");
-        } else {
-          if (pdrEmail === "pdr@okul.k12.tr" && pdrPass === "123") {
+          if (data) {
+            localStorage.setItem('school_id', data.school_id);
             router.push("/dashboard/pdr");
-          } else {
-            toast.error("Hatalı e-posta veya şifre!");
+            return;
           }
         }
+
+        if (pdrEmail === "pdr@okul.k12.tr" && pdrPass === "123") {
+          router.push("/dashboard/pdr");
+        } else {
+          toast.error("Hatalı e-posta veya şifre!");
+        }
       } else if (role === "teacher") {
-        const teacherEmail = (document.getElementById('teacher-email') as HTMLInputElement)?.value;
-        const teacherPass = (document.getElementById('teacher-pass') as HTMLInputElement)?.value;
+        const teacherEmail = (document.getElementById('teacher-email') as HTMLInputElement)?.value?.trim();
+        const teacherPass = (document.getElementById('teacher-pass') as HTMLInputElement)?.value?.trim();
 
         if (teacherEmail === "ogretmen@okul.k12.tr" && teacherPass === "123") {
           router.push("/dashboard/teacher");
@@ -216,17 +224,20 @@ export default function LoginPage() {
               <TabsContent value="meb" className="animate-fade-in">
                 <form onSubmit={(e) => handleLogin(e, "meb")} className="space-y-4">
                   <div className="space-y-2">
-                    <Label htmlFor="meb-email" className="text-slate-700 dark:text-slate-300">MEB Sicil No / E-posta</Label>
-                    <Input id="meb-email" placeholder="admin@meb.gov.tr" required className="bg-slate-50 dark:bg-slate-950 border-slate-200 dark:border-slate-800 focus-visible:ring-amber-500 text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-600 h-12" defaultValue="admin@meb.gov.tr" />
+                    <Label htmlFor="meb-email" className="text-slate-700 dark:text-slate-300">Kullanıcı Adı / MEB Sicil No / E-posta</Label>
+                    <Input id="meb-email" type="text" placeholder="superadmin veya admin@meb.gov.tr" required className="bg-slate-50 dark:bg-slate-950 border-slate-200 dark:border-slate-800 focus-visible:ring-amber-500 text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-600 h-12" defaultValue="superadmin" />
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="meb-pass" className="text-slate-700 dark:text-slate-300">Şifre</Label>
-                    <Input id="meb-pass" type="password" required className="bg-slate-50 dark:bg-slate-950 border-slate-200 dark:border-slate-800 focus-visible:ring-amber-500 text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-600 h-12" defaultValue="123" />
+                    <Input id="meb-pass" type="password" required className="bg-slate-50 dark:bg-slate-950 border-slate-200 dark:border-slate-800 focus-visible:ring-amber-500 text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-600 h-12" defaultValue="super123" />
                   </div>
                   <div className="pt-4">
                     <Button type="submit" disabled={isLoading} className="w-full h-12 bg-amber-600 hover:bg-amber-700 text-white text-base rounded-xl transition-all shadow-lg shadow-amber-900/20">
                       {isLoading ? <Loader2 className="mr-2 h-5 w-5 animate-spin" /> : "Yönetim Paneline Gir"}
                     </Button>
+                    <p className="text-center text-xs text-slate-500 dark:text-slate-400 mt-3 flex items-center justify-center gap-1.5">
+                      <Shield className="h-3.5 w-3.5 text-amber-500" /> Giriş: <span className="font-mono text-amber-600 dark:text-amber-400 font-medium">superadmin</span> / <span className="font-mono text-amber-600 dark:text-amber-400 font-medium">super123</span>
+                    </p>
                   </div>
                 </form>
               </TabsContent>

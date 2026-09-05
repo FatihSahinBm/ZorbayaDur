@@ -91,6 +91,7 @@ export type Database = {
       pdr_working_hours: {
         Row: {
           id: string
+          school_id: string | null
           day_of_week: number
           start_time: string
           end_time: string
@@ -99,6 +100,7 @@ export type Database = {
         }
         Insert: {
           id?: string
+          school_id?: string | null
           day_of_week: number
           start_time: string
           end_time: string
@@ -107,6 +109,7 @@ export type Database = {
         }
         Update: {
           id?: string
+          school_id?: string | null
           day_of_week?: number
           start_time?: string
           end_time?: string
@@ -118,6 +121,7 @@ export type Database = {
       on_call_roster: {
         Row: {
           id: string
+          school_id: string | null
           day_of_week: number
           start_time: string
           end_time: string
@@ -131,6 +135,7 @@ export type Database = {
         }
         Insert: {
           id?: string
+          school_id?: string | null
           day_of_week: number
           start_time: string
           end_time: string
@@ -144,6 +149,7 @@ export type Database = {
         }
         Update: {
           id?: string
+          school_id?: string | null
           day_of_week?: number
           start_time?: string
           end_time?: string
@@ -211,6 +217,7 @@ export type Database = {
       reports: {
         Row: {
           id: string
+          school_id: string | null
           tracking_code: string
           student_id: string | null
           category: string
@@ -233,6 +240,7 @@ export type Database = {
         }
         Insert: {
           id?: string
+          school_id?: string | null
           tracking_code: string
           student_id?: string | null
           category: string
@@ -255,6 +263,7 @@ export type Database = {
         }
         Update: {
           id?: string
+          school_id?: string | null
           tracking_code?: string
           student_id?: string | null
           category?: string
@@ -384,6 +393,77 @@ export type Database = {
           }
         ]
       }
+      schools: {
+        Row: {
+          id: string
+          name: string
+          school_code: string
+          student_count: number | null
+          pdr_count: number | null
+          principal_count: number | null
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          name: string
+          school_code: string
+          student_count?: number | null
+          pdr_count?: number | null
+          principal_count?: number | null
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          name?: string
+          school_code?: string
+          student_count?: number | null
+          pdr_count?: number | null
+          principal_count?: number | null
+          created_at?: string
+        }
+        Relationships: []
+      }
+      school_users: {
+        Row: {
+          id: string
+          school_id: string
+          username: string
+          password_plain: string
+          role: string
+          full_name: string | null
+          student_number: string | null
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          school_id: string
+          username: string
+          password_plain: string
+          role: string
+          full_name?: string | null
+          student_number?: string | null
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          school_id?: string
+          username?: string
+          password_plain?: string
+          role?: string
+          full_name?: string | null
+          student_number?: string | null
+          created_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "school_users_school_id_fkey"
+            columns: ["school_id"]
+            isOneToOne: false
+            referencedRelation: "schools"
+            referencedColumns: ["id"]
+          }
+        ]
+      }
     }
     Views: {
       audit_logs_readable: {
@@ -401,6 +481,7 @@ export type Database = {
       reports_summary_view: {
         Row: {
           id: string
+          school_id: string | null
           category: string
           risk_level: string
           status: string
