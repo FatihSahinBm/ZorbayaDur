@@ -21,6 +21,7 @@ import { ThemeToggle } from "@/components/theme-toggle";
 import { DecryptedIdentityView } from "@/components/DecryptedIdentityView";
 import { PasswordPolicyGuard } from "@/components/PasswordPolicyGuard";
 import { restorePII } from "@/lib/ai/sanitizer";
+import { decryptReportContent } from "@/lib/crypto/reportCrypto";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 interface Report {
@@ -201,7 +202,14 @@ export default function TeacherDashboard() {
         r.risk_level !== "Kritik" && 
         r.risk_level !== "Acil"
       );
-      setReports(allowedReports as any);
+
+      const decryptedAllowed = await Promise.all(
+        allowedReports.map(async (r: any) => ({
+          ...r,
+          content: r.content ? await decryptReportContent(r.content) : r.content
+        }))
+      );
+      setReports(decryptedAllowed as any);
     }
     setIsLoading(false);
   };

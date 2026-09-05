@@ -4,6 +4,8 @@ import { analyzeUrgency } from "@/lib/ai/urgencyAnalysis";
 import { classifyBullying } from "@/lib/ai/bullyingClassifier";
 import { generateSupportMessage } from "@/lib/ai/supportMessage";
 import { triggerEscalationIfApplicable } from "@/lib/ai/escalation";
+import { sanitizeForLLM } from "@/lib/ai/sanitizeForLLM";
+import { decryptReportContent } from "@/lib/crypto/reportCrypto";
 import { Database } from "@/types/database.types";
 
 const supabaseAdmin = createClient<Database>(
@@ -41,13 +43,20 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "content ve reportId gerekli" }, { status: 400 });
     }
 
-    // 1. Sınıflandırmayı çalıştır (Zorbalık türü ve şiddeti belirlemek için)
-    const classification = await classifyBullying(content);
+    // 1. Şifreli ise çöz ve YALNIZCA arındırılmış metni (sanitizedText) YZ modeline ver
+    let rawText = content;
+    if (typeof rawText === "string") {
+      rawText = await decryptReportContent(rawText);
+    }
+    const { sanitizedText } = sanitizeForLLM(rawText);
 
-    // 2. Aciliyet ve destek mesajı analizlerini paralel çalıştır
+    // 2. Sınıflandırmayı çalıştır (Arındırılmış metinle)
+    const classification = await classifyBullying(sanitizedText);
+
+    // 3. Aciliyet ve destek mesajı analizlerini paralel çalıştır (Arındırılmış metinle)
     const [urgency, supportMsg] = await Promise.all([
-      analyzeUrgency(content, classification.primary_type, location ?? "Bilinmiyor", frequency ?? "Bilinmiyor"),
-      generateSupportMessage(classification.primary_type, classification.severity, content),
+      analyzeUrgency(sanitizedText, classification.primary_type, location ?? "Bilinmiyor", frequency ?? "Bilinmiyor"),
+      generateSupportMessage(classification.primary_type, classification.severity, sanitizedText),
     ]);
 
     // 3. Spam / Mükerrer / Tekrarlanan Analizi
@@ -70,7 +79,8 @@ export async function POST(request: NextRequest) {
     if (previousReports && previousReports.length > 0) {
       const nowTime = currentReport ? new Date(currentReport.created_at).getTime() : Date.now();
       for (const prev of previousReports) {
-        const similarity = getSimilarity(prev.content, content);
+        const prevPlain = prev.content ? await decryptReportContent(prev.content) : "";
+        const similarity = getSimilarity(prevPlain, rawText);
         if (similarity >= 0.85) {
           const currentSession = currentReport?.session_token || "current-anon";
           const prevSession = prev.session_token || "prev-anon";

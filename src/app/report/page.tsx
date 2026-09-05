@@ -187,7 +187,7 @@ export default function StudentReportPage() {
     }
 
     try {
-      const newTrackingCode = `ZRB-${Math.floor(100000 + Math.random() * 900000)}`;
+      const newTrackingCode = `KOZA-${Math.floor(100000 + Math.random() * 900000)}`;
       const generatedToken = crypto.randomUUID();
 
       const studentId = typeof window !== 'undefined'
@@ -263,74 +263,59 @@ export default function StudentReportPage() {
         }
       }
 
-      const reportPayload: any = {
-        tracking_code: newTrackingCode,
-        student_id: studentId,
-        category: category,
-        content: content,
-        risk_level: calculatedRisk,
-        status: "Yeni",
-        assigned_role: assigneeRole,
-        evidence_url: evidenceUrl,
-        deadline_at: deadlineDate.toISOString(),
-        identity_level: identityLevel,
-        encrypted_identity: encryptedIdData,
-        identity_updated_at: new Date().toISOString(),
-        session_token: generatedToken,
-        location: location,
-        frequency: frequency,
-        identity_sharing_approved: false
-      };
-
-      if (schoolId) {
-        reportPayload.school_id = schoolId;
-      }
-
-      const { data: inserted, error } = await client.from('reports').insert([
-        reportPayload
-      ]).select('id').single();
-
-      if (error) throw error;
-
-      // Log kaydı oluştur
-      await client.from('audit_logs').insert([
-        {
-          log_id: `LOG-${Math.floor(Math.random() * 9000 + 1000)}`,
-          action: `Yeni İhbar: ${calculatedRisk} risk - YZ analizi başlatıldı`,
-          actor: "Sistem",
-          status: "Başarılı"
+      // Default fallback: if schoolId is still not found, link to the first school in DB
+      if (!schoolId) {
+        try {
+          const { data: defaultSchool } = await client
+            .from("schools")
+            .select("id")
+            .order("created_at", { ascending: true })
+            .limit(1)
+            .maybeSingle();
+          if (defaultSchool?.id) {
+            schoolId = defaultSchool.id;
+          }
+        } catch (schoolErr) {
+          console.warn("Could not lookup default school:", schoolErr);
         }
-      ]);
-
-      setTrackingCode(newTrackingCode);
-      setSessionToken(generatedToken);
-      setInsertedReportId(inserted?.id ?? null);
-      
-      if (inserted?.id) {
-        localStorage.setItem(`anonToken_${inserted.id}`, generatedToken);
       }
 
-      // YZ analizini başlat
-      if (inserted?.id) {
-        fetch('/api/analyze', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            content,
-            category,
-            reportId: inserted.id,
-            location,
-            frequency
-          }),
+      // Sunucu taraflı güvenli ihbar rotasını çağır: PII Maskeleme -> YZ Analizi -> AES-256 Şifreleme -> DB Kayıt
+      const reportRes = await fetch("/api/report", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          content,
+          category,
+          location,
+          frequency,
+          studentId,
+          schoolId,
+          identityLevel,
+          encryptedIdentity: encryptedIdData,
+          evidenceUrl,
+          assigneeRole,
+          sessionToken: generatedToken,
+          trackingCode: newTrackingCode
         })
-          .then(res => res.json())
-          .then(data => {
-            if (data.support_message) setSupportMessage(data.support_message);
-            if (data.urgency_score) setUrgencyScore(data.urgency_score);
-            if (data.urgency_label) setUrgencyLabel(data.urgency_label);
-          })
-          .catch(() => {/* sessizce geç */});
+      });
+
+      const reportData = await reportRes.json();
+      if (!reportRes.ok || !reportData.success) {
+        throw new Error(reportData.error || "İhbar kaydedilemedi.");
       }
+
+      setTrackingCode(reportData.trackingCode || newTrackingCode);
+      setSessionToken(generatedToken);
+      setInsertedReportId(reportData.reportId ?? null);
+      
+      if (reportData.reportId) {
+        localStorage.setItem(`anonToken_${reportData.reportId}`, generatedToken);
+      }
+
+      if (reportData.support_message) setSupportMessage(reportData.support_message);
+      if (reportData.urgency_score) setUrgencyScore(reportData.urgency_score);
+      if (reportData.urgency_label) setUrgencyLabel(reportData.urgency_label);
 
       toast.success("İhbarınız başarıyla iletildi.");
       setStep(4); // Advance to Teşekkür step

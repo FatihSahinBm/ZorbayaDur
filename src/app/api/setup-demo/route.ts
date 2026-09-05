@@ -3,21 +3,21 @@ import { supabase } from '@/lib/supabase';
 
 const DEMO_REPORTS = [
   {
-    tracking_code: "ZRB-847291",
+    tracking_code: "KOZA-847291",
     category: "Siber Zorbalık",
     content: "Bir grup öğrenci WhatsApp grubunda sürekli benim fotoğrafımla dalga geçip hakaret ediyorlar. Artık okula gelmek istemiyorum, çok kötüyüm.",
     risk_level: "Kırmızı",
     status: "Yeni"
   },
   {
-    tracking_code: "ZRB-482103",
+    tracking_code: "KOZA-482103",
     category: "Fiziksel Zorbalık",
     content: "Dün öğle arasında kantin sırasında bir üst sınıftan biri beni itti ve paramı zorla aldı. Kimseye söyleme diye tehdit etti.",
     risk_level: "Turuncu",
     status: "İnceleniyor"
   },
   {
-    tracking_code: "ZRB-910283",
+    tracking_code: "KOZA-910283",
     category: "Sözel Zorbalık",
     content: "Sınıftaki arka sıradaki çocuklar sürekli kilomla dalga geçiyorlar.",
     risk_level: "Sarı",

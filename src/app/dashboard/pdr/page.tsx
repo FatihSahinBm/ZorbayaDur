@@ -22,6 +22,7 @@ import { DecryptedIdentityView } from "@/components/DecryptedIdentityView";
 import { MessageThread } from "@/components/MessageThread";
 import { PasswordPolicyGuard } from "@/components/PasswordPolicyGuard";
 import { restorePII } from "@/lib/ai/sanitizer";
+import { decryptReportContent } from "@/lib/crypto/reportCrypto";
 import {
   LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
   PieChart, Pie, Cell, Legend
@@ -292,7 +293,27 @@ export default function PDRDashboard() {
   };
 
   const fetchReports = async () => {
-    if (!supabase) return;
+    try {
+      // 1. Sunucu API rotasından şifresi çözülmüş ihbarları çek
+      const res = await fetch("/api/pdr/reports");
+      if (res.ok) {
+        const json = await res.json();
+        if (json.success && json.reports) {
+          setReports(json.reports);
+          setIsLoading(false);
+          return;
+        }
+      }
+    } catch (e) {
+      console.warn("/api/pdr/reports çağrısı başarısız, veritabanı yedeği deneniyor...", e);
+    }
+
+    // 2. Doğrudan veritabanı yedeği ve AES-256 çözümü
+    if (!supabase) {
+      setIsLoading(false);
+      return;
+    }
+
     const schoolId = typeof window !== 'undefined'
       ? (getCookie("koza_school_id") || localStorage.getItem("school_id"))
       : null;
@@ -307,8 +328,17 @@ export default function PDRDashboard() {
     }
 
     const { data, error } = await query.order("created_at", { ascending: false });
-    if (error) toast.error("Veriler çekilemedi: " + error.message);
-    else setReports((data as any) || []);
+    if (error) {
+      toast.error("Veriler çekilemedi: " + error.message);
+    } else if (data) {
+      const decryptedList = await Promise.all(
+        data.map(async (r: any) => ({
+          ...r,
+          content: r.content ? await decryptReportContent(r.content) : r.content
+        }))
+      );
+      setReports(decryptedList);
+    }
     setIsLoading(false);
   };
 
@@ -343,7 +373,11 @@ export default function PDRDashboard() {
         .single();
       
       if (updatedReport) {
-        setSelectedReport(updatedReport as any);
+        const decryptedUpdated = {
+          ...updatedReport,
+          content: updatedReport.content ? await decryptReportContent(updatedReport.content) : updatedReport.content
+        };
+        setSelectedReport(decryptedUpdated as any);
       }
       fetchReports();
     } catch (e: any) {

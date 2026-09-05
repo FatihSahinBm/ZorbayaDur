@@ -213,45 +213,6 @@ export async function POST(request: NextRequest) {
       return response;
     }
 
-    // Legacy school_users check for backwards compatibility
-    const { data: legacyUser } = await sb
-      .from("school_users")
-      .select("school_id, username, role, password_plain")
-      .eq("username", userCode)
-      .eq("password_plain", password)
-      .maybeSingle();
-
-    if (legacyUser) {
-      let redirectUrl = "/";
-      if (requestedRole === "student" && legacyUser.role === "student") redirectUrl = "/dashboard/student";
-      else if (requestedRole === "pdr" && legacyUser.role === "pdr") redirectUrl = "/dashboard/pdr";
-      else if (requestedRole === "meb" && legacyUser.role === "principal") redirectUrl = "/yonetici/ozet-panel";
-      else {
-        return NextResponse.json(
-          { success: false, error: "Bu kullanıcı kodu seçilen giriş sekmesi için yetkili değildir." },
-          { status: 403 }
-        );
-      }
-
-      const response = NextResponse.json({
-        success: true,
-        user: {
-          user_code: legacyUser.username,
-          role: requestedRole,
-          school_id: legacyUser.school_id
-        },
-        redirectUrl
-      });
-
-      setKozaCookies(response, {
-        role: requestedRole,
-        user_code: legacyUser.username,
-        school_id: legacyUser.school_id
-      });
-
-      return response;
-    }
-
     return NextResponse.json(
       { success: false, error: "Hatalı kullanıcı adı veya şifre!" },
       { status: 401 }
