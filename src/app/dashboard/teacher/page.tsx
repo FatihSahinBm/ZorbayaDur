@@ -11,6 +11,7 @@ import {
 } from "lucide-react";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import Link from "next/link";
+import Image from "next/image";
 import { Input } from "@/components/ui/input";
 import { supabase } from "@/lib/supabase";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -362,9 +363,11 @@ export default function TeacherDashboard() {
       <div className="flex flex-col min-h-[100dvh] bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-50">
       {/* HEADER */}
       <header className="px-6 h-16 flex items-center border-b border-slate-200 dark:border-slate-800/50 bg-white/80 dark:bg-slate-900/80 backdrop-blur-md sticky top-0 z-50">
-        <div className="flex items-center gap-2">
-          <Shield className="h-6 w-6 text-purple-600 dark:text-purple-400" />
-          <span className="font-bold text-lg tracking-tight text-slate-900 dark:text-white">Sınıf Öğretmeni Paneli</span>
+        <div className="flex items-center gap-2.5">
+          <div className="relative w-7 h-7 rounded-lg overflow-hidden">
+            <Image src="/icon.png" alt="KOZA Logo" fill className="object-contain" priority />
+          </div>
+          <span className="font-bold text-lg tracking-tight text-slate-900 dark:text-white">KOZA Öğretmen Paneli</span>
         </div>
         <div className="ml-auto flex items-center gap-3">
           <div className="hidden sm:flex items-center gap-1.5 text-xs text-green-600 dark:text-green-400 bg-green-500/10 px-3 py-1.5 rounded-full border border-green-500/20">

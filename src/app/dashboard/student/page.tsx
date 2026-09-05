@@ -7,6 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Shield, Loader2, LogOut, MessageSquare, Plus, Clock, AlertTriangle, Trash2, Paperclip, Search, Download } from "lucide-react";
 import Link from "next/link";
+import Image from "next/image";
 import { supabase } from "@/lib/supabase";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { toast } from "sonner";
@@ -122,9 +123,11 @@ export default function StudentDashboard() {
   return (
     <div className="flex flex-col min-h-[100dvh] bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-50">
       <header className="px-6 h-16 flex items-center border-b border-slate-200 dark:border-slate-800/50 bg-white/80 dark:bg-slate-900/80 backdrop-blur-md sticky top-0 z-50">
-        <div className="flex items-center gap-2">
-          <Shield className="h-6 w-6 text-rose-500" />
-          <span className="font-bold text-lg tracking-tight text-slate-900 dark:text-white">Öğrenci Paneli</span>
+        <div className="flex items-center gap-2.5">
+          <div className="relative w-7 h-7 rounded-lg overflow-hidden">
+            <Image src="/icon.png" alt="KOZA Logo" fill className="object-contain" priority />
+          </div>
+          <span className="font-bold text-lg tracking-tight text-slate-900 dark:text-white">KOZA Öğrenci Paneli</span>
         </div>
         <div className="ml-auto flex items-center gap-4">
           <ThemeToggle />

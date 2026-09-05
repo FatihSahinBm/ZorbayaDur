@@ -4,6 +4,7 @@ import { useEffect, useState, useMemo } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Shield, Brain, Activity, TrendingUp, MapPin, EyeOff, Loader2, ArrowLeft } from "lucide-react";
 import Link from "next/link";
+import Image from "next/image";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { supabase } from "@/lib/supabase";
@@ -100,9 +101,11 @@ export default function PublicStatsPage() {
           <ArrowLeft className="h-5 w-5" />
           <span className="hidden sm:inline">Ana Sayfa</span>
         </Link>
-        <div className="flex items-center gap-2 mx-auto">
-          <Shield className="h-6 w-6 text-rose-500" />
-          <span className="font-bold text-lg tracking-tight text-slate-900 dark:text-white">Şeffaflık & İstatistik Portalı</span>
+        <div className="flex items-center gap-2.5 mx-auto">
+          <div className="relative w-7 h-7 rounded-lg overflow-hidden">
+            <Image src="/icon.png" alt="KOZA Logo" fill className="object-contain" priority />
+          </div>
+          <span className="font-bold text-lg tracking-tight text-slate-900 dark:text-white">KOZA Şeffaflık & İstatistik Portalı</span>
         </div>
         <div className="flex justify-end w-[88px] sm:w-[100px]">
           <ThemeToggle />
@@ -122,13 +125,13 @@ export default function PublicStatsPage() {
               Kamu Bilgilendirme Sayfası
             </Badge>
             <h1 className="text-3xl md:text-5xl font-extrabold tracking-tight">
-              Sessiz Kalma, Zorbaya Dur De!
+              Sessiz Kalma, KOZA ile Güvendesin!
             </h1>
             <p className="text-sm md:text-base text-rose-50 leading-relaxed font-light">
-              Bu portal, okullardaki zorbalık vakalarını önlemek, öğrencilerimize güvenli bir eğitim ortamı sunmak amacıyla kurulmuştur. Aşağıdaki tüm istatistikler KVKK kuralları çerçevesinde tamamen anonimleştirilmiştir.
+              Bu portal, okullardaki akran zorbalığı vakalarını önlemek, öğrencilerimize güvenli ve korunaklı bir eğitim ortamı sunmak amacıyla kurulmuştur. Aşağıdaki tüm istatistikler KVKK kuralları çerçevesinde tamamen anonimleştirilmiştir.
             </p>
             <div className="pt-4 flex items-center gap-2 font-mono text-xl md:text-2xl font-bold bg-white/10 w-fit px-6 py-3 rounded-2xl border border-white/20">
-              ⚡ Zorbaya Dur sayesinde <span className="underline decoration-pink-300 decoration-wavy px-1">{isLoading ? "..." : totalCount}</span> öğrenci sesini duyurdu.
+              ⚡ KOZA sayesinde <span className="underline decoration-pink-300 decoration-wavy px-1">{isLoading ? "..." : totalCount}</span> öğrenci sesini duyurdu.
             </div>
           </div>
         </div>

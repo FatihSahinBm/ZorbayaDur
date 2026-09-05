@@ -1,8 +1,9 @@
 "use client";
 import Link from "next/link";
+import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
-import { Shield, Lock, ArrowRight, Activity, EyeOff } from "lucide-react";
+import { Lock, ArrowRight, Activity, EyeOff } from "lucide-react";
 import { ThemeToggle } from "@/components/theme-toggle";
 
 export default function Home() {
@@ -20,19 +21,21 @@ export default function Home() {
   return (
     <div className="flex flex-col min-h-[100dvh] bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-50">
       <header className="px-6 lg:px-14 h-20 flex items-center border-b border-slate-200 dark:border-white/10 bg-white/50 dark:bg-slate-950/50 backdrop-blur-md sticky top-0 z-50">
-        <Link className="flex items-center justify-center gap-2" href="#">
-          <Shield className="h-8 w-8 text-rose-500" />
-          <span className="font-bold text-xl tracking-tight text-slate-900 dark:text-white">Zorbaya Dur</span>
+        <Link className="flex items-center justify-center gap-2.5 group" href="#">
+          <div className="relative w-8 h-8 rounded-lg overflow-hidden group-hover:scale-105 transition-transform">
+            <Image src="/icon.png" alt="KOZA Logo" fill className="object-contain" priority />
+          </div>
+          <span className="font-bold text-xl tracking-tight text-slate-900 dark:text-white">KOZA</span>
         </Link>
         <nav className="ml-auto flex gap-4 sm:gap-6 items-center">
           <Link className="text-sm font-medium text-slate-600 dark:text-slate-400 hover:text-rose-500 dark:hover:text-rose-400 transition-colors" href="/istatistikler">
             İstatistikler
           </Link>
+          <Link className="text-sm font-medium text-slate-600 dark:text-slate-400 hover:text-rose-500 dark:hover:text-rose-400 transition-colors" href="#koza-manifesto">
+            KOZA Nedir?
+          </Link>
           <Link className="text-sm font-medium text-slate-600 dark:text-slate-400 hover:text-rose-500 dark:hover:text-rose-400 transition-colors" href="#features">
             Özellikler
-          </Link>
-          <Link className="text-sm font-medium text-slate-600 dark:text-slate-400 hover:text-rose-500 dark:hover:text-rose-400 transition-colors" href="#how-it-works">
-            Nasıl Çalışır
           </Link>
           <ThemeToggle />
           <Link href="/login">
@@ -43,20 +46,20 @@ export default function Home() {
         </nav>
       </header>
       <main className="flex-1">
-        <section className="w-full py-12 md:py-24 lg:py-32 xl:py-48 relative overflow-hidden">
+        <section className="w-full py-12 md:py-20 lg:py-28 relative overflow-hidden">
           <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-rose-100/50 via-slate-50 to-slate-50 dark:from-rose-900/20 dark:via-slate-950 dark:to-slate-950 -z-10" />
           <div className="container px-4 md:px-6 mx-auto relative z-10">
             <div className="flex flex-col items-center space-y-8 text-center">
               <div className="space-y-4 max-w-3xl">
-                <div className="inline-block rounded-full bg-rose-500/10 px-3 py-1 text-sm text-rose-400 border border-rose-500/20 mb-4 animate-fade-in">
-                  Güvenli, Anonim ve Şeffaf
+                <div className="inline-block rounded-full bg-rose-500/10 px-4 py-1.5 text-sm font-medium text-rose-500 dark:text-rose-400 border border-rose-500/20 mb-2 animate-fade-in">
+                  🛡️ KOZA — Güvenli, Anonim ve Koruyucu Alan
                 </div>
                 <h1 className="text-4xl font-extrabold tracking-tight sm:text-5xl md:text-6xl lg:text-7xl/none bg-clip-text text-transparent bg-gradient-to-r from-slate-900 via-slate-700 to-slate-500 dark:from-white dark:via-slate-300 dark:to-slate-400">
-                  Okullarda Zorbalığa <br />
-                  <span className="text-transparent bg-clip-text bg-gradient-to-r from-rose-500 to-rose-600 dark:from-rose-400 dark:to-rose-600">Birlikte Dur Diyelim</span>
+                  Zorbalığa Karşı <br />
+                  <span className="text-transparent bg-clip-text bg-gradient-to-r from-rose-500 to-rose-600 dark:from-rose-400 dark:to-rose-600">KOZA ile Güvendesin</span>
                 </h1>
                 <p className="mx-auto max-w-[700px] text-slate-600 dark:text-slate-400 md:text-xl leading-relaxed">
-                  Öğrenciler için %100 anonim ihbar, yönetim için yapay zeka destekli anında kriz analizi ve 48 saatlik şeffaflık kuralıyla yepyeni bir güvenlik standartı.
+                  Öğrenciler için %100 anonim ve korunaklı bildirim, okul yönetimi için yapay zeka destekli kriz analizi ve 48 saatlik şeffaflık kuralıyla yeni nesil okul güvenliği.
                 </p>
               </div>
               <div className="space-x-4">
@@ -65,14 +68,99 @@ export default function Home() {
                   size="lg" 
                   className="bg-rose-600 hover:bg-rose-700 text-white h-12 px-8 text-lg rounded-full shadow-[0_0_20px_rgba(225,29,72,0.4)] transition-all hover:shadow-[0_0_30px_rgba(225,29,72,0.6)] hover:-translate-y-1"
                 >
-                  Hemen İhbar Et <ArrowRight className="ml-2 h-5 w-5" />
+                  Hemen Bildir <ArrowRight className="ml-2 h-5 w-5" />
                 </Button>
               </div>
             </div>
           </div>
         </section>
 
-        <section id="features" className="w-full py-12 md:py-24 lg:py-32 bg-white dark:bg-slate-900/50 border-y border-slate-200 dark:border-white/5">
+        {/* KOZA Akronim Manifestosu */}
+        <section id="koza-manifesto" className="w-full py-12 md:py-20 bg-slate-100/70 dark:bg-slate-900/40 border-y border-slate-200 dark:border-white/5">
+          <div className="container px-4 md:px-6 mx-auto">
+            <div className="flex flex-col items-center justify-center space-y-4 text-center mb-12">
+              <div className="space-y-2">
+                <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-rose-500/10 text-rose-600 dark:text-rose-400 border border-rose-500/20">
+                  KOZA FELSEFESİ
+                </div>
+                <h2 className="text-3xl font-bold tracking-tighter sm:text-4xl text-slate-900 dark:text-white">
+                  KOZA Ne Anlama Gelir?
+                </h2>
+                <p className="max-w-[750px] text-slate-600 dark:text-slate-400 md:text-lg">
+                  Tıpkı bir tırtılın kelebeğe dönüşürken sığındığı korunaklı koza gibi; burası da korkuların aşıldığı ve güvenle kanat açıldığı yerdir.
+                </p>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 max-w-6xl mx-auto">
+              {/* K Harfi */}
+              <div className="relative group overflow-hidden rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-6 hover:border-rose-500/50 dark:hover:border-rose-500/50 shadow-sm transition-all duration-300">
+                <div className="flex items-center justify-between mb-4">
+                  <div className="h-12 w-12 rounded-xl bg-rose-500/10 dark:bg-rose-500/20 text-rose-600 dark:text-rose-400 flex items-center justify-center font-black text-2xl font-mono">
+                    K
+                  </div>
+                  <span className="text-xs font-semibold tracking-wider uppercase text-rose-500">Güvenli Alan</span>
+                </div>
+                <h3 className="text-lg font-bold text-slate-900 dark:text-white mb-2">
+                  Korkularına teslim olma
+                </h3>
+                <p className="text-sm text-slate-600 dark:text-slate-400 leading-relaxed">
+                  Yalnız değilsin; sesini güvenle duyurabileceğin korunaklı bir alandasın.
+                </p>
+              </div>
+
+              {/* O Harfi */}
+              <div className="relative group overflow-hidden rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-6 hover:border-amber-500/50 dark:hover:border-amber-500/50 shadow-sm transition-all duration-300">
+                <div className="flex items-center justify-between mb-4">
+                  <div className="h-12 w-12 rounded-xl bg-amber-500/10 dark:bg-amber-500/20 text-amber-600 dark:text-amber-400 flex items-center justify-center font-black text-2xl font-mono">
+                    O
+                  </div>
+                  <span className="text-xs font-semibold tracking-wider uppercase text-amber-500">Dayanışma</span>
+                </div>
+                <h3 className="text-lg font-bold text-slate-900 dark:text-white mb-2">
+                  Omuzundaki yükü paylaş
+                </h3>
+                <p className="text-sm text-slate-600 dark:text-slate-400 leading-relaxed">
+                  Tek başına susmak ve taşımak zorunda değilsin; yaşadıklarını güvenle anlatıp yükünü hafiflet.
+                </p>
+              </div>
+
+              {/* Z Harfi */}
+              <div className="relative group overflow-hidden rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-6 hover:border-blue-500/50 dark:hover:border-blue-500/50 shadow-sm transition-all duration-300">
+                <div className="flex items-center justify-between mb-4">
+                  <div className="h-12 w-12 rounded-xl bg-blue-500/10 dark:bg-blue-500/20 text-blue-600 dark:text-blue-400 flex items-center justify-center font-black text-2xl font-mono">
+                    Z
+                  </div>
+                  <span className="text-xs font-semibold tracking-wider uppercase text-blue-500">Destek Ol</span>
+                </div>
+                <h3 className="text-lg font-bold text-slate-900 dark:text-white mb-2">
+                  Zorda kalana el ver
+                </h3>
+                <p className="text-sm text-slate-600 dark:text-slate-400 leading-relaxed">
+                  Akranlarına destek ol; haksızlığa karşı sessiz kalmayarak çözümün parçası ol.
+                </p>
+              </div>
+
+              {/* A Harfi */}
+              <div className="relative group overflow-hidden rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-6 hover:border-emerald-500/50 dark:hover:border-emerald-500/50 shadow-sm transition-all duration-300">
+                <div className="flex items-center justify-between mb-4">
+                  <div className="h-12 w-12 rounded-xl bg-emerald-500/10 dark:bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 flex items-center justify-center font-black text-2xl font-mono">
+                    A
+                  </div>
+                  <span className="text-xs font-semibold tracking-wider uppercase text-emerald-500">Özgürleş</span>
+                </div>
+                <h3 className="text-lg font-bold text-slate-900 dark:text-white mb-2">
+                  Aydınlığa birlikte kanat aç
+                </h3>
+                <p className="text-sm text-slate-600 dark:text-slate-400 leading-relaxed">
+                  Korku ve baskıyı geride bırak; potansiyelini güvenle ve özgürce ortaya çıkar.
+                </p>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section id="features" className="w-full py-12 md:py-24 lg:py-32 bg-white dark:bg-slate-900/50 border-b border-slate-200 dark:border-white/5">
           <div className="container px-4 md:px-6 mx-auto">
             <div className="flex flex-col items-center justify-center space-y-4 text-center mb-12">
               <div className="space-y-2">
@@ -113,7 +201,7 @@ export default function Home() {
       </main>
       <footer className="flex flex-col gap-2 sm:flex-row py-6 w-full shrink-0 items-center px-4 md:px-6 border-t border-slate-200 dark:border-white/10 bg-white dark:bg-slate-950 text-slate-600 dark:text-slate-400">
         <p className="text-xs">
-          © 2026 Zorbaya Dur Platformu. Tüm hakları saklıdır. KVKK Uyumlu Güvenli Sistem.
+          © 2026 KOZA Platformu. Tüm hakları saklıdır. KVKK Uyumlu Güvenli Sistem.
         </p>
         <nav className="sm:ml-auto flex gap-4 sm:gap-6">
           <Link className="text-xs hover:text-slate-900 dark:hover:text-white transition-colors" href="#">

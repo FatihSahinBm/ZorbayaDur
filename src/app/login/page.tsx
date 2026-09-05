@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Image from "next/image";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -73,16 +74,18 @@ export default function LoginPage() {
         <ThemeToggle />
       </div>
 
-      <Link href="/" className="absolute top-8 left-8 flex items-center gap-2 group">
-        <Shield className="h-6 w-6 text-rose-500 group-hover:scale-110 transition-transform" />
-        <span className="font-bold tracking-tight text-slate-700 dark:text-slate-300 group-hover:text-slate-900 dark:group-hover:text-white transition-colors">Zorbaya Dur</span>
+      <Link href="/" className="absolute top-8 left-8 flex items-center gap-2.5 group">
+        <div className="relative w-8 h-8 rounded-lg overflow-hidden group-hover:scale-105 transition-transform">
+          <Image src="/icon.png" alt="KOZA Logo" fill className="object-contain" priority />
+        </div>
+        <span className="font-bold tracking-tight text-slate-700 dark:text-slate-300 group-hover:text-slate-900 dark:group-hover:text-white transition-colors text-lg">KOZA</span>
       </Link>
 
       <div className="w-full max-w-md animate-fade-in-up">
         <Card className="bg-white/80 dark:bg-slate-900/80 border-slate-200 dark:border-slate-800 backdrop-blur-xl shadow-2xl shadow-rose-900/5 dark:shadow-rose-900/10">
           <CardHeader className="space-y-2 text-center pb-8">
-            <div className="mx-auto bg-rose-500/10 p-3 rounded-full w-16 h-16 flex items-center justify-center mb-4 ring-1 ring-rose-500/20">
-              <Shield className="h-8 w-8 text-rose-500" />
+            <div className="mx-auto w-16 h-16 relative rounded-2xl overflow-hidden mb-3 shadow-md">
+              <Image src="/icon.png" alt="KOZA Logo" fill className="object-contain" priority />
             </div>
             <CardTitle className="text-3xl font-bold tracking-tight text-slate-900 dark:text-white">Sisteme Giriş</CardTitle>
             <CardDescription className="text-slate-500 dark:text-slate-400">

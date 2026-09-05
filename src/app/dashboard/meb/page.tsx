@@ -6,6 +6,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Shield, Activity, FileText, Database, ShieldAlert, LogOut, Loader2, MessageSquare, Paperclip, Download, Search, AlertTriangle } from "lucide-react";
 import Link from "next/link";
+import Image from "next/image";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { supabase } from "@/lib/supabase";
@@ -90,9 +91,11 @@ export default function MebDashboard() {
   return (
     <div className="flex flex-col min-h-[100dvh] bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-50">
       <header className="px-6 h-16 flex items-center border-b border-slate-200 dark:border-slate-800/50 bg-white/80 dark:bg-slate-900/80 backdrop-blur-md sticky top-0 z-50">
-        <div className="flex items-center gap-2">
-          <ShieldAlert className="h-6 w-6 text-amber-500" />
-          <span className="font-bold text-lg tracking-tight text-slate-900 dark:text-white">MEB Denetim Paneli</span>
+        <div className="flex items-center gap-2.5">
+          <div className="relative w-7 h-7 rounded-lg overflow-hidden">
+            <Image src="/icon.png" alt="KOZA Logo" fill className="object-contain" priority />
+          </div>
+          <span className="font-bold text-lg tracking-tight text-slate-900 dark:text-white">KOZA MEB Denetim Paneli</span>
         </div>
         <div className="ml-auto flex items-center gap-4">
           <ThemeToggle />

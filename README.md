@@ -1,6 +1,11 @@
-# ZorbayaDur 🛑
+# KOZA 🦋
 
-ZorbayaDur, okullarda akran zorbalığını tespit etmek, analiz etmek ve önlemek amacıyla geliştirilmiş akıllı bir bildirim ve analiz platformudur. Gelişmiş yapay zeka (AI) destekli algoritmalar sayesinde öğrencilerin anonim veya açık olarak yaptıkları bildirimleri anında analiz eder, okul yönetimlerine ve rehberlik servislerine eyleme geçirilebilir veriler sunar.
+> **K** – Korkularına teslim olma: Yalnız değilsin; sesini güvenle duyurabileceğin korunaklı bir alandasın.  
+> **O** – Omuzundaki yükü paylaş: Tek başına susmak ve taşımak zorunda değilsin; yaşadıklarını güvenle anlatıp yükünü hafiflet.  
+> **Z** – Zorda kalana el ver: Akranlarına destek ol; haksızlığa karşı sessiz kalmayarak çözümün parçası ol.  
+> **A** – Aydınlığa birlikte kanat aç: Korku ve baskıyı geride bırak; potansiyelini güvenle ve özgürce ortaya çıkar.
+
+**KOZA**, okullarda akran zorbalığını tespit etmek, analiz etmek ve önlemek amacıyla geliştirilmiş akıllı bir bildirim ve koruma platformudur. Gelişmiş yapay zeka (AI) destekli algoritmalar sayesinde öğrencilerin anonim veya açık olarak yaptıkları bildirimleri anında analiz eder, okul yönetimlerine ve rehberlik servislerine eyleme geçirilebilir veriler sunar.
 
 ## 🚀 Temel Özellikler ve Yapay Zeka Algoritmaları
 

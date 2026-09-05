@@ -1,4 +1,4 @@
--- Zorbaya Dur - Supabase Database Schema
+-- KOZA - Supabase Database Schema
 
 -- Enable UUID extension
 create extension if not exists "uuid-ossp";

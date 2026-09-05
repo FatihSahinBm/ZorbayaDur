@@ -60,7 +60,7 @@ class NumberedCanvas(canvas.Canvas):
         # Üst Bilgi (Running Header)
         self.setFont(FONT_NAME, 8)
         self.setFillColor(colors.HexColor('#4B5563')) # Gri
-        self.drawString(54, 800, "ZORBAYA DUR — Teknik Sistem Mimarisi ve Yapay Zeka Algoritmaları Raporu")
+        self.drawString(54, 800, "KOZA — Teknik Sistem Mimarisi ve Yapay Zeka Algoritmaları Raporu")
         
         # Üst Çizgi
         self.setStrokeColor(colors.HexColor('#E5E7EB'))
@@ -129,7 +129,7 @@ def make_styled_table(headers, rows, widths=None):
     ]))
     return t
 
-def build_pdf(filename="ZorbayaDur_Sistem_Mimarisi_ve_Algoritmalar.pdf"):
+def build_pdf(filename="KOZA_Sistem_Mimarisi_ve_Algoritmalar.pdf"):
     # Doküman Ayarları
     # A4: 595.27 x 841.89 pt. 54 pt margin = 0.75 inç.
     doc = SimpleDocTemplate(
@@ -254,7 +254,7 @@ def build_pdf(filename="ZorbayaDur_Sistem_Mimarisi_ve_Algoritmalar.pdf"):
 
     # --- KAPAK SAYFASI ---
     story.append(Spacer(1, 100))
-    story.append(Paragraph("🛑 ZORBAYA DUR", ParagraphStyle('CoverLogo', fontName=FONT_BOLD, fontSize=32, leading=38, textColor=ACCENT_RED, spaceAfter=20)))
+    story.append(Paragraph("🦋 KOZA", ParagraphStyle('CoverLogo', fontName=FONT_BOLD, fontSize=32, leading=38, textColor=ACCENT_RED, spaceAfter=20)))
     story.append(Paragraph("Sistem Mimarisi, Teknolojik Altyapı ve Yapay Zeka Algoritmaları", title_style))
     story.append(Paragraph("Okullarda Akran Zorbalığını Önleme ve Analiz Platformu Teknik Dokümantasyonu", subtitle_style))
     
@@ -263,7 +263,7 @@ def build_pdf(filename="ZorbayaDur_Sistem_Mimarisi_ve_Algoritmalar.pdf"):
     # Kapak Bilgi Kutusu (Table)
     metadata_data = [
         [Paragraph("<b>Hazırlayan:</b> Geliştirici ve Sistem Mimarı Ekibi", metadata_style)],
-        [Paragraph("<b>Proje Adı:</b> Zorbaya Dur De (ZorbayaDur)", metadata_style)],
+        [Paragraph("<b>Proje Adı:</b> KOZA (Okullarda Akran Zorbalığına Karşı Koruma Platformu)", metadata_style)],
         [Paragraph("<b>Tarih:</b> 30 Haziran 2026", metadata_style)],
         [Paragraph("<b>Sürüm:</b> v1.0.0", metadata_style)],
         [Paragraph("<b>Erişim Seviyesi:</b> PDR, Okul Yönetimi ve MEB Yetkilileri (Gizli)", metadata_style)],
@@ -291,11 +291,17 @@ def build_pdf(filename="ZorbayaDur_Sistem_Mimarisi_ve_Algoritmalar.pdf"):
         "zorbalıkları bildirmekten çekinmektedirler.", body_style))
         
     story.append(Paragraph(
-        "<b>Zorbaya Dur De</b> platformu, bu engelleri aşmak amacıyla geliştirilmiş web tabanlı, uçtan uca güvenli ve yapay zeka "
+        "<b>KOZA</b> platformu, bu engelleri aşmak amacıyla geliştirilmiş web tabanlı, uçtan uca güvenli ve yapay zeka "
         "destekli bir akran zorbalığı tespit ve erken uyarı sistemidir. Öğrencilerin tamamen güvenli ve kendi belirledikleri "
         "gizlilik kademelerine uygun olarak (anonim veya kimlik kontrollü) ihbarlar yapabilmelerini sağlar. Eş zamanlı olarak, "
         "sisteme düşen bildirimler gelişmiş yapay zeka modelleri tarafından anlık olarak işlenerek kategorize edilir, risk derecelendirmesi "
         "yapılır ve okul psikolojik danışmanlarına (PDR) eyleme geçirilebilir içgörüler sunulur.", body_style))
+
+    story.append(Paragraph("KOZA Akronim Manifestosu:", h2_style))
+    story.append(Paragraph("• <b>K – Korkularına teslim olma:</b> Yalnız değilsin; sesini güvenle duyurabileceğin korunaklı bir alandasın.", bullet_style))
+    story.append(Paragraph("• <b>O – Omuzundaki yükü paylaş:</b> Tek başına susmak ve taşımak zorunda değilsin; yaşadıklarını güvenle anlatıp yükünü hafiflet.", bullet_style))
+    story.append(Paragraph("• <b>Z – Zorda kalana el ver:</b> Akranlarına destek ol; haksızlığa karşı sessiz kalmayarak çözümün parçası ol.", bullet_style))
+    story.append(Paragraph("• <b>A – Aydınlığa birlikte kanat aç:</b> Korku ve baskıyı geride bırak; potansiyelini güvenle ve özgürce ortaya çıkar.", bullet_style))
 
     story.append(Paragraph("Platformun 4 Temel Direği:", h2_style))
     story.append(Paragraph("• <b>Gizlilik Güvencesi:</b> Öğrenci kimlik bilgileri istemci tarafında şifrelenir ve kademeli yetkilendirme ile saklanır.", bullet_style))
@@ -308,7 +314,7 @@ def build_pdf(filename="ZorbayaDur_Sistem_Mimarisi_ve_Algoritmalar.pdf"):
     story.append(HRFlowable(width="100%", thickness=1, color=PRIMARY_COLOR, spaceBefore=2, spaceAfter=10))
     
     story.append(Paragraph(
-        "Zorbaya Dur, modern bulut teknolojileri ve sunucusuz (serverless) mimari prensipleri doğrultusunda modüler bir yapıda tasarlanmıştır. "
+        "KOZA, modern bulut teknolojileri ve sunucusuz (serverless) mimari prensipleri doğrultusunda modüler bir yapıda tasarlanmıştır. "
         "Sistem katmanları, verilerin maksimum gizliliğini ve yapay zeka isteklerinin minimum gecikme süresi ile çalışmasını garanti edecek şekilde bölünmüştür.", body_style))
 
     # Mimari Tablosu
@@ -549,7 +555,7 @@ $$ LANGUAGE plpgsql SECURITY DEFINER;"""
     story.append(HRFlowable(width="100%", thickness=1, color=PRIMARY_COLOR, spaceBefore=2, spaceAfter=10))
     
     story.append(Paragraph(
-        "Zorbaya Dur De platformu; Next.js modüler yapısı, Supabase'in güçlü ilişkisel veritabanı ve PostgreSQL RLS koruması, "
+        "KOZA platformu; Next.js modüler yapısı, Supabase'in güçlü ilişkisel veritabanı ve PostgreSQL RLS koruması, "
         "istemci tarafı AES şifreleme güvenliği ve Groq altyapısının sağladığı yüksek hızlı LLM analiz yetenekleri ile "
         "akran zorbalığıyla mücadelede modern, hızlı ve güvenli bir dijital çözümdür.", body_style))
 
@@ -569,7 +575,7 @@ $$ LANGUAGE plpgsql SECURITY DEFINER;"""
     print(f"Rapor başarıyla oluşturuldu: {filename}")
 
 if __name__ == "__main__":
-    output_pdf = "ZorbayaDur_Sistem_Mimarisi_ve_Algoritmalar.pdf"
+    output_pdf = "KOZA_Sistem_Mimarisi_ve_Algoritmalar.pdf"
     if len(sys.argv) > 1:
         output_pdf = sys.argv[1]
     build_pdf(output_pdf)

@@ -9,7 +9,9 @@ export const WEAK_PASSWORDS = [
   "admin123!",
   "1234567890",
   "zorbayadur123",
-  "zorbayadur!"
+  "zorbayadur!",
+  "koza123",
+  "koza!"
 ];
 
 export function validatePasswordComplexity(password: string): { isValid: boolean; error?: string } {

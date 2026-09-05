@@ -10,6 +10,7 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Shield, ShieldAlert, ShieldCheck, Send, EyeOff, Info, CheckCircle2, Loader2, ArrowLeft, ArrowRight, Paperclip, User, GraduationCap, Check, X, FileText, CheckCircle, AlertTriangle, MessageSquare } from "lucide-react";
 import Link from "next/link";
+import Image from "next/image";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { toast } from "sonner";
 import { supabase } from "@/lib/supabase";
@@ -312,9 +313,11 @@ export default function StudentReportPage() {
             <span className="hidden sm:inline">İhbarlarıma Dön</span>
           </Link>
         )}
-        <div className="flex items-center gap-2 mx-auto">
-          <Shield className="h-6 w-6 text-rose-500" />
-          <span className="font-bold text-lg tracking-tight text-slate-900 dark:text-white">Öğrenci Paneli</span>
+        <div className="flex items-center gap-2.5 mx-auto">
+          <div className="relative w-7 h-7 rounded-lg overflow-hidden">
+            <Image src="/icon.png" alt="KOZA Logo" fill className="object-contain" priority />
+          </div>
+          <span className="font-bold text-lg tracking-tight text-slate-900 dark:text-white">KOZA Güvenli Bildirim Portalı</span>
         </div>
         <div className="flex justify-end w-[88px] sm:w-[100px]">
           <ThemeToggle />
@@ -577,6 +580,11 @@ export default function StudentReportPage() {
                   </div>
                 </div>
 
+                <div className="p-3 bg-emerald-500/[0.05] border border-emerald-500/20 rounded-xl text-[11px] text-emerald-800 dark:text-emerald-300 flex items-start gap-2">
+                  <ShieldCheck className="w-4 h-4 text-emerald-500 shrink-0 mt-0.5" />
+                  <span><strong>KOZA KVKK ve Gizlilik Güvencesi:</strong> Bildiriminiz 6698 sayılı KVKK ve MEB Okul Güvenliği Yönergesi kapsamında uçtan uca korunur. Seçtiğiniz gizlilik kademesine göre kimliğiniz asla yetkisiz kişilerle paylaşılmaz.</span>
+                </div>
+
                 <div className="flex gap-4">
                   <Button type="button" variant="outline" onClick={() => setStep(2)} className="w-1/3 h-12">
                     Geri
@@ -623,7 +631,7 @@ export default function StudentReportPage() {
 
                 {/* YZ Destek Mesajı */}
                 <div className="p-4 bg-gradient-to-br from-rose-50 to-pink-50 dark:from-rose-950/20 dark:to-pink-950/20 border border-rose-100 dark:border-rose-800/40 rounded-xl text-left shadow-sm">
-                  <span className="text-[10px] font-bold text-rose-500 dark:text-rose-455 uppercase tracking-wider block mb-1">🤖 YZ Psikolojik Destek Asistanı</span>
+                  <span className="text-[10px] font-bold text-rose-500 dark:text-rose-455 uppercase tracking-wider block mb-1">🤖 KOZA Psikolojik Destek Asistanı</span>
                   {supportMessage ? (
                     <div className="space-y-3">
                       <p className="text-xs text-slate-700 dark:text-slate-300 leading-relaxed italic">
