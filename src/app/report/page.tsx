@@ -300,8 +300,8 @@ export default function StudentReportPage() {
   };
 
   return (
-    <div className="flex flex-col min-h-[100dvh] bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-50">
-      <header className="px-6 lg:px-14 h-20 flex items-center border-b border-slate-200 dark:border-slate-800/50 bg-white/80 dark:bg-slate-950/80 backdrop-blur-md sticky top-0 z-50">
+    <div className="flex flex-col min-h-[100dvh] bg-[#F8FAFC] dark:bg-[#070D18] text-slate-900 dark:text-slate-50">
+      <header className="px-6 lg:px-14 h-20 flex items-center border-b border-slate-200/80 dark:border-blue-900/20 bg-white/80 dark:bg-[#070D18]/80 backdrop-blur-md sticky top-0 z-50">
         {step > 1 && step < 4 ? (
           <button onClick={() => setStep(step - 1)} className="flex items-center gap-2 text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition-colors mr-6">
             <ArrowLeft className="h-5 w-5" />
@@ -328,7 +328,7 @@ export default function StudentReportPage() {
         {/* Step Progress Bar */}
         <div className="mb-8 p-4 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-850 rounded-2xl shadow-sm animate-fade-in-up">
           <div className="flex items-center justify-between mb-4">
-            <span className="text-xs font-semibold text-rose-600 dark:text-rose-400 uppercase tracking-wider">
+            <span className="text-xs font-semibold text-blue-600 dark:text-blue-400 uppercase tracking-wider">
               {step === 1 && "Adım 1: Ne Yaşandı?"}
               {step === 2 && "Adım 2: Gizlilik Tercihi"}
               {step === 3 && "Adım 3: Onay ve KVKK"}
@@ -341,16 +341,16 @@ export default function StudentReportPage() {
               <div key={s} className="flex items-center flex-1 last:flex-none">
                 <div className={`w-7 h-7 rounded-full flex items-center justify-center font-bold text-xs border transition-all duration-300 ${
                   step === s
-                    ? "bg-rose-600 border-rose-600 text-white shadow-md shadow-rose-900/30 scale-105"
+                    ? "bg-gradient-to-r from-blue-600 to-indigo-600 border-blue-600 text-white shadow-md shadow-blue-500/25 scale-105"
                     : step > s
-                    ? "bg-green-500 border-green-500 text-white"
+                    ? "bg-emerald-500 border-emerald-500 text-white"
                     : "bg-slate-100 dark:bg-slate-950 border-slate-200 dark:border-slate-800 text-slate-400"
                 }`}>
                   {step > s ? "✓" : s}
                 </div>
                 {s < 4 && (
                   <div className={`flex-1 h-1 mx-2 rounded transition-all duration-300 ${
-                    step > s ? "bg-green-500" : "bg-slate-200 dark:bg-slate-800"
+                    step > s ? "bg-emerald-500" : "bg-slate-200 dark:bg-slate-800"
                   }`} />
                 )}
               </div>
@@ -465,7 +465,7 @@ export default function StudentReportPage() {
                   </div>
                 </div>
 
-                <Button type="submit" className="w-full h-12 bg-rose-600 hover:bg-rose-700 text-white rounded-xl transition-all shadow-md group">
+                <Button type="submit" className="w-full h-12 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white rounded-xl transition-all shadow-md shadow-blue-500/20 group font-semibold">
                   Devam Et <ArrowRight className="ml-2 h-4 w-4 group-hover:translate-x-1 transition-transform" />
                 </Button>
               </form>
@@ -538,7 +538,7 @@ export default function StudentReportPage() {
                   <Button type="button" variant="outline" onClick={() => setStep(1)} className="w-1/3 h-12">
                     Geri
                   </Button>
-                  <Button type="submit" className="flex-1 h-12 bg-rose-600 hover:bg-rose-700 text-white rounded-xl">
+                  <Button type="submit" className="flex-1 h-12 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white rounded-xl shadow-md shadow-blue-500/20 font-semibold">
                     Devam Et
                   </Button>
                 </div>
@@ -573,7 +573,7 @@ export default function StudentReportPage() {
                     </div>
                     <div>
                       <span className="text-slate-500 block">Kimlik Bilgisi</span>
-                      <span className="font-mono font-bold text-rose-500">
+                      <span className="font-mono font-bold text-blue-600 dark:text-blue-400">
                         {identityLevel === 1 ? "************" : `${studentName} (${studentClass})`}
                       </span>
                     </div>
@@ -592,12 +592,12 @@ export default function StudentReportPage() {
                   <Button 
                     disabled={isSubmitting} 
                     onClick={handleFormSubmit}
-                    className="flex-1 h-12 bg-rose-600 hover:bg-rose-700 text-white rounded-xl shadow-md transition-all flex items-center justify-center gap-2"
+                    className="flex-1 h-12 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white rounded-xl shadow-md shadow-blue-500/25 transition-all flex items-center justify-center gap-2 font-semibold"
                   >
                     {isSubmitting ? (
                       <><Loader2 className="w-4 h-4 animate-spin" /> Şifreleniyor...</>
                     ) : (
-                      <><Send className="w-4 h-4" /> İhbarı Gönder</>
+                      <><Send className="w-4 h-4" /> Güvenle Gönder</>
                     )}
                   </Button>
                 </div>
@@ -630,8 +630,8 @@ export default function StudentReportPage() {
                 )}
 
                 {/* YZ Destek Mesajı */}
-                <div className="p-4 bg-gradient-to-br from-rose-50 to-pink-50 dark:from-rose-950/20 dark:to-pink-950/20 border border-rose-100 dark:border-rose-800/40 rounded-xl text-left shadow-sm">
-                  <span className="text-[10px] font-bold text-rose-500 dark:text-rose-455 uppercase tracking-wider block mb-1">🤖 KOZA Psikolojik Destek Asistanı</span>
+                <div className="p-4 bg-gradient-to-br from-blue-50/70 via-sky-50/40 to-amber-50/30 dark:from-blue-950/30 dark:via-slate-900/50 dark:to-amber-950/20 border border-blue-200/70 dark:border-blue-800/40 rounded-xl text-left shadow-sm">
+                  <span className="text-[10px] font-bold text-blue-600 dark:text-blue-400 uppercase tracking-wider block mb-1">🤖 KOZA Psikolojik Destek Asistanı</span>
                   {supportMessage ? (
                     <div className="space-y-3">
                       <p className="text-xs text-slate-700 dark:text-slate-300 leading-relaxed italic">
@@ -639,7 +639,7 @@ export default function StudentReportPage() {
                       </p>
                       
                       {/* Safety Disclaimer */}
-                      <p className="text-[10px] font-semibold text-amber-600 dark:text-amber-450 border-t border-rose-100 dark:border-rose-900/45 pt-2 leading-relaxed">
+                      <p className="text-[10px] font-semibold text-amber-600 dark:text-amber-450 border-t border-blue-100 dark:border-blue-900/30 pt-2 leading-relaxed">
                         ⚠️ Bu mesaj ilk duygusal destek amaçlıdır, profesyonel psikolojik danışmanlık yerine geçmez.
                       </p>
 
@@ -652,7 +652,7 @@ export default function StudentReportPage() {
                             }
                             router.push('/dashboard/student');
                           }}
-                          className="w-full bg-rose-600 hover:bg-rose-700 text-white font-semibold text-xs py-2 rounded-lg flex items-center justify-center gap-1.5 shadow-sm"
+                          className="w-full bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-semibold text-xs py-2 rounded-lg flex items-center justify-center gap-1.5 shadow-sm shadow-blue-500/20"
                         >
                           <MessageSquare className="w-3.5 h-3.5" /> PDR ile Görüşme Talep Et (Mesajlaşma Paneli)
                         </Button>
@@ -660,7 +660,7 @@ export default function StudentReportPage() {
                     </div>
                   ) : (
                     <div className="flex items-center gap-2 text-xs text-slate-500 dark:text-slate-400">
-                      <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                      <Loader2 className="h-3.5 w-3.5 animate-spin text-blue-600" />
                       <span>Kişiselleştirilmiş destek mesajı hazırlanıyor...</span>
                     </div>
                   )}
@@ -669,7 +669,7 @@ export default function StudentReportPage() {
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-left">
                   <div className="p-4 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800/80 rounded-xl shadow-sm space-y-1">
                     <span className="text-[10px] text-slate-400 font-mono">Takip Kodu:</span>
-                    <div className="text-lg font-bold tracking-wider text-rose-500 dark:text-rose-455">{trackingCode}</div>
+                    <div className="text-lg font-bold tracking-wider text-blue-600 dark:text-blue-400 font-mono">{trackingCode}</div>
                     <p className="text-[10px] text-slate-500">Bu kod ile ileride durum sorgulaması yapabilirsiniz.</p>
                   </div>
 
@@ -715,9 +715,9 @@ export default function StudentReportPage() {
                     setStudentName("");
                     setStudentClass("");
                   }} 
-                  className="w-full h-12 bg-rose-600 hover:bg-rose-700 text-white rounded-xl"
+                  className="w-full h-12 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white rounded-xl shadow-md shadow-blue-500/20 font-semibold"
                 >
-                  Yeni Bir İhbar Oluştur
+                  Yeni Bir Bildirim / Paylaşım Yap
                 </Button>
               </div>
             )}

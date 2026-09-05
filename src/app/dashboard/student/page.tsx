@@ -121,8 +121,8 @@ export default function StudentDashboard() {
   };
 
   return (
-    <div className="flex flex-col min-h-[100dvh] bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-50">
-      <header className="px-6 h-16 flex items-center border-b border-slate-200 dark:border-slate-800/50 bg-white/80 dark:bg-slate-900/80 backdrop-blur-md sticky top-0 z-50">
+    <div className="flex flex-col min-h-[100dvh] bg-[#F8FAFC] dark:bg-[#070D18] text-slate-900 dark:text-slate-50">
+      <header className="px-6 h-16 flex items-center border-b border-slate-200/80 dark:border-blue-900/20 bg-white/80 dark:bg-[#070D18]/80 backdrop-blur-md sticky top-0 z-50">
         <div className="flex items-center gap-2.5">
           <div className="relative w-7 h-7 rounded-lg overflow-hidden">
             <Image src="/icon.png" alt="KOZA Logo" fill className="object-contain" priority />
@@ -142,12 +142,12 @@ export default function StudentDashboard() {
       <main className="flex-1 p-6 lg:p-8 space-y-8 max-w-7xl mx-auto w-full">
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 animate-fade-in-up">
           <div>
-            <h1 className="text-3xl font-bold tracking-tight text-slate-900 dark:text-white mb-1">İhbarlarım</h1>
-            <p className="text-slate-600 dark:text-slate-400">Yaptığınız ihbarların durumunu ve PDR ile olan anonim mesajlarınızı buradan takip edin.</p>
+            <h1 className="text-3xl font-bold tracking-tight text-slate-900 dark:text-white mb-1">Paylaşımlarım ve Bildirimlerim</h1>
+            <p className="text-slate-600 dark:text-slate-400">Yaptığınız paylaşımların durumunu ve rehberlik servisiyle olan güvenli mesajlarınızı buradan takip edin.</p>
           </div>
           <Link href="/report">
-            <Button className="bg-rose-600 hover:bg-rose-700 text-white shadow-lg shadow-rose-900/20">
-              <Plus className="w-4 h-4 mr-2" /> Yeni İhbar Yap
+            <Button className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white shadow-md shadow-blue-500/20 font-semibold rounded-xl">
+              <Plus className="w-4 h-4 mr-2" /> Yeni Bildirim / Paylaşım
             </Button>
           </Link>
         </div>

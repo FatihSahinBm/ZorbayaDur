@@ -67,8 +67,8 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="flex flex-col min-h-[100dvh] bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-50 items-center justify-center p-4 relative overflow-hidden">
-      <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-rose-100/50 via-slate-50 to-slate-50 dark:from-rose-900/20 dark:via-slate-950 dark:to-slate-950 -z-10" />
+    <div className="flex flex-col min-h-[100dvh] bg-[#F8FAFC] dark:bg-[#070D18] text-slate-900 dark:text-slate-50 items-center justify-center p-4 relative overflow-hidden">
+      <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-blue-100/40 via-slate-50 to-slate-50 dark:from-blue-950/30 dark:via-[#070D18] dark:to-[#070D18] -z-10" />
       
       <div className="absolute top-8 right-8">
         <ThemeToggle />
@@ -82,7 +82,7 @@ export default function LoginPage() {
       </Link>
 
       <div className="w-full max-w-md animate-fade-in-up">
-        <Card className="bg-white/80 dark:bg-slate-900/80 border-slate-200 dark:border-slate-800 backdrop-blur-xl shadow-2xl shadow-rose-900/5 dark:shadow-rose-900/10">
+        <Card className="bg-white/85 dark:bg-slate-900/85 border-slate-200/90 dark:border-slate-800 backdrop-blur-xl shadow-2xl shadow-blue-950/5 dark:shadow-blue-950/30">
           <CardHeader className="space-y-2 text-center pb-8">
             <div className="mx-auto w-16 h-16 relative rounded-2xl overflow-hidden mb-3 shadow-md">
               <Image src="/icon.png" alt="KOZA Logo" fill className="object-contain" priority />
@@ -95,24 +95,24 @@ export default function LoginPage() {
           <CardContent>
             <Tabs defaultValue="student" className="w-full">
               <TabsList className="grid w-full grid-cols-4 mb-8 bg-slate-100 dark:bg-slate-950/50 p-1 border border-slate-200 dark:border-slate-800 rounded-xl">
-                <TabsTrigger value="student" className="rounded-lg data-[state=active]:bg-rose-600 data-[state=active]:text-white dark:data-[state=active]:text-white transition-all text-slate-600 dark:text-slate-400">Öğrenci</TabsTrigger>
-                <TabsTrigger value="teacher" className="rounded-lg data-[state=active]:bg-purple-600 data-[state=active]:text-white dark:data-[state=active]:text-white transition-all text-slate-600 dark:text-slate-400">Öğretmen</TabsTrigger>
-                <TabsTrigger value="pdr" className="rounded-lg data-[state=active]:bg-blue-600 data-[state=active]:text-white dark:data-[state=active]:text-white transition-all text-slate-600 dark:text-slate-400">PDR</TabsTrigger>
-                <TabsTrigger value="meb" className="rounded-lg data-[state=active]:bg-amber-600 data-[state=active]:text-white dark:data-[state=active]:text-white transition-all text-slate-600 dark:text-slate-400">MEB</TabsTrigger>
+                <TabsTrigger value="student" className="rounded-lg data-[state=active]:bg-blue-600 data-[state=active]:text-white dark:data-[state=active]:text-white transition-all text-slate-600 dark:text-slate-400 font-medium">Öğrenci</TabsTrigger>
+                <TabsTrigger value="teacher" className="rounded-lg data-[state=active]:bg-purple-600 data-[state=active]:text-white dark:data-[state=active]:text-white transition-all text-slate-600 dark:text-slate-400 font-medium">Öğretmen</TabsTrigger>
+                <TabsTrigger value="pdr" className="rounded-lg data-[state=active]:bg-indigo-600 data-[state=active]:text-white dark:data-[state=active]:text-white transition-all text-slate-600 dark:text-slate-400 font-medium">PDR</TabsTrigger>
+                <TabsTrigger value="meb" className="rounded-lg data-[state=active]:bg-amber-600 data-[state=active]:text-white dark:data-[state=active]:text-white transition-all text-slate-600 dark:text-slate-400 font-medium">MEB</TabsTrigger>
               </TabsList>
               
               <TabsContent value="student" className="animate-fade-in">
                 <form onSubmit={(e) => handleLogin(e, "student")} className="space-y-4">
                   <div className="space-y-2">
                     <Label htmlFor="student-id" className="text-slate-700 dark:text-slate-300">Kullanıcı Adı</Label>
-                    <Input id="student-id" placeholder="Örn: 1234" required className="bg-slate-50 dark:bg-slate-950 border-slate-200 dark:border-slate-800 focus-visible:ring-rose-500 text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-600 h-12" defaultValue="1234" />
+                    <Input id="student-id" placeholder="Örn: 1234" required className="bg-slate-50 dark:bg-slate-950 border-slate-200 dark:border-slate-800 focus-visible:ring-blue-500 text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-600 h-12" defaultValue="1234" />
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="student-pass" className="text-slate-700 dark:text-slate-300">Şifre</Label>
-                    <Input id="student-pass" type="password" required className="bg-slate-50 dark:bg-slate-950 border-slate-200 dark:border-slate-800 focus-visible:ring-rose-500 text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-600 h-12" defaultValue="1234" />
+                    <Input id="student-pass" type="password" required className="bg-slate-50 dark:bg-slate-950 border-slate-200 dark:border-slate-800 focus-visible:ring-blue-500 text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-600 h-12" defaultValue="1234" />
                   </div>
                   <div className="pt-4">
-                    <Button type="submit" disabled={isLoading} className="w-full h-12 bg-rose-600 hover:bg-rose-700 text-white text-base rounded-xl transition-all shadow-lg shadow-rose-900/20">
+                    <Button type="submit" disabled={isLoading} className="w-full h-12 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white text-base rounded-xl transition-all shadow-lg shadow-blue-500/20 font-semibold">
                       {isLoading ? <Loader2 className="mr-2 h-5 w-5 animate-spin" /> : <><LockIcon className="mr-2 h-4 w-4" /> Güvenli Giriş Yap</>}
                     </Button>
                     <p className="text-center text-xs text-slate-500 dark:text-slate-400 mt-4 flex items-center justify-center gap-1">

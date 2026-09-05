@@ -95,8 +95,8 @@ export default function PublicStatsPage() {
   }, [reports]);
 
   return (
-    <div className="flex flex-col min-h-[100dvh] bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-50">
-      <header className="px-6 lg:px-14 h-20 flex items-center border-b border-slate-200 dark:border-slate-800/50 bg-white/80 dark:bg-slate-950/80 backdrop-blur-md sticky top-0 z-50">
+    <div className="flex flex-col min-h-[100dvh] bg-[#F8FAFC] dark:bg-[#070D18] text-slate-900 dark:text-slate-50">
+      <header className="px-6 lg:px-14 h-20 flex items-center border-b border-slate-200/80 dark:border-blue-900/20 bg-white/80 dark:bg-[#070D18]/80 backdrop-blur-md sticky top-0 z-50">
         <Link href="/" className="flex items-center gap-2 text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition-colors mr-6">
           <ArrowLeft className="h-5 w-5" />
           <span className="hidden sm:inline">Ana Sayfa</span>
@@ -115,30 +115,30 @@ export default function PublicStatsPage() {
       <main className="flex-1 container max-w-5xl mx-auto py-12 px-4 space-y-8">
         
         {/* Banner Card */}
-        <div className="relative overflow-hidden rounded-3xl bg-gradient-to-r from-rose-500 to-pink-600 p-8 md:p-12 text-white shadow-xl animate-fade-in-up">
-          <div className="absolute right-0 bottom-0 opacity-10 translate-x-10 translate-y-10">
-            <Shield className="w-80 h-80" />
+        <div className="relative overflow-hidden rounded-3xl bg-gradient-to-r from-blue-700 via-indigo-800 to-slate-900 p-8 md:p-12 text-white shadow-xl shadow-blue-950/20 animate-fade-in-up border border-blue-600/20">
+          <div className="absolute right-0 bottom-0 opacity-15 translate-x-10 translate-y-10">
+            <Shield className="w-80 h-80 text-blue-300" />
           </div>
           
           <div className="max-w-2xl space-y-4 relative z-10">
-            <Badge className="bg-white/20 hover:bg-white/30 text-white border-none text-xs px-3 py-1 font-semibold uppercase tracking-wider">
+            <Badge className="bg-white/15 hover:bg-white/25 text-blue-100 border-none text-xs px-3 py-1 font-semibold uppercase tracking-wider">
               Kamu Bilgilendirme Sayfası
             </Badge>
             <h1 className="text-3xl md:text-5xl font-extrabold tracking-tight">
               Sessiz Kalma, KOZA ile Güvendesin!
             </h1>
-            <p className="text-sm md:text-base text-rose-50 leading-relaxed font-light">
-              Bu portal, okullardaki akran zorbalığı vakalarını önlemek, öğrencilerimize güvenli ve korunaklı bir eğitim ortamı sunmak amacıyla kurulmuştur. Aşağıdaki tüm istatistikler KVKK kuralları çerçevesinde tamamen anonimleştirilmiştir.
+            <p className="text-sm md:text-base text-blue-100/90 leading-relaxed font-light">
+              Bu portal, okullardaki akran zorbalığı vakalarını önlemek, öğrencilerimize güvenli, şefkatli ve korunaklı bir eğitim ortamı sunmak amacıyla kurulmuştur. Aşağıdaki tüm istatistikler KVKK kuralları çerçevesinde tamamen anonimleştirilmiştir.
             </p>
-            <div className="pt-4 flex items-center gap-2 font-mono text-xl md:text-2xl font-bold bg-white/10 w-fit px-6 py-3 rounded-2xl border border-white/20">
-              ⚡ KOZA sayesinde <span className="underline decoration-pink-300 decoration-wavy px-1">{isLoading ? "..." : totalCount}</span> öğrenci sesini duyurdu.
+            <div className="pt-4 flex items-center gap-2 font-mono text-xl md:text-2xl font-bold bg-white/10 w-fit px-6 py-3 rounded-2xl border border-white/20 shadow-inner">
+              ⚡ KOZA sayesinde <span className="underline decoration-amber-400 decoration-wavy px-1">{isLoading ? "..." : totalCount}</span> öğrenci sesini duyurdu.
             </div>
           </div>
         </div>
 
         {isLoading ? (
           <div className="p-24 flex flex-col items-center justify-center gap-3">
-            <Loader2 className="w-10 h-10 animate-spin text-rose-500" />
+            <Loader2 className="w-10 h-10 animate-spin text-blue-600" />
             <p className="text-sm text-slate-500">Canlı veriler yükleniyor...</p>
           </div>
         ) : (
