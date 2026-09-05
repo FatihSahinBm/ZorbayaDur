@@ -397,31 +397,72 @@ export type Database = {
         Row: {
           id: string
           name: string
-          school_code: string
+          code: string
+          school_code?: string
           student_count: number | null
           pdr_count: number | null
-          principal_count: number | null
+          admin_count: number | null
+          principal_count?: number | null
           created_at: string
         }
         Insert: {
           id?: string
           name: string
-          school_code: string
+          code: string
+          school_code?: string
           student_count?: number | null
           pdr_count?: number | null
+          admin_count?: number | null
           principal_count?: number | null
           created_at?: string
         }
         Update: {
           id?: string
           name?: string
+          code?: string
           school_code?: string
           student_count?: number | null
           pdr_count?: number | null
+          admin_count?: number | null
           principal_count?: number | null
           created_at?: string
         }
         Relationships: []
+      }
+      school_accounts: {
+        Row: {
+          id: string
+          school_id: string
+          user_code: string
+          password_hash: string
+          role: string
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          school_id: string
+          user_code: string
+          password_hash: string
+          role: string
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          school_id?: string
+          user_code?: string
+          password_hash?: string
+          role?: string
+          created_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "school_accounts_school_id_fkey"
+            columns: ["school_id"]
+            isOneToOne: false
+            referencedRelation: "schools"
+            referencedColumns: ["id"]
+          }
+        ]
       }
       school_users: {
         Row: {

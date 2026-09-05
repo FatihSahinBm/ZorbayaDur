@@ -5,14 +5,15 @@ import Image from "next/image";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Shield, ArrowRight, Loader2 } from "lucide-react";
+import { Shield, Loader2 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { toast } from "sonner";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { supabase } from "@/lib/supabase";
+import { verifyPassword } from "@/lib/auth/hash";
 
 export default function LoginPage() {
   const [isLoading, setIsLoading] = useState(false);
@@ -27,33 +28,61 @@ export default function LoginPage() {
         const mebEmail = (document.getElementById('meb-email') as HTMLInputElement)?.value?.trim();
         const mebPass = (document.getElementById('meb-pass') as HTMLInputElement)?.value?.trim();
 
-        // Super Admin Hardcoded Bypass
+        // 1. Super Admin Hardcoded Bypass
         if (mebEmail === "superadmin" && mebPass === "super123") {
           localStorage.setItem('role', 'superadmin');
           router.push("/admin/dashboard");
           return;
         }
 
-        // Real Principal Login
+        // 2. Query school_accounts table (Prefix-based unique account)
         if (supabase) {
-          const { data, error } = await supabase
+          const { data: acc } = await supabase
+            .from("school_accounts")
+            .select("*")
+            .eq("user_code", mebEmail.toUpperCase())
+            .maybeSingle();
+
+          if (acc) {
+            if (acc.role !== "mudur" && acc.role !== "principal" && acc.role !== "meb") {
+              toast.error("Bu kullanıcı kodu İdare / MEB girişi için yetkili değildir.");
+              setIsLoading(false);
+              return;
+            }
+
+            const isValid = await verifyPassword(mebPass, acc.password_hash);
+            if (isValid) {
+              localStorage.setItem('role', 'meb');
+              localStorage.setItem('school_id', acc.school_id);
+              localStorage.setItem('user_code', acc.user_code);
+              router.push("/yonetici/ozet-panel");
+              return;
+            } else {
+              toast.error("Hatalı kullanıcı adı veya şifre!");
+              setIsLoading(false);
+              return;
+            }
+          }
+
+          // Legacy school_users fallback
+          const { data: legacyData } = await supabase
             .from("school_users")
             .select("*")
             .eq("username", mebEmail)
             .eq("password_plain", mebPass)
             .eq("role", "principal")
-            .single();
+            .maybeSingle();
 
-          if (data) {
+          if (legacyData) {
             localStorage.setItem('role', 'meb');
-            localStorage.setItem('school_id', data.school_id);
-            localStorage.setItem('username', data.username);
+            localStorage.setItem('school_id', legacyData.school_id);
+            localStorage.setItem('username', legacyData.username);
             router.push("/yonetici/ozet-panel");
             return;
           }
         }
 
-        // Fallback to legacy hardcoded login for demo purposes
+        // Fallback to demo hardcoded login
         if (mebEmail === "admin@meb.gov.tr" && mebPass === "123") {
           localStorage.setItem('role', 'meb');
           router.push("/yonetici/ozet-panel");
@@ -64,23 +93,53 @@ export default function LoginPage() {
         const studentId = (document.getElementById('student-id') as HTMLInputElement)?.value?.trim();
         const studentPass = (document.getElementById('student-pass') as HTMLInputElement)?.value?.trim();
         
+        // 1. Query school_accounts
         if (supabase) {
-          const { data, error } = await supabase
+          const { data: acc } = await supabase
+            .from("school_accounts")
+            .select("*")
+            .eq("user_code", studentId.toUpperCase())
+            .maybeSingle();
+
+          if (acc) {
+            if (acc.role !== "ogrenci" && acc.role !== "student") {
+              toast.error("Bu kullanıcı kodu Öğrenci girişi için yetkili değildir.");
+              setIsLoading(false);
+              return;
+            }
+
+            const isValid = await verifyPassword(studentPass, acc.password_hash);
+            if (isValid) {
+              localStorage.setItem('role', 'student');
+              localStorage.setItem('student_id', acc.user_code);
+              localStorage.setItem('school_id', acc.school_id);
+              router.push("/dashboard/student");
+              return;
+            } else {
+              toast.error("Hatalı kullanıcı adı veya şifre!");
+              setIsLoading(false);
+              return;
+            }
+          }
+
+          // Legacy school_users fallback
+          const { data: legacyData } = await supabase
             .from("school_users")
             .select("*")
             .eq("username", studentId)
             .eq("password_plain", studentPass)
             .eq("role", "student")
-            .single();
+            .maybeSingle();
 
-          if (data) {
+          if (legacyData) {
             localStorage.setItem('student_id', studentId);
-            localStorage.setItem('school_id', data.school_id);
+            localStorage.setItem('school_id', legacyData.school_id);
             router.push("/dashboard/student");
             return;
           }
         }
 
+        // Fallback to demo credentials
         if (studentId === "1234" && studentPass === "1234") {
           localStorage.setItem('student_id', studentId);
           router.push("/dashboard/student");
@@ -91,17 +150,46 @@ export default function LoginPage() {
         const pdrEmail = (document.getElementById('pdr-email') as HTMLInputElement)?.value?.trim();
         const pdrPass = (document.getElementById('pdr-pass') as HTMLInputElement)?.value?.trim();
 
+        // 1. Query school_accounts
         if (supabase) {
-          const { data, error } = await supabase
+          const { data: acc } = await supabase
+            .from("school_accounts")
+            .select("*")
+            .eq("user_code", pdrEmail.toUpperCase())
+            .maybeSingle();
+
+          if (acc) {
+            if (acc.role !== "pdr") {
+              toast.error("Bu kullanıcı kodu PDR girişi için yetkili değildir.");
+              setIsLoading(false);
+              return;
+            }
+
+            const isValid = await verifyPassword(pdrPass, acc.password_hash);
+            if (isValid) {
+              localStorage.setItem('role', 'pdr');
+              localStorage.setItem('school_id', acc.school_id);
+              localStorage.setItem('user_code', acc.user_code);
+              router.push("/dashboard/pdr");
+              return;
+            } else {
+              toast.error("Hatalı kullanıcı adı veya şifre!");
+              setIsLoading(false);
+              return;
+            }
+          }
+
+          // Legacy fallback
+          const { data: legacyData } = await supabase
             .from("school_users")
             .select("*")
             .eq("username", pdrEmail)
             .eq("password_plain", pdrPass)
             .eq("role", "pdr")
-            .single();
+            .maybeSingle();
 
-          if (data) {
-            localStorage.setItem('school_id', data.school_id);
+          if (legacyData) {
+            localStorage.setItem('school_id', legacyData.school_id);
             router.push("/dashboard/pdr");
             return;
           }
@@ -115,6 +203,36 @@ export default function LoginPage() {
       } else if (role === "teacher") {
         const teacherEmail = (document.getElementById('teacher-email') as HTMLInputElement)?.value?.trim();
         const teacherPass = (document.getElementById('teacher-pass') as HTMLInputElement)?.value?.trim();
+
+        // 1. Query school_accounts
+        if (supabase) {
+          const { data: acc } = await supabase
+            .from("school_accounts")
+            .select("*")
+            .eq("user_code", teacherEmail.toUpperCase())
+            .maybeSingle();
+
+          if (acc) {
+            if (acc.role !== "ogretmen" && acc.role !== "teacher") {
+              toast.error("Bu kullanıcı kodu Öğretmen girişi için yetkili değildir.");
+              setIsLoading(false);
+              return;
+            }
+
+            const isValid = await verifyPassword(teacherPass, acc.password_hash);
+            if (isValid) {
+              localStorage.setItem('role', 'teacher');
+              localStorage.setItem('school_id', acc.school_id);
+              localStorage.setItem('user_code', acc.user_code);
+              router.push("/dashboard/teacher");
+              return;
+            } else {
+              toast.error("Hatalı kullanıcı adı veya şifre!");
+              setIsLoading(false);
+              return;
+            }
+          }
+        }
 
         if (teacherEmail === "ogretmen@okul.k12.tr" && teacherPass === "123") {
           router.push("/dashboard/teacher");
@@ -167,8 +285,8 @@ export default function LoginPage() {
               <TabsContent value="student" className="animate-fade-in">
                 <form onSubmit={(e) => handleLogin(e, "student")} className="space-y-4">
                   <div className="space-y-2">
-                    <Label htmlFor="student-id" className="text-slate-700 dark:text-slate-300">Kullanıcı Adı</Label>
-                    <Input id="student-id" placeholder="Örn: 1234" required className="bg-slate-50 dark:bg-slate-950 border-slate-200 dark:border-slate-800 focus-visible:ring-blue-500 text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-600 h-12" defaultValue="1234" />
+                    <Label htmlFor="student-id" className="text-slate-700 dark:text-slate-300">Öğrenci Kodu / Kullanıcı Adı</Label>
+                    <Input id="student-id" placeholder="Örn: XRXF-001 veya 1234" required className="bg-slate-50 dark:bg-slate-950 border-slate-200 dark:border-slate-800 focus-visible:ring-blue-500 text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-600 h-12 font-mono" defaultValue="1234" />
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="student-pass" className="text-slate-700 dark:text-slate-300">Şifre</Label>
@@ -188,8 +306,8 @@ export default function LoginPage() {
               <TabsContent value="teacher" className="animate-fade-in">
                 <form onSubmit={(e) => handleLogin(e, "teacher")} className="space-y-4">
                   <div className="space-y-2">
-                    <Label htmlFor="teacher-email" className="text-slate-700 dark:text-slate-300">Kurumsal E-posta</Label>
-                    <Input id="teacher-email" type="email" placeholder="ogretmen@okul.k12.tr" required className="bg-slate-50 dark:bg-slate-950 border-slate-200 dark:border-slate-800 focus-visible:ring-purple-500 text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-600 h-12" defaultValue="ogretmen@okul.k12.tr" />
+                    <Label htmlFor="teacher-email" className="text-slate-700 dark:text-slate-300">Öğretmen Kodu / E-posta</Label>
+                    <Input id="teacher-email" placeholder="Örn: XRXF-OGR-01 veya ogretmen@okul.k12.tr" required className="bg-slate-50 dark:bg-slate-950 border-slate-200 dark:border-slate-800 focus-visible:ring-purple-500 text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-600 h-12 font-mono" defaultValue="ogretmen@okul.k12.tr" />
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="teacher-pass" className="text-slate-700 dark:text-slate-300">Şifre</Label>
@@ -206,8 +324,8 @@ export default function LoginPage() {
               <TabsContent value="pdr" className="animate-fade-in">
                 <form onSubmit={(e) => handleLogin(e, "pdr")} className="space-y-4">
                   <div className="space-y-2">
-                    <Label htmlFor="pdr-email" className="text-slate-700 dark:text-slate-300">Kurumsal E-posta</Label>
-                    <Input id="pdr-email" type="email" placeholder="pdr@okul.k12.tr" required className="bg-slate-50 dark:bg-slate-950 border-slate-200 dark:border-slate-800 focus-visible:ring-blue-500 text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-600 h-12" defaultValue="pdr@okul.k12.tr" />
+                    <Label htmlFor="pdr-email" className="text-slate-700 dark:text-slate-300">PDR Kodu / E-posta</Label>
+                    <Input id="pdr-email" placeholder="Örn: XRXF-PDR-01 veya pdr@okul.k12.tr" required className="bg-slate-50 dark:bg-slate-950 border-slate-200 dark:border-slate-800 focus-visible:ring-blue-500 text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-600 h-12 font-mono" defaultValue="pdr@okul.k12.tr" />
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="pdr-pass" className="text-slate-700 dark:text-slate-300">Şifre</Label>
@@ -224,8 +342,8 @@ export default function LoginPage() {
               <TabsContent value="meb" className="animate-fade-in">
                 <form onSubmit={(e) => handleLogin(e, "meb")} className="space-y-4">
                   <div className="space-y-2">
-                    <Label htmlFor="meb-email" className="text-slate-700 dark:text-slate-300">Kullanıcı Adı / MEB Sicil No / E-posta</Label>
-                    <Input id="meb-email" type="text" placeholder="superadmin veya admin@meb.gov.tr" required className="bg-slate-50 dark:bg-slate-950 border-slate-200 dark:border-slate-800 focus-visible:ring-amber-500 text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-600 h-12" defaultValue="superadmin" />
+                    <Label htmlFor="meb-email" className="text-slate-700 dark:text-slate-300">İdare Kodu / MEB Sicil / Kullanıcı Adı</Label>
+                    <Input id="meb-email" type="text" placeholder="Örn: XRXF-YNT-01 veya superadmin" required className="bg-slate-50 dark:bg-slate-950 border-slate-200 dark:border-slate-800 focus-visible:ring-amber-500 text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-600 h-12 font-mono" defaultValue="superadmin" />
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="meb-pass" className="text-slate-700 dark:text-slate-300">Şifre</Label>
