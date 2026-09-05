@@ -359,9 +359,15 @@ export default function AdminDashboard() {
 
         downloadCsv(schoolToReset.code, plainExportList);
       } else {
-        // 2. Generate new passwords for each existing account in RAM and update DB
+        // 2. Generate new passwords for each existing account in RAM and batch upsert
         const plainExportList: CsvExportItem[] = [];
-        const updatePromises: Promise<any>[] = [];
+        const accountsToUpsert: {
+          id: string;
+          school_id: string;
+          user_code: string;
+          password_hash: string;
+          role: string;
+        }[] = [];
 
         for (const acc of existingAccounts) {
           const pass = generateSafePassword(8);
@@ -378,24 +384,25 @@ export default function AdminDashboard() {
             password_plain: pass
           });
 
-          if (supabase) {
-            updatePromises.push(
-              Promise.resolve(
-                supabase
-                  .from("school_accounts")
-                  .update({ password_hash: hash })
-                  .eq("id", acc.id)
-              )
-            );
-          }
+          accountsToUpsert.push({
+            id: acc.id,
+            school_id: schoolToReset.id,
+            user_code: acc.user_code,
+            password_hash: hash,
+            role: acc.role
+          });
         }
 
-        // Batch update in chunks of 50
-        if (supabase) {
-          const chunkSize = 50;
-          for (let i = 0; i < updatePromises.length; i += chunkSize) {
-            const batch = updatePromises.slice(i, i + chunkSize);
-            await Promise.all(batch);
+        // Toplu Güncelleme: 100'erli paketler halinde upsert işlemi
+        if (supabase && accountsToUpsert.length > 0) {
+          const chunkSize = 100;
+          for (let i = 0; i < accountsToUpsert.length; i += chunkSize) {
+            const chunk = accountsToUpsert.slice(i, i + chunkSize);
+            const { error: upsertErr } = await supabase
+              .from("school_accounts")
+              .upsert(chunk, { onConflict: "id" });
+
+            if (upsertErr) throw upsertErr;
           }
         }
 

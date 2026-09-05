@@ -12,8 +12,6 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { toast } from "sonner";
 import { ThemeToggle } from "@/components/theme-toggle";
-import { supabase } from "@/lib/supabase";
-import { verifyPassword } from "@/lib/auth/hash";
 
 export default function LoginPage() {
   const [isLoading, setIsLoading] = useState(false);
@@ -23,226 +21,52 @@ export default function LoginPage() {
     e.preventDefault();
     setIsLoading(true);
 
+    let userCode = "";
+    let password = "";
+
+    if (role === "student") {
+      userCode = (document.getElementById('student-id') as HTMLInputElement)?.value?.trim();
+      password = (document.getElementById('student-pass') as HTMLInputElement)?.value?.trim();
+    } else if (role === "teacher") {
+      userCode = (document.getElementById('teacher-email') as HTMLInputElement)?.value?.trim();
+      password = (document.getElementById('teacher-pass') as HTMLInputElement)?.value?.trim();
+    } else if (role === "pdr") {
+      userCode = (document.getElementById('pdr-email') as HTMLInputElement)?.value?.trim();
+      password = (document.getElementById('pdr-pass') as HTMLInputElement)?.value?.trim();
+    } else if (role === "meb") {
+      userCode = (document.getElementById('meb-email') as HTMLInputElement)?.value?.trim();
+      password = (document.getElementById('meb-pass') as HTMLInputElement)?.value?.trim();
+    }
+
     try {
-      if (role === "meb") {
-        const mebEmail = (document.getElementById('meb-email') as HTMLInputElement)?.value?.trim();
-        const mebPass = (document.getElementById('meb-pass') as HTMLInputElement)?.value?.trim();
+      // Secure Server-side Authentication Route Call
+      const res = await fetch("/api/auth/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ userCode, password, role })
+      });
 
-        // 1. Super Admin Hardcoded Bypass
-        if (mebEmail === "superadmin" && mebPass === "super123") {
-          localStorage.setItem('role', 'superadmin');
-          router.push("/admin/dashboard");
-          return;
-        }
+      const data = await res.json();
 
-        // 2. Query school_accounts table (Prefix-based unique account)
-        if (supabase) {
-          const { data: acc } = await supabase
-            .from("school_accounts")
-            .select("*")
-            .eq("user_code", mebEmail.toUpperCase())
-            .maybeSingle();
+      if (!res.ok || !data.success) {
+        toast.error(data.error || "Giriş başarısız!");
+        setIsLoading(false);
+        return;
+      }
 
-          if (acc) {
-            if (acc.role !== "mudur" && acc.role !== "principal" && acc.role !== "meb") {
-              toast.error("Bu kullanıcı kodu İdare / MEB girişi için yetkili değildir.");
-              setIsLoading(false);
-              return;
-            }
-
-            const isValid = await verifyPassword(mebPass, acc.password_hash);
-            if (isValid) {
-              localStorage.setItem('role', 'meb');
-              localStorage.setItem('school_id', acc.school_id);
-              localStorage.setItem('user_code', acc.user_code);
-              router.push("/yonetici/ozet-panel");
-              return;
-            } else {
-              toast.error("Hatalı kullanıcı adı veya şifre!");
-              setIsLoading(false);
-              return;
-            }
-          }
-
-          // Legacy school_users fallback
-          const { data: legacyData } = await supabase
-            .from("school_users")
-            .select("*")
-            .eq("username", mebEmail)
-            .eq("password_plain", mebPass)
-            .eq("role", "principal")
-            .maybeSingle();
-
-          if (legacyData) {
-            localStorage.setItem('role', 'meb');
-            localStorage.setItem('school_id', legacyData.school_id);
-            localStorage.setItem('username', legacyData.username);
-            router.push("/yonetici/ozet-panel");
-            return;
-          }
-        }
-
-        // Fallback to demo hardcoded login
-        if (mebEmail === "admin@meb.gov.tr" && mebPass === "123") {
-          localStorage.setItem('role', 'meb');
-          router.push("/yonetici/ozet-panel");
-        } else {
-          toast.error("Hatalı kullanıcı adı veya şifre!");
-        }
-      } else if (role === "student") {
-        const studentId = (document.getElementById('student-id') as HTMLInputElement)?.value?.trim();
-        const studentPass = (document.getElementById('student-pass') as HTMLInputElement)?.value?.trim();
-        
-        // 1. Query school_accounts
-        if (supabase) {
-          const { data: acc } = await supabase
-            .from("school_accounts")
-            .select("*")
-            .eq("user_code", studentId.toUpperCase())
-            .maybeSingle();
-
-          if (acc) {
-            if (acc.role !== "ogrenci" && acc.role !== "student") {
-              toast.error("Bu kullanıcı kodu Öğrenci girişi için yetkili değildir.");
-              setIsLoading(false);
-              return;
-            }
-
-            const isValid = await verifyPassword(studentPass, acc.password_hash);
-            if (isValid) {
-              localStorage.setItem('role', 'student');
-              localStorage.setItem('student_id', acc.user_code);
-              localStorage.setItem('school_id', acc.school_id);
-              router.push("/dashboard/student");
-              return;
-            } else {
-              toast.error("Hatalı kullanıcı adı veya şifre!");
-              setIsLoading(false);
-              return;
-            }
-          }
-
-          // Legacy school_users fallback
-          const { data: legacyData } = await supabase
-            .from("school_users")
-            .select("*")
-            .eq("username", studentId)
-            .eq("password_plain", studentPass)
-            .eq("role", "student")
-            .maybeSingle();
-
-          if (legacyData) {
-            localStorage.setItem('student_id', studentId);
-            localStorage.setItem('school_id', legacyData.school_id);
-            router.push("/dashboard/student");
-            return;
-          }
-        }
-
-        // Fallback to demo credentials
-        if (studentId === "1234" && studentPass === "1234") {
-          localStorage.setItem('student_id', studentId);
-          router.push("/dashboard/student");
-        } else {
-          toast.error("Hatalı kullanıcı adı veya şifre!");
-        }
-      } else if (role === "pdr") {
-        const pdrEmail = (document.getElementById('pdr-email') as HTMLInputElement)?.value?.trim();
-        const pdrPass = (document.getElementById('pdr-pass') as HTMLInputElement)?.value?.trim();
-
-        // 1. Query school_accounts
-        if (supabase) {
-          const { data: acc } = await supabase
-            .from("school_accounts")
-            .select("*")
-            .eq("user_code", pdrEmail.toUpperCase())
-            .maybeSingle();
-
-          if (acc) {
-            if (acc.role !== "pdr") {
-              toast.error("Bu kullanıcı kodu PDR girişi için yetkili değildir.");
-              setIsLoading(false);
-              return;
-            }
-
-            const isValid = await verifyPassword(pdrPass, acc.password_hash);
-            if (isValid) {
-              localStorage.setItem('role', 'pdr');
-              localStorage.setItem('school_id', acc.school_id);
-              localStorage.setItem('user_code', acc.user_code);
-              router.push("/dashboard/pdr");
-              return;
-            } else {
-              toast.error("Hatalı kullanıcı adı veya şifre!");
-              setIsLoading(false);
-              return;
-            }
-          }
-
-          // Legacy fallback
-          const { data: legacyData } = await supabase
-            .from("school_users")
-            .select("*")
-            .eq("username", pdrEmail)
-            .eq("password_plain", pdrPass)
-            .eq("role", "pdr")
-            .maybeSingle();
-
-          if (legacyData) {
-            localStorage.setItem('school_id', legacyData.school_id);
-            router.push("/dashboard/pdr");
-            return;
-          }
-        }
-
-        if (pdrEmail === "pdr@okul.k12.tr" && pdrPass === "123") {
-          router.push("/dashboard/pdr");
-        } else {
-          toast.error("Hatalı e-posta veya şifre!");
-        }
-      } else if (role === "teacher") {
-        const teacherEmail = (document.getElementById('teacher-email') as HTMLInputElement)?.value?.trim();
-        const teacherPass = (document.getElementById('teacher-pass') as HTMLInputElement)?.value?.trim();
-
-        // 1. Query school_accounts
-        if (supabase) {
-          const { data: acc } = await supabase
-            .from("school_accounts")
-            .select("*")
-            .eq("user_code", teacherEmail.toUpperCase())
-            .maybeSingle();
-
-          if (acc) {
-            if (acc.role !== "ogretmen" && acc.role !== "teacher") {
-              toast.error("Bu kullanıcı kodu Öğretmen girişi için yetkili değildir.");
-              setIsLoading(false);
-              return;
-            }
-
-            const isValid = await verifyPassword(teacherPass, acc.password_hash);
-            if (isValid) {
-              localStorage.setItem('role', 'teacher');
-              localStorage.setItem('school_id', acc.school_id);
-              localStorage.setItem('user_code', acc.user_code);
-              router.push("/dashboard/teacher");
-              return;
-            } else {
-              toast.error("Hatalı kullanıcı adı veya şifre!");
-              setIsLoading(false);
-              return;
-            }
-          }
-        }
-
-        if (teacherEmail === "ogretmen@okul.k12.tr" && teacherPass === "123") {
-          router.push("/dashboard/teacher");
-        } else {
-          toast.error("Hatalı e-posta veya şifre!");
+      // Set client session storage
+      if (data.user) {
+        localStorage.setItem("role", data.user.role || role);
+        if (data.user.school_id) localStorage.setItem("school_id", data.user.school_id);
+        if (data.user.user_code) {
+          localStorage.setItem("user_code", data.user.user_code);
+          if (role === "student") localStorage.setItem("student_id", data.user.user_code);
         }
       }
+
+      router.push(data.redirectUrl || "/");
     } catch (err: any) {
-      toast.error("Giriş yapılırken bir hata oluştu: " + err.message);
-    } finally {
+      toast.error("Bağlantı hatası: " + (err.message || err));
       setIsLoading(false);
     }
   };
@@ -276,10 +100,10 @@ export default function LoginPage() {
           <CardContent>
             <Tabs defaultValue="student" className="w-full">
               <TabsList className="grid w-full grid-cols-4 mb-8 bg-slate-100 dark:bg-slate-950/50 p-1 border border-slate-200 dark:border-slate-800 rounded-xl">
-                <TabsTrigger value="student" className="rounded-lg data-[state=active]:bg-blue-600 data-[state=active]:text-white dark:data-[state=active]:text-white transition-all text-slate-600 dark:text-slate-400 font-medium">Öğrenci</TabsTrigger>
-                <TabsTrigger value="teacher" className="rounded-lg data-[state=active]:bg-purple-600 data-[state=active]:text-white dark:data-[state=active]:text-white transition-all text-slate-600 dark:text-slate-400 font-medium">Öğretmen</TabsTrigger>
-                <TabsTrigger value="pdr" className="rounded-lg data-[state=active]:bg-indigo-600 data-[state=active]:text-white dark:data-[state=active]:text-white transition-all text-slate-600 dark:text-slate-400 font-medium">PDR</TabsTrigger>
-                <TabsTrigger value="meb" className="rounded-lg data-[state=active]:bg-amber-600 data-[state=active]:text-white dark:data-[state=active]:text-white transition-all text-slate-600 dark:text-slate-400 font-medium">MEB</TabsTrigger>
+                <TabsTrigger value="student" className="rounded-lg data-[state=active]:bg-blue-600 data-[state=active]:text-white dark:data-[state=active]:text-white transition-all text-slate-600 dark:text-slate-400 font-medium text-xs sm:text-sm">Öğrenci</TabsTrigger>
+                <TabsTrigger value="teacher" className="rounded-lg data-[state=active]:bg-purple-600 data-[state=active]:text-white dark:data-[state=active]:text-white transition-all text-slate-600 dark:text-slate-400 font-medium text-xs sm:text-sm">Öğretmen</TabsTrigger>
+                <TabsTrigger value="pdr" className="rounded-lg data-[state=active]:bg-indigo-600 data-[state=active]:text-white dark:data-[state=active]:text-white transition-all text-slate-600 dark:text-slate-400 font-medium text-xs sm:text-sm">PDR</TabsTrigger>
+                <TabsTrigger value="meb" className="rounded-lg data-[state=active]:bg-amber-600 data-[state=active]:text-white dark:data-[state=active]:text-white transition-all text-slate-600 dark:text-slate-400 font-medium text-xs sm:text-sm">İdare / MEB</TabsTrigger>
               </TabsList>
               
               <TabsContent value="student" className="animate-fade-in">
